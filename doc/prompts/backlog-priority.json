@@ -1,0 +1,70 @@
+{
+  "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
+  "backlog": [
+    {
+      "id": "claude-md-cc-integration",
+      "file": "claude-md-cc-integration.md",
+      "title": "CLAUDE.md für CC-Integration anlegen",
+      "new": "2026-03-14T17:30:00"
+    },
+    {
+      "id": "one-step-deploy",
+      "file": "one-step-deploy.md",
+      "title": "Deploy vereinfachen: Ein-Schritt-Update",
+      "new": "2026-03-14T17:30:00"
+    },
+    {
+      "id": "auto-changelog",
+      "file": "auto-changelog.md",
+      "title": "CHANGELOG automatisch aus Git-Commits pflegen",
+      "new": "2026-03-14T17:30:00"
+    },
+    {
+      "id": "archive-search-filter",
+      "file": "archive-search-filter.md",
+      "title": "Archiv-Overlay: Suche und Filterung",
+      "new": "2026-03-14T17:30:00"
+    },
+    {
+      "id": "update-workflow-docs-timestamps",
+      "file": "update-workflow-docs-timestamps.md",
+      "title": "Workflow-Doku auf ISO-Timestamps aktualisieren",
+      "new": "2026-03-14T17:30:00"
+    }
+  ],
+  "inProgress": [],
+  "done": [
+    {
+      "id": "iso-timestamps-with-time",
+      "file": "iso-timestamps-with-time.md",
+      "title": "ISO-Timestamps mit Uhrzeit + sortierte Done-Spalte",
+      "new": "2026-03-14T15:00:00",
+      "inProgress": "2026-03-14T15:30:00",
+      "done": "2026-03-14T17:10:00"
+    },
+    {
+      "id": "fix-preview-panel-width",
+      "file": "fix-preview-panel-width.md",
+      "title": "Fix: Preview-Panel unsichtbar (1px Breite)",
+      "new": "2026-03-14T14:00:00",
+      "inProgress": "2026-03-14T14:10:00",
+      "done": "2026-03-14T14:30:00"
+    },
+    {
+      "id": "done-column-newest-first",
+      "file": "done-column-newest-first.md",
+      "title": "Done-Spalte: Neueste Einträge oben",
+      "new": "2026-03-14T14:30:00",
+      "inProgress": "2026-03-14T14:35:00",
+      "done": "2026-03-14T14:50:00"
+    },
+    {
+      "id": "setup-git-repo",
+      "file": "setup-git-repo.md",
+      "title": "Git-Repo aufsetzen und Dateien entflechten",
+      "new": "2026-03-14T13:00:00",
+      "inProgress": "2026-03-14T13:10:00",
+      "done": "2026-03-14T14:00:00"
+    }
+  ]
+}
