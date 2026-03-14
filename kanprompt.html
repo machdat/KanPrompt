@@ -556,7 +556,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.7.1';
+const VERSION = '0.7.2';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
 let companionCheckInterval = null;
@@ -1175,7 +1175,7 @@ function createCard(item, col, index) {
     <div class="card-file">${esc(item.file)}</div>
     <div class="card-meta">
       ${item.blocked ? `<span class="badge badge-blocked" title="${esc(item.blockedBy||'blocked')}" onclick="toggleBlocked('${item.id}')">⊘ ${esc(item.blockedBy||'blocked')}</span>` : ''}
-      ${ds ? `<span class="badge badge-date" title="${esc(ds)}">${dsDisplay}</span>` : ''}
+      ${ds ? `<span class="badge badge-date">${dsDisplay}</span>` : ''}
     </div>`;
   return el;
 }
@@ -1272,9 +1272,9 @@ async function openPreview(item, col) {
   document.getElementById('editToggleBtn').textContent = '✎ Edit';
   const meta = document.getElementById('previewMeta');
   let mh = `<span>📄 ${col.folder}/${item.file}</span>`;
-  if (item.new) mh += `<span title="${esc(item.new)}">🆕 ${formatTS(item.new)}</span>`;
-  if (item.inProgress) mh += `<span title="${esc(item.inProgress)}">🔧 ${formatTS(item.inProgress)}</span>`;
-  if (item.done) mh += `<span title="${esc(item.done)}">✅ ${formatTS(item.done)}</span>`;
+  if (item.new) mh += `<span>🆕 ${formatTS(item.new)}</span>`;
+  if (item.inProgress) mh += `<span>🔧 ${formatTS(item.inProgress)}</span>`;
+  if (item.done) mh += `<span>✅ ${formatTS(item.done)}</span>`;
   if (item.blocked) mh += `<span style="color:var(--accent-red)">⊘ ${item.blockedBy||'blocked'}</span>`;
   meta.innerHTML = mh;
   showReadView();
