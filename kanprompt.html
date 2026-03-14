@@ -556,7 +556,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.7.0';
+const VERSION = '0.7.1';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
 let companionCheckInterval = null;
@@ -1104,7 +1104,7 @@ async function getProjectPath() {
 }
 function nowStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + 'T' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0'); }
 function dateOnly(ts) { return ts ? ts.slice(0, 10) : ''; }
-function formatTS(ts) { if (!ts) return ''; if (dateOnly(ts) === dateOnly(nowStr()) && ts.length > 10) return ts.slice(11, 16); return dateOnly(ts); }
+function formatTS(ts) { if (!ts) return ''; const d = dateOnly(ts); const dd = d.slice(8,10) + '.' + d.slice(5,7) + '.'; if (ts.length > 10) return dd + ' ' + ts.slice(11, 16); return dd; }
 function dateGroup(ds) {
   if (!ds) return 'other';
   const d = dateOnly(ds), today = dateOnly(nowStr());
