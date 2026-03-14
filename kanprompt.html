@@ -556,7 +556,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.6.7';
+const VERSION = '0.7.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
 let companionCheckInterval = null;
@@ -1022,7 +1022,7 @@ async function syncFolderToJson() {
       if (!jsonFiles.has(f)) {
         const id = f.replace('.md', '');
         const title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        const today = todayStr();
+        const today = nowStr();
         const entry = { id, file: f, title };
         if (col.jsonKey === 'backlog') entry.new = today;
         if (col.jsonKey === 'inProgress') { entry.new = today; entry.inProgress = today; }
@@ -1102,11 +1102,14 @@ async function getProjectPath() {
   await resolveProjectPath();
   return localStorage.getItem(key);
 }
-function todayStr() { return new Date().toISOString().slice(0, 10); }
+function nowStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + 'T' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0'); }
+function dateOnly(ts) { return ts ? ts.slice(0, 10) : ''; }
+function formatTS(ts) { if (!ts) return ''; if (dateOnly(ts) === dateOnly(nowStr()) && ts.length > 10) return ts.slice(11, 16); return dateOnly(ts); }
 function dateGroup(ds) {
   if (!ds) return 'other';
-  if (ds === todayStr()) return 'today';
-  const diff = (new Date(todayStr()) - new Date(ds)) / 86400000;
+  const d = dateOnly(ds), today = dateOnly(nowStr());
+  if (d === today) return 'today';
+  const diff = (new Date(today) - new Date(d)) / 86400000;
   return diff <= 7 ? 'week' : 'other';
 }
 
@@ -1133,13 +1136,13 @@ function renderBoard() {
     body.addEventListener('drop', e => { e.preventDefault(); clearDropIndicator(body); if (draggedId) { const off = parseInt(body.dataset.hiddenOffset||'0'); handleDrop(draggedId, col.id, dropTargetIndex + off); } dropTargetCol = null; dropTargetIndex = -1; });
 
     if (col.jsonKey === 'done') {
-      // Done: date-grouped, newest first, archive at bottom
-      let visible = allItems, hidden = 0;
-      if (allItems.length > DONE_VISIBLE_COUNT) { hidden = allItems.length - DONE_VISIBLE_COUNT; visible = allItems.slice(-DONE_VISIBLE_COUNT); }
+      // Done: sorted by timestamp (newest first), date-grouped, archive at bottom
+      const sorted = [...allItems].sort((a, b) => (b.done || '').localeCompare(a.done || ''));
+      let visible = sorted, hidden = 0;
+      if (sorted.length > DONE_VISIBLE_COUNT) { hidden = sorted.length - DONE_VISIBLE_COUNT; visible = sorted.slice(0, DONE_VISIBLE_COUNT); }
       body.dataset.hiddenOffset = hidden;
-      const reversed = [...visible].reverse();
       let lastG = '';
-      reversed.forEach((item) => {
+      visible.forEach((item) => {
         const origIdx = allItems.indexOf(item);
         const g = dateGroup(item.done);
         if (g !== lastG) { lastG = g; const lbl = document.createElement('div'); lbl.className = 'date-group-label'; lbl.textContent = g === 'today' ? '— Heute' : g === 'week' ? '— Diese Woche' : '— Älter'; body.appendChild(lbl); }
@@ -1165,13 +1168,14 @@ function createCard(item, col, index) {
   el.addEventListener('dragend', () => { draggedId = null; dragSourceCol = null; el.classList.remove('dragging'); el.style.opacity = ''; document.querySelectorAll('.drop-indicator').forEach(i => i.remove()); });
   el.addEventListener('click', e => { if (e.target.closest('.card-action-btn') || e.target.closest('.badge-blocked')) return; if (item.id === selectedId && document.getElementById('previewPanel').classList.contains('open')) closePreview(); else openPreview(item, col); });
   const ds = item.done || item.inProgress || item.new || '';
+  const dsDisplay = formatTS(ds);
   el.innerHTML = `
     <div class="card-actions"><button class="card-action-btn" onclick="toggleBlocked('${item.id}')" title="${item.blocked?'Unblock':'Block'}">⊘</button><button class="card-action-btn delete" onclick="deleteItem('${item.id}')" title="Löschen">✕</button></div>
     <div class="card-title"><span class="prio-num">#${index+1}</span>${esc(item.title)}</div>
     <div class="card-file">${esc(item.file)}</div>
     <div class="card-meta">
       ${item.blocked ? `<span class="badge badge-blocked" title="${esc(item.blockedBy||'blocked')}" onclick="toggleBlocked('${item.id}')">⊘ ${esc(item.blockedBy||'blocked')}</span>` : ''}
-      ${ds ? `<span class="badge badge-date">${ds}</span>` : ''}
+      ${ds ? `<span class="badge badge-date" title="${esc(ds)}">${dsDisplay}</span>` : ''}
     </div>`;
   return el;
 }
@@ -1210,7 +1214,7 @@ async function handleDrop(itemId, targetColId, insertIndex) {
   } else {
     if (!await moveFile(item.file, srcCol.folder, tgtCol.folder)) return;
     jsonData[srcCol.jsonKey].splice(srcIdx, 1);
-    const today = todayStr();
+    const today = nowStr();
     if (tgtCol.jsonKey === 'backlog') { delete item.inProgress; delete item.done; }
     if (tgtCol.jsonKey === 'inProgress') { item.inProgress = today; delete item.done; }
     if (tgtCol.jsonKey === 'done') { item.done = today; }
@@ -1268,9 +1272,9 @@ async function openPreview(item, col) {
   document.getElementById('editToggleBtn').textContent = '✎ Edit';
   const meta = document.getElementById('previewMeta');
   let mh = `<span>📄 ${col.folder}/${item.file}</span>`;
-  if (item.new) mh += `<span>🆕 ${item.new}</span>`;
-  if (item.inProgress) mh += `<span>🔧 ${item.inProgress}</span>`;
-  if (item.done) mh += `<span>✅ ${item.done}</span>`;
+  if (item.new) mh += `<span title="${esc(item.new)}">🆕 ${formatTS(item.new)}</span>`;
+  if (item.inProgress) mh += `<span title="${esc(item.inProgress)}">🔧 ${formatTS(item.inProgress)}</span>`;
+  if (item.done) mh += `<span title="${esc(item.done)}">✅ ${formatTS(item.done)}</span>`;
   if (item.blocked) mh += `<span style="color:var(--accent-red)">⊘ ${item.blockedBy||'blocked'}</span>`;
   meta.innerHTML = mh;
   showReadView();
@@ -1324,7 +1328,7 @@ function slugify(s) { return s.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'
 async function createNewPrompt() {
   const title=document.getElementById('newTitle').value.trim(); let fn=document.getElementById('newFilename').value.trim(); const c=document.getElementById('newContent').value;
   if(!title){toast('Titel fehlt');return;} if(!fn)fn=slugify(title)+'.md'; if(!fn.endsWith('.md'))fn+='.md';
-  const id=fn.replace('.md',''), today=todayStr();
+  const id=fn.replace('.md',''), today=nowStr();
   if(!await createMdFile('new',fn,c||PROMPT_TEMPLATE(title)))return;
   jsonData.backlog.push({id,file:fn,title,new:today});
   await writeJson(); renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: new/'+fn);
@@ -1344,11 +1348,11 @@ cat backlog-priority.json | jq '.inProgress[].title'
 # Task starten
 TASK="ID"; FILE="FILE.md"
 mv new/$FILE in-progress/$FILE
-jq --arg id "$TASK" --arg d "$(date +%Y-%m-%d)" '(.backlog|=map(select(.id!=$id)))|.inProgress+=[ (.backlog[]|select(.id==$id))+{"inProgress":$d}]' backlog-priority.json > tmp.json && mv tmp.json backlog-priority.json
+jq --arg id "$TASK" --arg d "$(date +%Y-%m-%dT%H:%M:%S)" '(.backlog|=map(select(.id!=$id)))|.inProgress+=[ (.backlog[]|select(.id==$id))+{"inProgress":$d}]' backlog-priority.json > tmp.json && mv tmp.json backlog-priority.json
 
 # Task abschließen
 mv in-progress/$FILE done/$FILE
-jq --arg id "$TASK" --arg d "$(date +%Y-%m-%d)" '(.inProgress[]|select(.id==$id)).done=$d|.done+=[.inProgress[]|select(.id==$id)]|.inProgress|=map(select(.id!=$id))' backlog-priority.json > tmp.json && mv tmp.json backlog-priority.json
+jq --arg id "$TASK" --arg d "$(date +%Y-%m-%dT%H:%M:%S)" '(.inProgress[]|select(.id==$id)).done=$d|.done+=[.inProgress[]|select(.id==$id)]|.inProgress|=map(select(.id!=$id))' backlog-priority.json > tmp.json && mv tmp.json backlog-priority.json
 `;
   navigator.clipboard.writeText(t).then(()=>toast('CLI in Zwischenablage'));
 }
