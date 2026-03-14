@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Kanban</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-root: #0e1117;
+    --bg-surface: #161b22;
+    --bg-card: #1c2129;
+    --bg-card-hover: #222830;
+    --bg-column: #131920;
+    --border: #2d333b;
+    --border-subtle: #21262d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #585e68;
+    --accent-blue: #58a6ff;
+    --accent-green: #3fb950;
+    --accent-orange: #d29922;
+    --accent-red: #f85149;
+    --accent-purple: #bc8cff;
+    --accent-pink: #f778ba;
+    --priority-high: #f85149;
+    --priority-medium: #d29922;
+    --priority-low: #3fb950;
+    --source-manual: #8b949e;
+    --source-claude-ai: #58a6ff;
+    --source-claude-code: #bc8cff;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --shadow-card: 0 1px 3px rgba(0,0,0,.4);
+    --shadow-drag: 0 8px 24px rgba(0,0,0,.6);
+    --transition: 150ms ease;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--bg-root);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-surface);
+    flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--accent-blue);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--text-muted); font-weight: 400; }
+  .project-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: text;
+    transition: var(--transition);
+  }
+  .project-name:hover { border-color: var(--border); }
+  .project-name:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    background: var(--bg-card);
+  }
+
+  .header-right { display: flex; align-items: center; gap: 8px; }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    animation: pulse 2s infinite;
+  }
+  .status-dot.paused { background: var(--text-muted); animation: none; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .4; }
+  }
+  .status-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .btn {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .btn:hover { color: var(--text-primary); border-color: var(--text-muted); background: var(--bg-card-hover); }
+  .btn-primary {
+    background: var(--accent-blue);
+    color: #fff;
+    border-color: var(--accent-blue);
+  }
+  .btn-primary:hover { background: #4d9aef; }
+  .btn kbd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.15);
+  }
+
+  /* ── BOARD ── */
+  .board {
+    flex: 1;
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    align-items: flex-start;
+  }
+
+  .column {
+    min-width: 280px;
+    max-width: 320px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-column);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    max-height: 100%;
+    overflow: hidden;
+  }
+  .column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 8px;
+    flex-shrink: 0;
+  }
+  .column-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+  }
+  .column-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    padding: 1px 7px;
+    border-radius: 10px;
+  }
+  .column-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 60px;
+  }
+  .column-body.drag-over {
+    background: rgba(88,166,255,.04);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  }
+
+  /* scrollbar */
+  .column-body::-webkit-scrollbar { width: 4px; }
+  .column-body::-webkit-scrollbar-track { background: transparent; }
+  .column-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    cursor: grab;
+    transition: var(--transition);
+    position: relative;
+  }
+  .card:hover {
+    border-color: var(--border);
+    background: var(--bg-card-hover);
+  }
+  .card.dragging {
+    opacity: .35;
+    transform: scale(.97);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+  }
+  .card-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,.06);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+  }
+  .priority-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .priority-dot.high { background: var(--priority-high); }
+  .priority-dot.medium { background: var(--priority-medium); }
+  .priority-dot.low { background: var(--priority-low); }
+
+  .source-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-left: auto;
+  }
+  .source-badge.manual { color: var(--source-manual); border: 1px solid var(--source-manual); }
+  .source-badge.claude-ai { color: var(--source-claude-ai); border: 1px solid var(--source-claude-ai); }
+  .source-badge.claude-code { color: var(--source-claude-code); border: 1px solid var(--source-claude-code); }
+
+  .card-actions {
+    position: absolute;
+    top: 6px; right: 6px;
+    display: flex; gap: 2px;
+    opacity: 0;
+    transition: var(--transition);
+  }
+  .card:hover .card-actions { opacity: 1; }
+  .card-action-btn {
+    width: 22px; height: 22px;
+    border: none;
+    background: var(--bg-surface);
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+  }
+  .card-action-btn:hover { color: var(--text-primary); background: var(--border); }
+  .card-action-btn.delete:hover { color: var(--accent-red); }
+
+  /* ── ADD CARD ── */
+  .add-card-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px dashed var(--border-subtle);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+    width: 100%;
+    flex-shrink: 0;
+  }
+  .add-card-btn:hover {
+    color: var(--text-secondary);
+    border-color: var(--border);
+    background: rgba(255,255,255,.02);
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    width: 440px;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 24px;
+    transform: translateY(10px);
+    transition: transform 200ms;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 18px;
+  }
+  .form-group { margin-bottom: 14px; }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: var(--transition);
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: var(--accent-blue);
+  }
+  .form-group textarea { resize: vertical; min-height: 60px; }
+  .form-row { display: flex; gap: 10px; }
+  .form-row .form-group { flex: 1; }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  /* ── WELCOME SCREEN ── */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 40px;
+    text-align: center;
+  }
+  .welcome h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent-blue);
+  }
+  .welcome p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    max-width: 420px;
+    line-height: 1.6;
+  }
+  .welcome .btn { font-size: 15px; padding: 10px 24px; }
+
+  /* ── INFO BAR ── */
+  .info-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 20px;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+    flex-shrink: 0;
+  }
+  .info-bar-left, .info-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .info-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .info-text strong { color: var(--text-secondary); }
+
+  /* drop indicator */
+  .drop-indicator {
+    height: 3px;
+    background: var(--accent-blue);
+    border-radius: 2px;
+    margin: -2px 0;
+    transition: opacity 100ms;
+  }
+
+  /* toast */
+  .toast-container {
+    position: fixed;
+    bottom: 50px;
+    right: 20px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .toast {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-card);
+    animation: toastIn 200ms ease, toastOut 300ms ease 2.5s forwards;
+  }
+  @keyframes toastIn { from { transform: translateX(20px); opacity: 0; } }
+  @keyframes toastOut { to { transform: translateX(20px); opacity: 0; } }
+</style>
+</head>
+<body>
+
+<!-- WELCOME SCREEN (no file loaded) -->
+<div class="welcome" id="welcomeScreen">
+  <h1>&gt;_ claude kanban</h1>
+  <p>
+    Standalone Kanban-Board für Claude Projekte.<br>
+    Öffne eine bestehende <strong>kanban.json</strong> oder erstelle eine neue.
+    Die Datei wird zur Single Source of Truth für Claude.ai, Claude Code und dieses Board.
+  </p>
+  <div style="display:flex;gap:10px;margin-top:8px;">
+    <button class="btn btn-primary" onclick="openFile()">📂 JSON öffnen</button>
+    <button class="btn" onclick="createNewFile()">✨ Neu erstellen</button>
+  </div>
+  <p style="font-size:12px;color:var(--text-muted);margin-top:12px;">
+    Benötigt Chrome oder Edge (File System Access API)
+  </p>
+</div>
+
+<!-- MAIN APP (hidden until file loaded) -->
+<div id="app" style="display:none;flex-direction:column;height:100vh;">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">&gt;_ kanban <span>/ claude</span></div>
+      <input class="project-name" id="projectName" value="Mein Projekt" spellcheck="false"
+             onchange="updateProjectName(this.value)">
+    </div>
+    <div class="header-right">
+      <div style="display:flex;align-items:center;gap:6px;margin-right:8px;">
+        <div class="status-dot" id="pollDot"></div>
+        <span class="status-label" id="pollLabel">polling</span>
+      </div>
+      <button class="btn" onclick="refreshFromDisk()" title="JSON neu laden">↻ Refresh</button>
+      <button class="btn" onclick="togglePoll()" id="pollToggle">⏸ Pause</button>
+      <button class="btn" onclick="exportSchema()">📋 Schema</button>
+      <button class="btn btn-primary" onclick="openModal()">+ Task <kbd>N</kbd></button>
+    </div>
+  </div>
+
+  <!-- Board -->
+  <div class="board" id="board"></div>
+
+  <!-- Info Bar -->
+  <div class="info-bar">
+    <div class="info-bar-left">
+      <span class="info-text" id="filePathInfo">—</span>
+      <span class="info-text" id="taskCountInfo">0 Tasks</span>
+    </div>
+    <div class="info-bar-right">
+      <span class="info-text" id="lastSyncInfo">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="event.target===this&&closeModal()">
+  <div class="modal">
+    <h2 id="modalTitle">Neuer Task</h2>
+    <input type="hidden" id="editTaskId">
+    <div class="form-group">
+      <label>Titel</label>
+      <input type="text" id="taskTitle" placeholder="Was soll erledigt werden?" autofocus>
+    </div>
+    <div class="form-group">
+      <label>Beschreibung</label>
+      <textarea id="taskDesc" placeholder="Details, Kontext, Links..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Spalte</label>
+        <select id="taskColumn">
+          <option value="backlog">Backlog</option>
+          <option value="todo" selected>To Do</option>
+          <option value="in_progress">In Progress</option>
+          <option value="review">Review</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Priorität</label>
+        <select id="taskPriority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Quelle</label>
+        <select id="taskSource">
+          <option value="manual" selected>Manual</option>
+          <option value="claude.ai">Claude.ai</option>
+          <option value="claude-code">Claude Code</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Tags <span style="color:var(--text-muted)">(kommagetrennt)</span></label>
+      <input type="text" id="taskTags" placeholder="bug, feature, refactor...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveTask()" id="saveBtn">Erstellen</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+let fileHandle = null;
+let data = null;
+let polling = true;
+let pollInterval = null;
+let draggedId = null;
+let lastJsonSnapshot = '';
+
+const COLUMNS = [
+  { id: 'backlog',     title: 'Backlog' },
+  { id: 'todo',        title: 'To Do' },
+  { id: 'in_progress', title: 'In Progress' },
+  { id: 'review',      title: 'Review' },
+  { id: 'done',        title: 'Done' },
+];
+
+const DEFAULT_DATA = () => ({
+  version: 1,
+  project: { name: 'Mein Projekt', description: '' },
+  columns: COLUMNS.map(c => ({ id: c.id, title: c.title })),
+  tasks: []
+});
+
+// ══════════════════════════════════════
+//  FILE SYSTEM ACCESS API
+// ══════════════════════════════════════
+async function openFile() {
+  try {
+    [fileHandle] = await window.showOpenFilePicker({
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+    });
+    await loadFromHandle();
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('Fehler: ' + e.message);
+  }
+}
+
+async function createNewFile() {
+  try {
+    fileHandle = await window.showSaveFilePicker({
+      suggestedName: 'kanban.json',
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+    });
+    data = DEFAULT_DATA();
+    await writeToDisk();
+    showApp();
+    toast('Neue kanban.json erstellt');
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('Fehler: ' + e.message);
+  }
+}
+
+async function loadFromHandle() {
+  const file = await fileHandle.getFile();
+  const text = await file.text();
+  data = JSON.parse(text);
+  // ensure columns exist
+  if (!data.columns || !data.columns.length) {
+    data.columns = COLUMNS.map(c => ({ id: c.id, title: c.title }));
+  }
+  if (!data.tasks) data.tasks = [];
+  lastJsonSnapshot = JSON.stringify(data);
+  showApp();
+  toast('Geladen: ' + file.name);
+}
+
+async function writeToDisk() {
+  if (!fileHandle) return;
+  data.tasks.forEach(t => t.updated_at = new Date().toISOString());
+  const json = JSON.stringify(data, null, 2);
+  lastJsonSnapshot = json;
+  const writable = await fileHandle.createWritable();
+  await writable.write(json);
+  await writable.close();
+  updateInfoBar();
+}
+
+async function refreshFromDisk() {
+  if (!fileHandle) return;
+  try {
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    if (text !== lastJsonSnapshot) {
+      data = JSON.parse(text);
+      lastJsonSnapshot = text;
+      renderBoard();
+      updateInfoBar();
+      toast('Externe Änderungen geladen');
+    } else {
+      toast('Keine Änderungen');
+    }
+  } catch (e) {
+    toast('Refresh fehlgeschlagen: ' + e.message);
+  }
+}
+
+// ══════════════════════════════════════
+//  POLLING
+// ══════════════════════════════════════
+function startPoll() {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    if (!fileHandle || !polling) return;
+    try {
+      const file = await fileHandle.getFile();
+      const text = await file.text();
+      if (text !== lastJsonSnapshot) {
+        data = JSON.parse(text);
+        lastJsonSnapshot = text;
+        renderBoard();
+        updateInfoBar();
+        toast('↻ Externe Änderung erkannt');
+      }
+    } catch (_) {}
+  }, 2000);
+}
+
+function togglePoll() {
+  polling = !polling;
+  document.getElementById('pollToggle').textContent = polling ? '⏸ Pause' : '▶ Poll';
+  document.getElementById('pollDot').className = 'status-dot' + (polling ? '' : ' paused');
+  document.getElementById('pollLabel').textContent = polling ? 'polling' : 'paused';
+}
+
+// ══════════════════════════════════════
+//  RENDERING
+// ══════════════════════════════════════
+function showApp() {
+  document.getElementById('welcomeScreen').style.display = 'none';
+  const app = document.getElementById('app');
+  app.style.display = 'flex';
+  document.getElementById('projectName').value = data.project?.name || '';
+  renderBoard();
+  updateInfoBar();
+  startPoll();
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  const cols = data.columns && data.columns.length ? data.columns : COLUMNS;
+
+  cols.forEach(col => {
+    const tasks = data.tasks.filter(t => t.column === col.id);
+    const colEl = document.createElement('div');
+    colEl.className = 'column';
+    colEl.innerHTML = `
+      <div class="column-header">
+        <span class="column-title">${col.title}</span>
+        <span class="column-count">${tasks.length}</span>
+      </div>
+      <div class="column-body" data-column="${col.id}"></div>
+    `;
+
+    const body = colEl.querySelector('.column-body');
+
+    // drag events on column body
+    body.addEventListener('dragover', e => {
+      e.preventDefault();
+      body.classList.add('drag-over');
+    });
+    body.addEventListener('dragleave', () => body.classList.remove('drag-over'));
+    body.addEventListener('drop', e => {
+      e.preventDefault();
+      body.classList.remove('drag-over');
+      if (!draggedId) return;
+      const task = data.tasks.find(t => t.id === draggedId);
+      if (task) {
+        task.column = col.id;
+        task.updated_at = new Date().toISOString();
+        writeToDisk();
+        renderBoard();
+      }
+    });
+
+    // render cards
+    tasks.sort((a, b) => {
+      const prio = { high: 0, medium: 1, low: 2 };
+      return (prio[a.priority] || 1) - (prio[b.priority] || 1);
+    });
+
+    tasks.forEach(task => {
+      body.appendChild(createCard(task));
+    });
+
+    // add button
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-card-btn';
+    addBtn.innerHTML = '+ Task hinzufügen';
+    addBtn.onclick = () => openModal(col.id);
+    colEl.appendChild(addBtn);
+
+    board.appendChild(colEl);
+  });
+}
+
+function createCard(task) {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.draggable = true;
+  el.dataset.id = task.id;
+
+  el.addEventListener('dragstart', e => {
+    draggedId = task.id;
+    el.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  el.addEventListener('dragend', () => {
+    draggedId = null;
+    el.classList.remove('dragging');
+  });
+
+  const sourceClass = task.source === 'claude.ai' ? 'claude-ai'
+    : task.source === 'claude-code' ? 'claude-code' : 'manual';
+  const sourceLabel = task.source === 'claude.ai' ? 'ai'
+    : task.source === 'claude-code' ? 'code' : '✎';
+
+  el.innerHTML = `
+    <div class="card-actions">
+      <button class="card-action-btn" onclick="editTask('${task.id}')" title="Bearbeiten">✎</button>
+      <button class="card-action-btn delete" onclick="deleteTask('${task.id}')" title="Löschen">✕</button>
+    </div>
+    <div class="card-title">${esc(task.title)}</div>
+    ${task.description ? `<div class="card-desc">${esc(task.description)}</div>` : ''}
+    <div class="card-meta">
+      <span class="priority-dot ${task.priority || 'medium'}"></span>
+      ${(task.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('')}
+      <span class="source-badge ${sourceClass}">${sourceLabel}</span>
+    </div>
+  `;
+  return el;
+}
+
+// ══════════════════════════════════════
+//  MODAL / CRUD
+// ══════════════════════════════════════
+function openModal(defaultCol) {
+  document.getElementById('modalTitle').textContent = 'Neuer Task';
+  document.getElementById('saveBtn').textContent = 'Erstellen';
+  document.getElementById('editTaskId').value = '';
+  document.getElementById('taskTitle').value = '';
+  document.getElementById('taskDesc').value = '';
+  document.getElementById('taskColumn').value = defaultCol || 'todo';
+  document.getElementById('taskPriority').value = 'medium';
+  document.getElementById('taskSource').value = 'manual';
+  document.getElementById('taskTags').value = '';
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('taskTitle').focus(), 100);
+}
+
+function editTask(id) {
+  const task = data.tasks.find(t => t.id === id);
+  if (!task) return;
+  document.getElementById('modalTitle').textContent = 'Task bearbeiten';
+  document.getElementById('saveBtn').textContent = 'Speichern';
+  document.getElementById('editTaskId').value = id;
+  document.getElementById('taskTitle').value = task.title;
+  document.getElementById('taskDesc').value = task.description || '';
+  document.getElementById('taskColumn').value = task.column;
+  document.getElementById('taskPriority').value = task.priority || 'medium';
+  document.getElementById('taskSource').value = task.source || 'manual';
+  document.getElementById('taskTags').value = (task.tags || []).join(', ');
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('taskTitle').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function saveTask() {
+  const title = document.getElementById('taskTitle').value.trim();
+  if (!title) return;
+
+  const editId = document.getElementById('editTaskId').value;
+  const now = new Date().toISOString();
+  const tags = document.getElementById('taskTags').value
+    .split(',').map(t => t.trim()).filter(Boolean);
+
+  if (editId) {
+    // update existing
+    const task = data.tasks.find(t => t.id === editId);
+    if (task) {
+      task.title = title;
+      task.description = document.getElementById('taskDesc').value.trim();
+      task.column = document.getElementById('taskColumn').value;
+      task.priority = document.getElementById('taskPriority').value;
+      task.source = document.getElementById('taskSource').value;
+      task.tags = tags;
+      task.updated_at = now;
+    }
+  } else {
+    // create new
+    data.tasks.push({
+      id: 't_' + Math.random().toString(36).slice(2, 10),
+      title,
+      description: document.getElementById('taskDesc').value.trim(),
+      column: document.getElementById('taskColumn').value,
+      priority: document.getElementById('taskPriority').value,
+      source: document.getElementById('taskSource').value,
+      tags,
+      created_at: now,
+      updated_at: now,
+    });
+  }
+
+  writeToDisk();
+  renderBoard();
+  closeModal();
+  toast(editId ? 'Task aktualisiert' : 'Task erstellt');
+}
+
+function deleteTask(id) {
+  if (!confirm('Task wirklich löschen?')) return;
+  data.tasks = data.tasks.filter(t => t.id !== id);
+  writeToDisk();
+  renderBoard();
+  toast('Task gelöscht');
+}
+
+function updateProjectName(name) {
+  if (!data) return;
+  data.project.name = name;
+  writeToDisk();
+}
+
+// ══════════════════════════════════════
+//  SCHEMA EXPORT (for Claude Code / AI)
+// ══════════════════════════════════════
+function exportSchema() {
+  const schema = `# kanban.json Schema (v1)
+
+## Datei lesen
+\`\`\`bash
+cat /pfad/zu/kanban.json | jq .
+\`\`\`
+
+## Task hinzufügen (Claude Code / Script)
+\`\`\`bash
+jq '.tasks += [{
+  "id": "t_'$(openssl rand -hex 4)'",
+  "title": "Neuer Task",
+  "description": "Beschreibung",
+  "column": "todo",
+  "priority": "medium",
+  "source": "claude-code",
+  "tags": ["feature"],
+  "created_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+  "updated_at": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+}]' kanban.json > tmp.json && mv tmp.json kanban.json
+\`\`\`
+
+## Task verschieben
+\`\`\`bash
+jq '(.tasks[] | select(.id == "TASK_ID")).column = "done"' kanban.json > tmp.json && mv tmp.json kanban.json
+\`\`\`
+
+## Columns: backlog, todo, in_progress, review, done
+## Priority: low, medium, high
+## Source: manual, claude.ai, claude-code
+`;
+  navigator.clipboard.writeText(schema).then(() => {
+    toast('Schema in Zwischenablage kopiert');
+  });
+}
+
+// ══════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+function updateInfoBar() {
+  if (!data) return;
+  const total = data.tasks.length;
+  const done = data.tasks.filter(t => t.column === 'done').length;
+  document.getElementById('taskCountInfo').textContent = `${total} Tasks · ${done} done`;
+  document.getElementById('lastSyncInfo').textContent = 'Sync: ' + new Date().toLocaleTimeString('de-DE');
+  document.getElementById('filePathInfo').textContent = fileHandle?.name || '—';
+}
+
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ══════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ══════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    openModal();
+  }
+  if (e.key === 'Enter' && document.getElementById('modalOverlay').classList.contains('open') && e.ctrlKey) {
+    saveTask();
+  }
+});
+
+// ══════════════════════════════════════
+//  BROWSER CHECK
+// ══════════════════════════════════════
+if (!window.showOpenFilePicker) {
+  document.querySelector('.welcome p').innerHTML = `
+    <strong style="color:var(--accent-red)">⚠ File System Access API nicht verfügbar.</strong><br>
+    Bitte Chrome oder Edge verwenden (kein Firefox/Safari).
+  `;
+  document.querySelectorAll('.welcome .btn').forEach(b => b.disabled = true);
+}
+</script>
+</body>
+</html>

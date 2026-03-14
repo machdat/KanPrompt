@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Kanban — Prompts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-root: #0e1117;
+    --bg-surface: #161b22;
+    --bg-card: #1c2129;
+    --bg-card-hover: #222830;
+    --bg-column: #131920;
+    --bg-preview: #12161d;
+    --border: #2d333b;
+    --border-subtle: #21262d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #585e68;
+    --accent-blue: #58a6ff;
+    --accent-green: #3fb950;
+    --accent-orange: #d29922;
+    --accent-red: #f85149;
+    --accent-purple: #bc8cff;
+    --blocked-bg: rgba(248,81,73,.06);
+    --blocked-border: rgba(248,81,73,.25);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --shadow-card: 0 1px 3px rgba(0,0,0,.4);
+    --transition: 150ms ease;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--bg-root); color: var(--text-primary);
+    height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px; border-bottom: 1px solid var(--border);
+    background: var(--bg-surface); flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700; font-size: 14px;
+    color: var(--accent-blue); letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--text-muted); font-weight: 400; }
+  .project-label {
+    font-size: 13px; color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-card); padding: 4px 10px;
+    border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+  }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent-green); animation: pulse 2s infinite;
+  }
+  .status-dot.paused { background: var(--text-muted); animation: none; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .status-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .btn {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 12px; font-weight: 500;
+    padding: 5px 11px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--bg-card);
+    color: var(--text-secondary); cursor: pointer;
+    transition: var(--transition); display: flex; align-items: center; gap: 5px;
+  }
+  .btn:hover { color: var(--text-primary); border-color: var(--text-muted); background: var(--bg-card-hover); }
+  .btn-primary { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
+  .btn-primary:hover { background: #4d9aef; }
+  .btn-sm { font-size: 11px; padding: 3px 8px; }
+
+  /* ── MAIN LAYOUT ── */
+  .main { flex: 1; display: flex; overflow: hidden; }
+
+  /* ── BOARD ── */
+  .board {
+    flex: 1; display: flex; gap: 10px;
+    padding: 14px 16px; overflow-x: auto; overflow-y: hidden; align-items: flex-start;
+  }
+  .column {
+    min-width: 250px; max-width: 300px; flex: 1;
+    display: flex; flex-direction: column;
+    background: var(--bg-column); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg); max-height: 100%; overflow: hidden;
+  }
+  .column-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px 6px; flex-shrink: 0;
+  }
+  .column-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-secondary); display: flex; align-items: center; gap: 6px;
+  }
+  .column-title .folder-hint { font-weight: 400; color: var(--text-muted); font-size: 10px; }
+  .column-count {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--text-muted); background: var(--bg-card);
+    padding: 1px 7px; border-radius: 10px;
+  }
+  .column-body {
+    flex: 1; overflow-y: auto; padding: 4px 8px 8px;
+    display: flex; flex-direction: column; gap: 5px; min-height: 50px;
+  }
+  .column-body::-webkit-scrollbar { width: 4px; }
+  .column-body::-webkit-scrollbar-track { background: transparent; }
+  .column-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md); padding: 9px 11px;
+    cursor: grab; transition: var(--transition); position: relative;
+  }
+  .card:hover { border-color: var(--border); background: var(--bg-card-hover); }
+  .card.active { border-color: var(--accent-blue); background: var(--bg-card-hover); }
+  .card.dragging { opacity: .3; transform: scale(.97); }
+  .card.blocked { background: var(--blocked-bg); border-color: var(--blocked-border); }
+  .card-title {
+    font-size: 12px; font-weight: 500; line-height: 1.35;
+    color: var(--text-primary); margin-bottom: 4px; padding-right: 40px;
+  }
+  .card-file {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--text-muted); margin-bottom: 5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .card-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+  .badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    padding: 1px 6px; border-radius: 3px;
+    text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .badge-blocked {
+    color: var(--accent-red); border: 1px solid var(--accent-red);
+    background: rgba(248,81,73,.08); cursor: pointer;
+  }
+  .badge-blocked:hover { background: rgba(248,81,73,.15); }
+  .badge-date { color: var(--text-muted); border: 1px solid var(--border-subtle); }
+  .card-actions {
+    position: absolute; top: 5px; right: 5px;
+    display: flex; gap: 2px; opacity: 0; transition: var(--transition);
+  }
+  .card:hover .card-actions { opacity: 1; }
+  .card-action-btn {
+    width: 20px; height: 20px; border: none;
+    background: var(--bg-surface); color: var(--text-muted);
+    border-radius: 3px; cursor: pointer; font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    transition: var(--transition);
+  }
+  .card-action-btn:hover { color: var(--text-primary); background: var(--border); }
+  .card-action-btn.delete:hover { color: var(--accent-red); }
+  .card .prio-num {
+    position: absolute; top: 7px; right: 28px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; color: var(--text-muted);
+    opacity: 0; transition: var(--transition);
+  }
+  .card:hover .prio-num { opacity: .7; }
+
+  /* ── DROP INDICATOR ── */
+  .drop-indicator {
+    height: 2px; background: var(--accent-blue); border-radius: 2px;
+    margin: -1px 4px; pointer-events: none;
+    box-shadow: 0 0 6px rgba(88,166,255,.4);
+  }
+
+  /* ── DATE GROUP LABEL ── */
+  .date-group-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-muted); padding: 6px 4px 2px;
+  }
+
+  /* ── PREVIEW PANEL ── */
+  .preview-panel {
+    width: 0; overflow: hidden;
+    background: var(--bg-preview); border-left: 1px solid var(--border);
+    transition: width 200ms ease; display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .preview-panel.open { width: 480px; }
+  .preview-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
+  }
+  .preview-header h3 {
+    font-size: 13px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
+  }
+  .preview-toolbar { display: flex; align-items: center; gap: 6px; }
+  .preview-close {
+    background: none; border: none; color: var(--text-muted);
+    cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 3px;
+  }
+  .preview-close:hover { color: var(--text-primary); background: var(--bg-card); }
+  .preview-meta {
+    padding: 8px 14px; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--text-muted);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0;
+  }
+  .preview-meta span { display: flex; align-items: center; gap: 4px; }
+  .preview-content {
+    flex: 1; overflow-y: auto; padding: 14px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    line-height: 1.6; color: var(--text-secondary);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .preview-content::-webkit-scrollbar { width: 4px; }
+  .preview-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .preview-content h1, .preview-content h2, .preview-content h3 {
+    color: var(--text-primary); font-weight: 700; margin: 12px 0 6px;
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+  .preview-content h1 { font-size: 16px; }
+  .preview-content h2 { font-size: 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 4px; }
+  .preview-content h3 { font-size: 13px; }
+  .preview-content code { background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+  .preview-content pre { background: var(--bg-card); padding: 10px; border-radius: var(--radius-sm); overflow-x: auto; margin: 8px 0; }
+  .preview-content strong { color: var(--text-primary); }
+  /* edit mode */
+  .preview-editor {
+    flex: 1; overflow: hidden; display: none; flex-direction: column;
+  }
+  .preview-editor textarea {
+    flex: 1; width: 100%; padding: 14px; resize: none;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    line-height: 1.6; color: var(--text-primary);
+    background: var(--bg-root); border: none; outline: none; tab-size: 2;
+  }
+  .preview-editor-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 14px; border-top: 1px solid var(--border-subtle);
+    background: var(--bg-surface); flex-shrink: 0;
+  }
+  .preview-editor-bar .hint { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); }
+
+  /* ── WELCOME ── */
+  .welcome {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+    padding: 40px; text-align: center;
+  }
+  .welcome h1 { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: var(--accent-blue); }
+  .welcome p { font-size: 13px; color: var(--text-secondary); max-width: 500px; line-height: 1.6; }
+  .welcome code { background: var(--bg-card); padding: 2px 8px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  /* ── INFO BAR ── */
+  .info-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 20px; border-top: 1px solid var(--border-subtle);
+    background: var(--bg-surface); flex-shrink: 0;
+  }
+  .info-bar-left, .info-bar-right { display: flex; align-items: center; gap: 12px; }
+  .info-text { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+    z-index: 100; display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 200ms;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); width: 480px; max-height: 80vh;
+    overflow-y: auto; padding: 24px;
+    transform: translateY(10px); transition: transform 200ms;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+  .form-group { margin-bottom: 12px; }
+  .form-group label {
+    display: block; font-size: 11px; font-weight: 500;
+    color: var(--text-secondary); margin-bottom: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .form-group input, .form-group textarea {
+    width: 100%; font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; padding: 7px 10px;
+    background: var(--bg-card); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    outline: none; transition: var(--transition);
+  }
+  .form-group input:focus, .form-group textarea:focus { border-color: var(--accent-blue); }
+  .form-group textarea { resize: vertical; min-height: 50px; }
+  .form-hint { font-size: 10px; color: var(--text-muted); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+  /* ── ARCHIVE ── */
+  .archive-toggle {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 6px 10px; margin: 2px 4px 4px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--text-muted); background: transparent;
+    border: 1px dashed var(--border-subtle); border-radius: var(--radius-sm);
+    cursor: pointer; transition: var(--transition); flex-shrink: 0;
+  }
+  .archive-toggle:hover { color: var(--text-secondary); border-color: var(--border); background: rgba(255,255,255,.02); }
+  .archive-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+    z-index: 90; display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 200ms;
+  }
+  .archive-overlay.open { opacity: 1; pointer-events: all; }
+  .archive-panel {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); width: 560px; max-height: 80vh;
+    display: flex; flex-direction: column;
+    transform: translateY(10px); transition: transform 200ms;
+  }
+  .archive-overlay.open .archive-panel { transform: translateY(0); }
+  .archive-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
+  }
+  .archive-header h2 { font-size: 15px; font-weight: 600; }
+  .archive-header .count { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); background: var(--bg-card); padding: 2px 8px; border-radius: 10px; }
+  .archive-search {
+    margin: 10px 18px 6px; padding: 7px 10px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    background: var(--bg-card); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    outline: none; width: calc(100% - 36px);
+  }
+  .archive-search:focus { border-color: var(--accent-blue); }
+  .archive-search::placeholder { color: var(--text-muted); }
+  .archive-list { flex: 1; overflow-y: auto; padding: 6px 12px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .archive-list::-webkit-scrollbar { width: 4px; }
+  .archive-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .archive-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: var(--radius-sm);
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    cursor: pointer; transition: var(--transition);
+  }
+  .archive-item:hover { border-color: var(--border); background: var(--bg-card-hover); }
+  .archive-item-title { font-size: 12px; font-weight: 500; color: var(--text-primary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .archive-item-file { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+  .archive-item-dates { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); flex-shrink: 0; min-width: 80px; text-align: right; }
+
+  /* ── TOAST ── */
+  .toast-container { position: fixed; bottom: 44px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 5px; }
+  .toast {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    padding: 7px 12px; border-radius: var(--radius-sm);
+    background: var(--bg-card); color: var(--text-secondary);
+    border: 1px solid var(--border); box-shadow: var(--shadow-card);
+    animation: toastIn 200ms ease, toastOut 300ms ease 2.5s forwards;
+  }
+  @keyframes toastIn { from { transform: translateX(20px); opacity: 0; } }
+  @keyframes toastOut { to { transform: translateX(20px); opacity: 0; } }
+</style>
+</head>
+<body>
+
+<!-- WELCOME -->
+<div class="welcome" id="welcomeScreen">
+  <h1>&gt;_ claude kanban</h1>
+  <p>
+    Öffne den <code>doc/prompts/</code> Ordner Deines Projekts.<br>
+    Das Board liest <code>backlog-priority.json</code> und die Unterordner
+    <code>new/</code>, <code>in-progress/</code>, <code>done/</code>.<br><br>
+    Drag &amp; Drop verschiebt Dateien zwischen Ordnern und aktualisiert die JSON automatisch.
+  </p>
+  <div style="display:flex;gap:10px;margin-top:8px;">
+    <button class="btn btn-primary" onclick="openPromptsFolder()" style="font-size:14px;padding:10px 22px;">📂 prompts/ Ordner öffnen</button>
+  </div>
+  <p style="font-size:11px;color:var(--text-muted);margin-top:12px;">Benötigt Chrome oder Edge · File System Access API</p>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;flex-direction:column;height:100vh;">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">&gt;_ kanban <span>/ prompts</span></div>
+      <div class="project-label" id="folderLabel">—</div>
+    </div>
+    <div class="header-right">
+      <div style="display:flex;align-items:center;gap:6px;margin-right:6px;">
+        <div class="status-dot" id="pollDot"></div>
+        <span class="status-label" id="pollLabel">polling</span>
+      </div>
+      <button class="btn" onclick="syncFolderToJson()" title="Ordner scannen → JSON abgleichen">🔄 Sync</button>
+      <button class="btn" onclick="refreshFromDisk()">↻ Refresh</button>
+      <button class="btn" onclick="togglePoll()" id="pollToggle">⏸ Pause</button>
+      <button class="btn" onclick="exportCliHelp()">📋 CLI</button>
+      <button class="btn btn-primary" onclick="openNewTaskModal()">+ Prompt</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="board" id="board"></div>
+    <div class="preview-panel" id="previewPanel">
+      <div class="preview-header">
+        <h3 id="previewTitle">—</h3>
+        <div class="preview-toolbar">
+          <button class="btn btn-sm" id="editToggleBtn" onclick="toggleEditMode()">✎ Edit</button>
+          <button class="preview-close" onclick="closePreview()">✕</button>
+        </div>
+      </div>
+      <div class="preview-meta" id="previewMeta"></div>
+      <div class="preview-content" id="previewContent"></div>
+      <div class="preview-editor" id="previewEditor">
+        <textarea id="previewEditorArea" spellcheck="false"></textarea>
+        <div class="preview-editor-bar">
+          <span class="hint">Ctrl+S speichern · Esc abbrechen</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm" onclick="cancelEdit()">Abbrechen</button>
+            <button class="btn btn-sm btn-primary" onclick="saveEdit()">💾 Speichern</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="info-bar">
+    <div class="info-bar-left">
+      <span class="info-text" id="folderPathInfo">—</span>
+      <span class="info-text" id="taskCountInfo">—</span>
+    </div>
+    <div class="info-bar-right">
+      <span class="info-text" id="lastSyncInfo">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- NEW TASK MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="event.target===this&&closeModal()">
+  <div class="modal">
+    <h2>Neuer Prompt</h2>
+    <div class="form-group"><label>Titel</label>
+      <input type="text" id="newTitle" placeholder="z.B. Fix: Geomap-Rendering bei negativen Radien"></div>
+    <div class="form-group"><label>Dateiname</label>
+      <input type="text" id="newFilename" placeholder="wird automatisch generiert">
+      <div class="form-hint">Format: typ-kurzbeschreibung.md (z.B. fix-geomap-radius.md)</div></div>
+    <div class="form-group"><label>Prompt-Inhalt (Markdown)</label>
+      <textarea id="newContent" rows="8" placeholder="# Titel&#10;&#10;## Problem&#10;&#10;..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="createNewPrompt()">Erstellen</button>
+    </div>
+  </div>
+</div>
+
+<!-- BLOCKED REASON MODAL -->
+<div class="modal-overlay" id="blockedModalOverlay" onclick="event.target===this&&closeBlockedModal()">
+  <div class="modal" style="width:380px;">
+    <h2>⊘ Blocked setzen</h2>
+    <input type="hidden" id="blockedItemId">
+    <div class="form-group"><label>Grund (optional)</label>
+      <input type="text" id="blockedReason" placeholder="z.B. Wartet auf Datensatz-Korrektur"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeBlockedModal()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="confirmSetBlocked()">Blocked setzen</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<!-- ARCHIVE OVERLAY -->
+<div class="archive-overlay" id="archiveOverlay" onclick="event.target===this&&closeArchive()">
+  <div class="archive-panel">
+    <div class="archive-header">
+      <h2>✅ Done — Archiv</h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="count" id="archiveCount">0</span>
+        <button class="preview-close" onclick="closeArchive()">✕</button>
+      </div>
+    </div>
+    <input class="archive-search" id="archiveSearch" type="text"
+           placeholder="Suche nach Titel oder Dateiname..." oninput="filterArchive()">
+    <div class="archive-list" id="archiveList"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+let dirHandle = null, subDirs = {}, jsonHandle = null, jsonData = null;
+let lastJsonText = '', polling = true, pollInterval = null;
+let draggedId = null, dragSourceCol = null, dropTargetCol = null, dropTargetIndex = -1;
+let selectedId = null, selectedItem = null, selectedCol = null, editMode = false;
+let fileContentsCache = {};
+const DONE_VISIBLE_COUNT = 5;
+const COLUMNS = [
+  { id: 'backlog',    title: 'Backlog',     folder: 'new',         jsonKey: 'backlog' },
+  { id: 'inProgress', title: 'In Progress', folder: 'in-progress', jsonKey: 'inProgress' },
+  { id: 'done',       title: 'Done',        folder: 'done',        jsonKey: 'done' },
+];
+
+// ══════════════════════════════════════
+//  FILE SYSTEM ACCESS
+// ══════════════════════════════════════
+async function openPromptsFolder() {
+  try {
+    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    for (const col of COLUMNS) {
+      try { subDirs[col.folder] = await dirHandle.getDirectoryHandle(col.folder); } catch { subDirs[col.folder] = null; }
+    }
+    try { subDirs['deleted'] = await dirHandle.getDirectoryHandle('deleted'); } catch { subDirs['deleted'] = null; }
+    jsonHandle = await dirHandle.getFileHandle('backlog-priority.json');
+    await loadJson(); showApp();
+    toast('Ordner geladen: ' + dirHandle.name);
+  } catch (e) { if (e.name !== 'AbortError') toast('Fehler: ' + e.message); }
+}
+async function loadJson() { const f = await jsonHandle.getFile(); const t = await f.text(); lastJsonText = t; jsonData = JSON.parse(t); }
+async function writeJson() { const t = JSON.stringify(jsonData, null, 2) + '\n'; lastJsonText = t; const w = await jsonHandle.createWritable(); await w.write(t); await w.close(); }
+
+// ══════════════════════════════════════
+//  FILE OPERATIONS
+// ══════════════════════════════════════
+async function readMdFile(folder, filename) {
+  const key = folder + '/' + filename;
+  if (fileContentsCache[key]) return fileContentsCache[key];
+  try { const dir = subDirs[folder]; if (!dir) return null; const fh = await dir.getFileHandle(filename); const f = await fh.getFile(); const t = await f.text(); fileContentsCache[key] = t; return t; } catch { return null; }
+}
+async function writeMdFile(folder, filename, content) {
+  try { const dir = subDirs[folder]; if (!dir) return false; const fh = await dir.getFileHandle(filename); const w = await fh.createWritable(); await w.write(content); await w.close(); fileContentsCache[folder+'/'+filename] = content; return true; } catch (e) { toast('Speichern fehlgeschlagen: ' + e.message); return false; }
+}
+async function moveFile(filename, from, to) {
+  try {
+    const s = subDirs[from], d = subDirs[to]; if (!s || !d) throw new Error('Ordner fehlt');
+    const sh = await s.getFileHandle(filename); const sf = await sh.getFile(); const c = await sf.text();
+    const dh = await d.getFileHandle(filename, { create: true }); const w = await dh.createWritable(); await w.write(c); await w.close();
+    await s.removeEntry(filename);
+    delete fileContentsCache[from+'/'+filename]; fileContentsCache[to+'/'+filename] = c;
+    return true;
+  } catch (e) { toast('Verschieben fehlgeschlagen: ' + e.message); return false; }
+}
+async function createMdFile(folder, filename, content) {
+  try { const dir = subDirs[folder]; if (!dir) return false; const fh = await dir.getFileHandle(filename, { create: true }); const w = await fh.createWritable(); await w.write(content); await w.close(); fileContentsCache[folder+'/'+filename] = content; return true; } catch (e) { toast('Erstellen fehlgeschlagen: ' + e.message); return false; }
+}
+async function listMdFiles(folder) {
+  const dir = subDirs[folder]; if (!dir) return []; const files = [];
+  try { for await (const [name, h] of dir.entries()) { if (h.kind === 'file' && name.endsWith('.md')) files.push(name); } } catch {}
+  return files;
+}
+
+// ══════════════════════════════════════
+//  FOLDER → JSON SYNC
+// ══════════════════════════════════════
+async function syncFolderToJson() {
+  let added = 0, removed = 0;
+  for (const col of COLUMNS) {
+    const diskFiles = await listMdFiles(col.folder);
+    const arr = jsonData[col.jsonKey] || [];
+    const jsonFiles = new Set(arr.map(i => i.file));
+    for (const f of diskFiles) {
+      if (!jsonFiles.has(f)) {
+        const id = f.replace('.md', '');
+        const title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const today = todayStr();
+        const entry = { id, file: f, title };
+        if (col.jsonKey === 'backlog') entry.new = today;
+        if (col.jsonKey === 'inProgress') { entry.new = today; entry.inProgress = today; }
+        if (col.jsonKey === 'done') { entry.new = today; entry.done = today; }
+        arr.push(entry); added++;
+      }
+    }
+    const diskSet = new Set(diskFiles);
+    const before = arr.length;
+    jsonData[col.jsonKey] = arr.filter(i => diskSet.has(i.file));
+    removed += before - jsonData[col.jsonKey].length;
+  }
+  if (added || removed) { await writeJson(); renderBoard(); updateInfoBar(); toast(`Sync: +${added} neu, -${removed} entfernt`); }
+  else toast('Sync: Alles aktuell');
+}
+
+// ══════════════════════════════════════
+//  POLLING
+// ══════════════════════════════════════
+function startPoll() {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    if (!jsonHandle || !polling) return;
+    try { const f = await jsonHandle.getFile(); const t = await f.text(); if (t !== lastJsonText) { jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {}; renderBoard(); updateInfoBar(); toast('↻ Externe Änderung'); } } catch {}
+  }, 2000);
+}
+function togglePoll() {
+  polling = !polling;
+  document.getElementById('pollToggle').textContent = polling ? '⏸ Pause' : '▶ Poll';
+  document.getElementById('pollDot').className = 'status-dot' + (polling ? '' : ' paused');
+  document.getElementById('pollLabel').textContent = polling ? 'polling' : 'paused';
+}
+async function refreshFromDisk() {
+  if (!jsonHandle) return;
+  try { const f = await jsonHandle.getFile(); const t = await f.text(); const ch = t !== lastJsonText; jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {}; renderBoard(); updateInfoBar(); toast(ch ? '↻ Änderungen geladen' : '✓ Aktuell'); } catch (e) { toast('Refresh: ' + e.message); }
+}
+
+// ══════════════════════════════════════
+//  RENDERING
+// ══════════════════════════════════════
+function showApp() {
+  document.getElementById('welcomeScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('folderLabel').textContent = dirHandle.name + '/';
+  renderBoard(); updateInfoBar(); startPoll();
+}
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function dateGroup(ds) {
+  if (!ds) return 'other';
+  if (ds === todayStr()) return 'today';
+  const diff = (new Date(todayStr()) - new Date(ds)) / 86400000;
+  return diff <= 7 ? 'week' : 'other';
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  COLUMNS.forEach(col => {
+    const allItems = jsonData[col.jsonKey] || [];
+    const colEl = document.createElement('div');
+    colEl.className = 'column';
+    colEl.innerHTML = `<div class="column-header"><span class="column-title">${col.title} <span class="folder-hint">${col.folder}/</span></span><span class="column-count">${allItems.length}</span></div>`;
+    const body = document.createElement('div');
+    body.className = 'column-body'; body.dataset.column = col.id;
+
+    // drag events
+    body.addEventListener('dragover', e => {
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      const cards = [...body.querySelectorAll('.card')]; const my = e.clientY;
+      let ins = cards.length;
+      for (let i = 0; i < cards.length; i++) { const r = cards[i].getBoundingClientRect(); if (my < r.top + r.height/2) { ins = i; break; } }
+      if (dropTargetCol !== col.id || dropTargetIndex !== ins) { dropTargetCol = col.id; dropTargetIndex = ins; updateDropIndicator(body, cards, ins); }
+    });
+    body.addEventListener('dragleave', e => { if (!body.contains(e.relatedTarget)) { clearDropIndicator(body); if (dropTargetCol === col.id) { dropTargetCol = null; dropTargetIndex = -1; } } });
+    body.addEventListener('drop', e => { e.preventDefault(); clearDropIndicator(body); if (draggedId) { const off = parseInt(body.dataset.hiddenOffset||'0'); handleDrop(draggedId, col.id, dropTargetIndex + off); } dropTargetCol = null; dropTargetIndex = -1; });
+
+    if (col.jsonKey === 'done') {
+      // Done: date-grouped, with archive
+      let visible = allItems, hidden = 0;
+      if (allItems.length > DONE_VISIBLE_COUNT) { hidden = allItems.length - DONE_VISIBLE_COUNT; visible = allItems.slice(-DONE_VISIBLE_COUNT); }
+      body.dataset.hiddenOffset = hidden;
+      if (hidden > 0) { const ab = document.createElement('button'); ab.className = 'archive-toggle'; ab.innerHTML = `📦 ${hidden} ältere anzeigen`; ab.onclick = () => openArchive(); body.appendChild(ab); }
+      let lastG = '';
+      visible.forEach((item, idx) => {
+        const g = dateGroup(item.done);
+        if (g !== lastG) { lastG = g; const lbl = document.createElement('div'); lbl.className = 'date-group-label'; lbl.textContent = g === 'today' ? '— Heute' : g === 'week' ? '— Diese Woche' : '— Älter'; body.appendChild(lbl); }
+        body.appendChild(createCard(item, col, hidden + idx));
+      });
+    } else {
+      body.dataset.hiddenOffset = 0;
+      allItems.forEach((item, idx) => body.appendChild(createCard(item, col, idx)));
+    }
+    colEl.appendChild(body); board.appendChild(colEl);
+  });
+}
+
+function updateDropIndicator(body, cards, idx) { clearDropIndicator(body); const d = document.createElement('div'); d.className = 'drop-indicator'; if (idx >= cards.length) body.appendChild(d); else body.insertBefore(d, cards[idx]); }
+function clearDropIndicator(body) { body.querySelectorAll('.drop-indicator').forEach(e => e.remove()); }
+
+function createCard(item, col, index) {
+  const el = document.createElement('div');
+  el.className = 'card' + (item.blocked ? ' blocked' : '') + (item.id === selectedId ? ' active' : '');
+  el.draggable = true; el.dataset.id = item.id;
+  el.addEventListener('dragstart', e => { draggedId = item.id; dragSourceCol = col.id; el.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; requestAnimationFrame(() => el.style.opacity = '0.25'); });
+  el.addEventListener('dragend', () => { draggedId = null; dragSourceCol = null; el.classList.remove('dragging'); el.style.opacity = ''; document.querySelectorAll('.drop-indicator').forEach(i => i.remove()); });
+  el.addEventListener('click', e => { if (e.target.closest('.card-action-btn') || e.target.closest('.badge-blocked')) return; openPreview(item, col); });
+  const ds = item.done || item.inProgress || item.new || '';
+  el.innerHTML = `
+    <div class="card-actions"><button class="card-action-btn" onclick="toggleBlocked('${item.id}')" title="${item.blocked?'Unblock':'Block'}">⊘</button><button class="card-action-btn delete" onclick="deleteItem('${item.id}')" title="Löschen">✕</button></div>
+    <span class="prio-num">#${index+1}</span>
+    <div class="card-title">${esc(item.title)}</div>
+    <div class="card-file">${esc(item.file)}</div>
+    <div class="card-meta">
+      ${item.blocked ? `<span class="badge badge-blocked" title="${esc(item.blockedBy||'blocked')}" onclick="toggleBlocked('${item.id}')">⊘ ${esc(item.blockedBy||'blocked')}</span>` : ''}
+      ${ds ? `<span class="badge badge-date">${ds}</span>` : ''}
+    </div>`;
+  return el;
+}
+
+// ══════════════════════════════════════
+//  BLOCKED TOGGLE
+// ══════════════════════════════════════
+function findItem(id) { for (const c of COLUMNS) { const f = (jsonData[c.jsonKey]||[]).find(i => i.id===id); if (f) return f; } return null; }
+function toggleBlocked(id) {
+  const item = findItem(id); if (!item) return;
+  if (item.blocked) { delete item.blocked; delete item.blockedBy; writeJson(); renderBoard(); toast('✓ Unblocked: ' + item.title); }
+  else { document.getElementById('blockedItemId').value = id; document.getElementById('blockedReason').value = ''; document.getElementById('blockedModalOverlay').classList.add('open'); setTimeout(() => document.getElementById('blockedReason').focus(), 100); }
+}
+function confirmSetBlocked() {
+  const id = document.getElementById('blockedItemId').value; const reason = document.getElementById('blockedReason').value.trim();
+  const item = findItem(id); if (!item) return;
+  item.blocked = true; if (reason) item.blockedBy = reason; else delete item.blockedBy;
+  writeJson(); renderBoard(); closeBlockedModal(); toast('⊘ Blocked: ' + item.title);
+}
+function closeBlockedModal() { document.getElementById('blockedModalOverlay').classList.remove('open'); }
+
+// ══════════════════════════════════════
+//  DRAG & DROP → MOVE + REORDER
+// ══════════════════════════════════════
+async function handleDrop(itemId, targetColId, insertIndex) {
+  let srcCol = null, item = null, srcIdx = -1;
+  for (const c of COLUMNS) { const a = jsonData[c.jsonKey]||[]; const i = a.findIndex(x => x.id===itemId); if (i>=0) { srcCol=c; item=a[i]; srcIdx=i; break; } }
+  if (!item || !srcCol) return;
+  const tgtCol = COLUMNS.find(c => c.id===targetColId); if (!tgtCol) return;
+
+  if (srcCol.id === tgtCol.id) {
+    const a = jsonData[srcCol.jsonKey]; let adj = insertIndex; if (insertIndex > srcIdx) adj--;
+    if (adj === srcIdx) return;
+    a.splice(srcIdx, 1); if (adj < 0 || adj >= a.length) a.push(item); else a.splice(adj, 0, item);
+    await writeJson(); renderBoard(); updateInfoBar(); toast(`↕ ${item.title} → #${adj<0?a.length:adj+1}`);
+  } else {
+    if (!await moveFile(item.file, srcCol.folder, tgtCol.folder)) return;
+    jsonData[srcCol.jsonKey].splice(srcIdx, 1);
+    const today = todayStr();
+    if (tgtCol.jsonKey === 'inProgress') item.inProgress = today;
+    if (tgtCol.jsonKey === 'done') { if (!item.inProgress) item.inProgress = today; item.done = today; }
+    if (!jsonData[tgtCol.jsonKey]) jsonData[tgtCol.jsonKey] = [];
+    const a = jsonData[tgtCol.jsonKey]; if (insertIndex<0||insertIndex>=a.length) a.push(item); else a.splice(insertIndex, 0, item);
+    await writeJson(); renderBoard(); updateInfoBar(); toast(`${item.file}: ${srcCol.folder}/ → ${tgtCol.folder}/`);
+  }
+}
+
+// ══════════════════════════════════════
+//  DELETE
+// ══════════════════════════════════════
+async function deleteItem(id) {
+  if (!confirm('Prompt nach deleted/ verschieben?')) return;
+  let srcCol = null, item = null;
+  for (const c of COLUMNS) { const f = (jsonData[c.jsonKey]||[]).find(i => i.id===id); if (f) { srcCol=c; item=f; break; } }
+  if (!item || !srcCol) return;
+  if (subDirs['deleted']) await moveFile(item.file, srcCol.folder, 'deleted');
+  const a = jsonData[srcCol.jsonKey]; const i = a.findIndex(x => x.id===id); if (i>=0) a.splice(i, 1);
+  await writeJson(); if (selectedId===id) closePreview(); renderBoard(); updateInfoBar(); toast('→ deleted/: ' + item.file);
+}
+
+// ══════════════════════════════════════
+//  DONE ARCHIVE
+// ══════════════════════════════════════
+function openArchive() { document.getElementById('archiveSearch').value=''; document.getElementById('archiveOverlay').classList.add('open'); renderArchiveList(''); setTimeout(()=>document.getElementById('archiveSearch').focus(),100); }
+function closeArchive() { document.getElementById('archiveOverlay').classList.remove('open'); }
+function filterArchive() { renderArchiveList(document.getElementById('archiveSearch').value.trim().toLowerCase()); }
+function renderArchiveList(q) {
+  const list = document.getElementById('archiveList'); const all = jsonData.done||[]; const dc = COLUMNS.find(c=>c.jsonKey==='done');
+  const filt = q ? all.filter(i=>(i.title||'').toLowerCase().includes(q)||(i.file||'').toLowerCase().includes(q)) : all;
+  const sorted = [...filt].reverse();
+  document.getElementById('archiveCount').textContent = `${sorted.length} / ${all.length}`; list.innerHTML = '';
+  if (!sorted.length) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Keine Einträge</div>'; return; }
+  sorted.forEach(item => {
+    const r = document.createElement('div'); r.className = 'archive-item'; r.onclick = () => { closeArchive(); openPreview(item, dc); };
+    const d = [item.new?`🆕${item.new}`:'', item.inProgress?`🔧${item.inProgress}`:'', item.done?`✅${item.done}`:''].filter(Boolean).join(' ');
+    r.innerHTML = `<div class="archive-item-title">${esc(item.title)}</div><div class="archive-item-file">${esc(item.file)}</div><div class="archive-item-dates">${d}</div>`;
+    list.appendChild(r);
+  });
+}
+
+// ══════════════════════════════════════
+//  PREVIEW (read + edit)
+// ══════════════════════════════════════
+async function openPreview(item, col) {
+  selectedId = item.id; selectedItem = item; selectedCol = col; editMode = false;
+  renderBoard();
+  document.getElementById('previewPanel').classList.add('open');
+  document.getElementById('previewTitle').textContent = item.title;
+  document.getElementById('editToggleBtn').textContent = '✎ Edit';
+  const meta = document.getElementById('previewMeta');
+  let mh = `<span>📄 ${col.folder}/${item.file}</span>`;
+  if (item.new) mh += `<span>🆕 ${item.new}</span>`;
+  if (item.inProgress) mh += `<span>🔧 ${item.inProgress}</span>`;
+  if (item.done) mh += `<span>✅ ${item.done}</span>`;
+  if (item.blocked) mh += `<span style="color:var(--accent-red)">⊘ ${item.blockedBy||'blocked'}</span>`;
+  meta.innerHTML = mh;
+  showReadView();
+  const content = document.getElementById('previewContent'); content.textContent = 'Lade...';
+  const md = await readMdFile(col.folder, item.file);
+  content.innerHTML = md ? renderMarkdown(md) : '(Datei nicht gefunden)';
+}
+function showReadView() { document.getElementById('previewContent').style.display='block'; document.getElementById('previewEditor').style.display='none'; editMode=false; document.getElementById('editToggleBtn').textContent='✎ Edit'; }
+async function toggleEditMode() {
+  if (!selectedItem||!selectedCol) return;
+  if (editMode) { showReadView(); return; }
+  editMode = true; document.getElementById('editToggleBtn').textContent = '👁 Read';
+  document.getElementById('previewContent').style.display = 'none'; document.getElementById('previewEditor').style.display = 'flex';
+  const md = await readMdFile(selectedCol.folder, selectedItem.file);
+  document.getElementById('previewEditorArea').value = md || ''; document.getElementById('previewEditorArea').focus();
+}
+async function saveEdit() {
+  if (!selectedItem||!selectedCol) return;
+  const c = document.getElementById('previewEditorArea').value;
+  if (await writeMdFile(selectedCol.folder, selectedItem.file, c)) { toast('💾 Gespeichert: ' + selectedItem.file); showReadView(); document.getElementById('previewContent').innerHTML = renderMarkdown(c); }
+}
+function cancelEdit() { showReadView(); }
+function closePreview() { selectedId=null; selectedItem=null; selectedCol=null; editMode=false; document.getElementById('previewPanel').classList.remove('open'); showReadView(); renderBoard(); }
+function renderMarkdown(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^```[\s\S]*?^```/gm, m => '<pre>'+m.slice(m.indexOf('\n')+1,m.lastIndexOf('```'))+'</pre>')
+    .replace(/^- (.+)$/gm,'  • $1').replace(/\n{2,}/g,'\n\n');
+}
+
+// ══════════════════════════════════════
+//  NEW PROMPT
+// ══════════════════════════════════════
+function openNewTaskModal() { document.getElementById('newTitle').value=''; document.getElementById('newFilename').value=''; document.getElementById('newContent').value=''; document.getElementById('modalOverlay').classList.add('open'); setTimeout(()=>document.getElementById('newTitle').focus(),100); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+document.addEventListener('DOMContentLoaded', () => {
+  const ti=document.getElementById('newTitle'), fi=document.getElementById('newFilename');
+  if(ti) ti.addEventListener('input',()=>{if(!fi.dataset.manual)fi.value=slugify(ti.value)+'.md';});
+  if(fi) fi.addEventListener('input',()=>{fi.dataset.manual=fi.value?'1':'';});
+});
+function slugify(s) { return s.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60); }
+async function createNewPrompt() {
+  const title=document.getElementById('newTitle').value.trim(); let fn=document.getElementById('newFilename').value.trim(); const c=document.getElementById('newContent').value;
+  if(!title){toast('Titel fehlt');return;} if(!fn)fn=slugify(title)+'.md'; if(!fn.endsWith('.md'))fn+='.md';
+  const id=fn.replace('.md',''), today=todayStr();
+  if(!await createMdFile('new',fn,c||`# ${title}\n\n`))return;
+  jsonData.backlog.push({id,file:fn,title,new:today});
+  await writeJson(); renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: new/'+fn);
+}
+
+// ══════════════════════════════════════
+//  CLI EXPORT
+// ══════════════════════════════════════
+function exportCliHelp() {
+  const t=`# Prompts Kanban — CLI (Claude Code / Scripts)
+# JSON: backlog-priority.json · Ordner: new/ → in-progress/ → done/ → deleted/
+
+# Status
+cat backlog-priority.json | jq '.backlog | length'
+cat backlog-priority.json | jq '.inProgress[].title'
+
+# Task starten
+TASK="ID"; FILE="FILE.md"
+mv new/$FILE in-progress/$FILE
+jq --arg id "$TASK" --arg d "$(date +%Y-%m-%d)" '(.backlog|=map(select(.id!=$id)))|.inProgress+=[ (.backlog[]|select(.id==$id))+{"inProgress":$d}]' backlog-priority.json > tmp.json && mv tmp.json backlog-priority.json
+
+# Task abschließen
+mv in-progress/$FILE done/$FILE
+jq --arg id "$TASK" --arg d "$(date +%Y-%m-%d)" '(.inProgress[]|select(.id==$id)).done=$d|.done+=[.inProgress[]|select(.id==$id)]|.inProgress|=map(select(.id!=$id))' backlog-priority.json > tmp.json && mv tmp.json backlog-priority.json
+`;
+  navigator.clipboard.writeText(t).then(()=>toast('CLI in Zwischenablage'));
+}
+
+// ══════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function updateInfoBar(){if(!jsonData)return;const b=(jsonData.backlog||[]).length,i=(jsonData.inProgress||[]).length,d=(jsonData.done||[]).length;document.getElementById('taskCountInfo').textContent=`${b} backlog · ${i} active · ${d} done`;document.getElementById('lastSyncInfo').textContent='Sync: '+new Date().toLocaleTimeString('de-DE');document.getElementById('folderPathInfo').textContent=dirHandle?.name||'—';}
+function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;document.getElementById('toasts').appendChild(e);setTimeout(()=>e.remove(),3000);}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') { closeModal(); closeBlockedModal(); closeArchive(); if(editMode)cancelEdit(); else closePreview(); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='s' && editMode) { e.preventDefault(); saveEdit(); }
+  const tag = document.activeElement.tagName;
+  if (['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
+  if (e.key==='n') { e.preventDefault(); openNewTaskModal(); }
+  if (e.key==='r') { e.preventDefault(); refreshFromDisk(); }
+  if (e.key==='e' && selectedItem) { e.preventDefault(); toggleEditMode(); }
+});
+
+// ── BROWSER CHECK ──
+if (!window.showDirectoryPicker) {
+  document.querySelector('.welcome p').innerHTML = `<strong style="color:var(--accent-red)">⚠ File System Access API nicht verfügbar.</strong><br>Bitte Chrome oder Edge verwenden.`;
+  document.querySelectorAll('.welcome .btn').forEach(b=>b.disabled=true);
+}
+</script>
+</body>
+</html>
