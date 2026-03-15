@@ -460,7 +460,7 @@
       <button class="btn" onclick="syncFolderToJson()" title="Ordner scannen → JSON abgleichen">🔄 Sync</button>
       <button class="btn" onclick="refreshFromDisk()">↻ Refresh</button>
       <button class="btn" onclick="togglePoll()" id="pollToggle">⏸ Pause</button>
-      <button class="btn" onclick="exportCliHelp()">📋 CLI</button>
+      <button class="btn" onclick="openWorkflowDoc()" title="Workflow-Doku im Editor öffnen">📋 Workflow</button>
       <button class="btn btn-primary" onclick="openNewTaskModal()">+ Prompt</button>
     </div>
   </div>
@@ -1318,26 +1318,16 @@ async function createNewPrompt() {
 }
 
 // ══════════════════════════════════════
-//  CLI EXPORT
+//  WORKFLOW DOC
 // ══════════════════════════════════════
-function exportCliHelp() {
-  const t=`# Prompts Kanban — CLI (Claude Code / Scripts)
-# JSON: backlog-priority.json · Ordner: new/ → in-progress/ → done/ → deleted/
-
-# Status
-cat backlog-priority.json | jq '.backlog | length'
-cat backlog-priority.json | jq '.inProgress[].title'
-
-# Task starten
-TASK="ID"; FILE="FILE.md"
-mv new/$FILE in-progress/$FILE
-jq --arg id "$TASK" --arg d "$(date +%Y-%m-%dT%H:%M:%S)" '(.backlog|=map(select(.id!=$id)))|.inProgress+=[ (.backlog[]|select(.id==$id))+{"inProgress":$d}]' backlog-priority.json > tmp.json && mv tmp.json backlog-priority.json
-
-# Task abschließen
-mv in-progress/$FILE done/$FILE
-jq --arg id "$TASK" --arg d "$(date +%Y-%m-%dT%H:%M:%S)" '(.inProgress[]|select(.id==$id)).done=$d|.done+=[.inProgress[]|select(.id==$id)]|.inProgress|=map(select(.id!=$id))' backlog-priority.json > tmp.json && mv tmp.json backlog-priority.json
-`;
-  navigator.clipboard.writeText(t).then(()=>toast('CLI in Zwischenablage'));
+async function openWorkflowDoc() {
+  if (!projectHandle) return;
+  const basePath = await getProjectPath();
+  if (!basePath) { toast('Projekt-Pfad unbekannt (Companion nötig)'); return; }
+  const filePath = basePath + '\\doc\\prompts\\README.md';
+  const result = await companionPost('/open-editor', { filePath });
+  if (result && result.action) toast('📋 Workflow-Doku geöffnet');
+  else toast('Companion nicht erreichbar');
 }
 
 // ══════════════════════════════════════

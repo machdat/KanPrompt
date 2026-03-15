@@ -2,18 +2,6 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "keyboard-navigation-recent-projects",
-      "file": "keyboard-navigation-recent-projects.md",
-      "title": "Keyboard-Navigation in der Recent-Projects-Liste (Welcome-Screen)",
-      "new": "2026-03-15T19:00:00"
-    },
-    {
-      "id": "cli-button-entfernen-oder-ersetzen",
-      "file": "cli-button-entfernen-oder-ersetzen.md",
-      "title": "CLI-Button im Header entfernen oder ersetzen",
-      "new": "2026-03-15T18:45:00"
-    },
-    {
       "id": "archive-search-filter",
       "file": "archive-search-filter.md",
       "title": "Archiv-Overlay: Suche und Filterung",
@@ -24,10 +12,24 @@
       "file": "refresh-sync-polling-sieht-keine-neuen-dateien.md",
       "title": "refresh, sync, polling sieht keine neuen Dateien",
       "new": "2026-03-14T21:14:51"
+    },
+    {
+      "id": "keyboard-navigation-recent-projects",
+      "file": "keyboard-navigation-recent-projects.md",
+      "title": "Keyboard Navigation Recent Projects",
+      "new": "2026-03-15T15:51:06"
     }
   ],
   "inProgress": [],
   "done": [
+    {
+      "id": "cli-button-entfernen-oder-ersetzen",
+      "file": "cli-button-entfernen-oder-ersetzen.md",
+      "title": "CLI-Button im Header entfernen oder ersetzen",
+      "new": "2026-03-15T18:45:00",
+      "inProgress": "2026-03-15T19:10:00",
+      "done": "2026-03-15T19:15:00"
+    },
     {
       "id": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg",
       "file": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg.md",
