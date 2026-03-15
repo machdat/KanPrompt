@@ -32,3 +32,27 @@ CC hat keinen Kontext über die KanPrompt-interne Prompt-Verwaltung.
 
 1. CC im KanPrompt-Projekt starten → "Arbeite das nächste Item ab" → CC versteht den Workflow
 2. Timestamps in der JSON haben das Format `YYYY-MM-DDTHH:MM:SS`
+
+---
+
+# Session-Log
+
+- **Datum:** 2026-03-15T16:25:00
+- **Branch:** main
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+
+CLAUDE.md existierte bereits mit Basis-Informationen (Architektur, Installation, Konventionen). Ergänzt wurden: der vollständige CC-Prompt-Workflow inline (statt nur Verweis auf workflow/CLAUDE-backlog-section.md), Timestamp-Regeln, Session-Log-Template, und der Version-Bump-Hinweis für kanprompt.html.
+
+## Geänderte Dateien
+
+- `CLAUDE.md` — Abschnitt "Dogfooding" ersetzt durch vollständigen "CC-Prompt Workflow" mit Ablauf, Timestamp-Regeln und Session-Log-Template. Version-Bump-Hinweis unter "Installation & Entwicklung" ergänzt.
+
+## Abweichungen vom Prompt
+
+CLAUDE.md existierte bereits — es wurde ergänzt statt neu erstellt. Der Workflow wurde aus `workflow/CLAUDE-backlog-section.md` übernommen und gestrafft, damit CC alles in einer Datei findet.
+
+## Offene Punkte
+
+Keine.

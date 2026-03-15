@@ -8,12 +8,6 @@
       "new": "2026-03-14T17:14:12"
     },
     {
-      "id": "claude-md-cc-integration",
-      "file": "claude-md-cc-integration.md",
-      "title": "CLAUDE.md für CC-Integration anlegen",
-      "new": "2026-03-14T17:30:00"
-    },
-    {
       "id": "auto-changelog",
       "file": "auto-changelog.md",
       "title": "CHANGELOG automatisch aus Git-Commits pflegen",
@@ -40,6 +34,14 @@
   ],
   "inProgress": [],
   "done": [
+    {
+      "id": "claude-md-cc-integration",
+      "file": "claude-md-cc-integration.md",
+      "title": "CLAUDE.md für CC-Integration anlegen",
+      "new": "2026-03-14T17:30:00",
+      "inProgress": "2026-03-15T16:20:00",
+      "done": "2026-03-15T16:25:00"
+    },
     {
       "id": "link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai",
       "file": "link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai.md",
