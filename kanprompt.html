@@ -357,15 +357,14 @@
   .archive-list::-webkit-scrollbar { width: 4px; }
   .archive-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   .archive-item {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; flex-direction: column; gap: 2px;
     padding: 8px 10px; border-radius: var(--radius-sm);
     background: var(--bg-card); border: 1px solid var(--border-subtle);
     cursor: pointer; transition: var(--transition);
   }
   .archive-item:hover { border-color: var(--border); background: var(--bg-card-hover); }
-  .archive-item-title { font-size: 12px; font-weight: 500; color: var(--text-primary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .archive-item-file { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
-  .archive-item-dates { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); flex-shrink: 0; min-width: 80px; text-align: right; }
+  .archive-item-title { font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .archive-item-meta { display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); }
 
   /* ── TOAST ── */
   .toast-container { position: fixed; bottom: 44px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 5px; }
@@ -557,7 +556,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.8.1';
+const VERSION = '0.8.2';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
 let companionCheckInterval = null;
@@ -1265,8 +1264,8 @@ function renderArchiveList(q) {
   if (!sorted.length) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Keine Einträge</div>'; return; }
   sorted.forEach(item => {
     const r = document.createElement('div'); r.className = 'archive-item'; r.onclick = () => { closeArchive(); openPreview(item, dc); };
-    const d = [item.new?`🆕${item.new}`:'', item.inProgress?`🔧${item.inProgress}`:'', item.done?`✅${item.done}`:''].filter(Boolean).join(' ');
-    r.innerHTML = `<div class="archive-item-title">${esc(item.title)}</div><div class="archive-item-file">${esc(item.file)}</div><div class="archive-item-dates">${d}</div>`;
+    const doneFmt = item.done ? formatTS(item.done) : '';
+    r.innerHTML = `<div class="archive-item-title">${esc(item.title)}</div><div class="archive-item-meta"><span>${esc(item.id)}</span>${doneFmt ? `<span>✅ ${doneFmt}</span>` : ''}</div>`;
     list.appendChild(r);
   });
 }

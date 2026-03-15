@@ -1,15 +1,17 @@
 {
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
+  ],
+  "inProgress": [],
+  "done": [
     {
       "id": "archive-search-filter",
       "file": "archive-search-filter.md",
       "title": "Archiv-Overlay: Suche und Filterung",
-      "new": "2026-03-14T17:30:00"
-    }
-  ],
-  "inProgress": [],
-  "done": [
+      "new": "2026-03-14T17:30:00",
+      "inProgress": "2026-03-15T19:50:00",
+      "done": "2026-03-15T19:55:00"
+    },
     {
       "id": "keyboard-navigation-recent-projects",
       "file": "keyboard-navigation-recent-projects.md",
