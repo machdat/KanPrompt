@@ -43,8 +43,27 @@ Aktuell muss man zum Projektwechsel die Seite komplett neu laden oder manuell au
 4. Polling läuft für das neue Projekt
 5. Hotkey funktioniert aus jeder Situation (auch mit offenem Modal)
 
-## Session-Log — Pflichtaufgabe nach Abschluss
+---
 
-Nachdem alle Änderungen umgesetzt und verifiziert sind, ist als **letzter Schritt** folgendes zu tun:
-Öffne diese Prompt-Datei und hänge am Ende ein ausgefülltes Session-Log an.
-Ersetze dabei diesen gesamten Abschnitt durch das fertige Log.
+# Session-Log
+
+- **Datum:** 2026-03-15T18:00:00
+- **Branch:** master
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+
+Schneller Projektwechsel implementiert: 📂-Button im Header neben dem Projekt-Label, der den kompletten App-State zurücksetzt (Handles, Caches, Preview, Polling) und den Welcome-Screen mit Recent-Projects-Liste zeigt. Zusätzlich Hotkey `Ctrl+Shift+O` für direkten Projektwechsel.
+
+## Geänderte Dateien
+
+- `kanprompt.html` — 📂-Button im Header-Left eingefügt, `switchProject()` Funktion mit vollständigem State-Reset, Hotkey `Ctrl+Shift+O` im Keyboard-Handler
+
+## Abweichungen vom Prompt
+
+- Variante a) umgesetzt (Welcome-Screen einblenden), nicht b) (Dropdown) — wie im Prompt als einfachste Variante vorgeschlagen
+- Hotkey ist `Ctrl+Shift+O` statt `Ctrl+O` (Browser-Kollision vermieden, wie im Prompt angemerkt)
+
+## Offene Punkte
+
+Keine.

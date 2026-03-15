@@ -444,6 +444,7 @@
     <div class="header-left">
       <div class="logo">&gt;_ KanPrompt <span class="version-tag" id="versionTag"></span></div>
       <div class="project-label" id="folderLabel">—</div>
+      <button class="btn" onclick="switchProject()" title="Projekt wechseln (Ctrl+Shift+O)">📂</button>
     </div>
     <div class="header-right">
       <div style="display:flex;align-items:center;gap:6px;margin-right:6px;">
@@ -1035,6 +1036,28 @@ function showApp() {
   setTimeout(() => resolveProjectPath(), 300);
 }
 
+function switchProject() {
+  // Stop polling
+  polling = false;
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+
+  // Close preview
+  closePreview();
+
+  // Reset state
+  projectHandle = null; dirHandle = null; subDirs = {}; jsonHandle = null; jsonData = null;
+  fileContentsCache = {};
+  lastJsonText = '';
+
+  // Clear board
+  document.getElementById('board').innerHTML = '';
+
+  // Show welcome screen, hide app
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('welcomeScreen').style.display = '';
+  renderRecentProjects();
+}
+
 async function resolveProjectPath() {
   if (!projectHandle || !companionAvailable) return;
   const key = 'kanprompt_path_' + projectHandle.name;
@@ -1357,6 +1380,7 @@ function toast(m){const e=document.createElement('div');e.className='toast';e.te
 document.addEventListener('keydown', e => {
   if (e.key==='Escape') { closeModal(); closeBlockedModal(); closeArchive(); if(editMode)cancelEdit(); else closePreview(); }
   if ((e.ctrlKey||e.metaKey) && e.key==='s' && editMode) { e.preventDefault(); saveEdit(); }
+  if ((e.ctrlKey||e.metaKey) && e.shiftKey && e.key==='O') { e.preventDefault(); switchProject(); }
   const tag = document.activeElement.tagName;
   if (['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
   if (e.key==='n') { e.preventDefault(); openNewTaskModal(); }

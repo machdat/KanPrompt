@@ -2,12 +2,6 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg",
-      "file": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg.md",
-      "title": "Button oder HotKey der einen schnellen Projektwechsel ermöglicht",
-      "new": "2026-03-14T17:14:12"
-    },
-    {
       "id": "cli-button-entfernen-oder-ersetzen",
       "file": "cli-button-entfernen-oder-ersetzen.md",
       "title": "CLI-Button im Header entfernen oder ersetzen",
@@ -28,6 +22,14 @@
   ],
   "inProgress": [],
   "done": [
+    {
+      "id": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg",
+      "file": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg.md",
+      "title": "Button oder HotKey der einen schnellen Projektwechsel ermöglicht",
+      "new": "2026-03-14T17:14:12",
+      "inProgress": "2026-03-15T17:50:00",
+      "done": "2026-03-15T18:00:00"
+    },
     {
       "id": "auto-changelog",
       "file": "auto-changelog.md",
