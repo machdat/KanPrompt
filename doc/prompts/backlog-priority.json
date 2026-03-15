@@ -2,28 +2,22 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "auto-changelog",
-      "file": "auto-changelog.md",
-      "title": "CHANGELOG automatisch aus Git-Commits pflegen",
-      "new": "2026-03-14T17:30:00"
-    },
-    {
       "id": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg",
       "file": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg.md",
       "title": "Button oder HotKey der einen schnellen Projektwechsel ermöglicht",
       "new": "2026-03-14T17:14:12"
     },
     {
+      "id": "auto-changelog",
+      "file": "auto-changelog.md",
+      "title": "CHANGELOG automatisch aus Git-Commits pflegen",
+      "new": "2026-03-14T17:30:00"
+    },
+    {
       "id": "archive-search-filter",
       "file": "archive-search-filter.md",
       "title": "Archiv-Overlay: Suche und Filterung",
       "new": "2026-03-14T17:30:00"
-    },
-    {
-      "id": "kanprompt-initialisierung-beim-ersten-oeffnen-des-prjs",
-      "file": "kanprompt-initialisierung-beim-ersten-oeffnen-des-prjs.md",
-      "title": "KanPrompt initialisierung beim ersten Öffnen des Prjs",
-      "new": "2026-03-14T17:12:21"
     },
     {
       "id": "refresh-sync-polling-sieht-keine-neuen-dateien",
@@ -34,6 +28,13 @@
   ],
   "inProgress": [],
   "done": [
+    {
+      "id": "kanprompt-initialisierung-beim-ersten-oeffnen-des-prjs",
+      "file": "kanprompt-initialisierung-beim-ersten-oeffnen-des-prjs.md",
+      "title": "KanPrompt initialisierung beim ersten Öffnen des Prjs",
+      "new": "2026-03-14T17:12:21",
+      "done": "2026-03-15T16:35:00"
+    },
     {
       "id": "claude-md-cc-integration",
       "file": "claude-md-cc-integration.md",
