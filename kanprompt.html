@@ -325,19 +325,16 @@
   }
   .archive-toggle:hover { color: var(--text-secondary); border-color: var(--border); background: rgba(255,255,255,.02); }
   .archive-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
-    z-index: 90; display: flex; align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none; transition: opacity 200ms;
+    position: fixed; top: 48px; left: 50%; transform: translateX(-50%);
+    z-index: 90; pointer-events: none; opacity: 0; transition: opacity 200ms;
   }
   .archive-overlay.open { opacity: 1; pointer-events: all; }
   .archive-panel {
     background: var(--bg-surface); border: 1px solid var(--border);
     border-radius: var(--radius-lg); width: 560px; max-height: 80vh;
     display: flex; flex-direction: column;
-    transform: translateY(10px); transition: transform 200ms;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
   }
-  .archive-overlay.open .archive-panel { transform: translateY(0); }
   .archive-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 18px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
@@ -537,7 +534,7 @@
 <div class="toast-container" id="toasts"></div>
 
 <!-- ARCHIVE OVERLAY -->
-<div class="archive-overlay" id="archiveOverlay" onclick="event.target===this&&closeArchive()">
+<div class="archive-overlay" id="archiveOverlay">
   <div class="archive-panel">
     <div class="archive-header">
       <h2>✅ Done — Archiv</h2>
