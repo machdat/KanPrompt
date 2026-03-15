@@ -325,13 +325,13 @@
   }
   .archive-toggle:hover { color: var(--text-secondary); border-color: var(--border); background: rgba(255,255,255,.02); }
   .archive-overlay {
-    position: fixed; top: 48px; left: 50%; transform: translateX(-50%);
-    z-index: 90; pointer-events: none; opacity: 0; transition: opacity 200ms;
+    position: fixed; top: 48px; right: 8px;
+    z-index: 90; pointer-events: none; opacity: 0; transition: opacity 200ms, right 200ms;
   }
   .archive-overlay.open { opacity: 1; pointer-events: all; }
   .archive-panel {
     background: var(--bg-surface); border: 1px solid var(--border);
-    border-radius: var(--radius-lg); width: 560px; max-height: 80vh;
+    border-radius: var(--radius-lg); width: 520px; max-height: 80vh;
     display: flex; flex-direction: column;
     box-shadow: 0 8px 32px rgba(0,0,0,.5);
   }
@@ -1253,7 +1253,12 @@ async function deleteItem(id) {
 // ══════════════════════════════════════
 //  DONE ARCHIVE
 // ══════════════════════════════════════
-function openArchive() { document.getElementById('archiveSearch').value=''; document.getElementById('archiveOverlay').classList.add('open'); renderArchiveList(''); setTimeout(()=>document.getElementById('archiveSearch').focus(),100); }
+function updateArchivePosition() {
+  const overlay = document.getElementById('archiveOverlay');
+  const pp = document.getElementById('previewPanel');
+  overlay.style.right = (pp.classList.contains('open') ? pp.offsetWidth + 12 : 8) + 'px';
+}
+function openArchive() { document.getElementById('archiveSearch').value=''; document.getElementById('archiveOverlay').classList.add('open'); updateArchivePosition(); renderArchiveList(''); setTimeout(()=>document.getElementById('archiveSearch').focus(),100); }
 function closeArchive() { document.getElementById('archiveOverlay').classList.remove('open'); }
 let archiveSortNewest = true;
 function toggleArchiveSort() { archiveSortNewest = !archiveSortNewest; filterArchive(); }
@@ -1288,6 +1293,7 @@ async function openPreview(item, col) {
   if (savedW >= 200) pp.style.width = savedW + 'px';
   else pp.style.width = '';
   pp.classList.add('open');
+  setTimeout(updateArchivePosition, 210);
   document.getElementById('previewTitle').textContent = item.title;
   document.getElementById('editToggleBtn').textContent = '✎ Edit';
   document.getElementById('editToggleBtn').style.display = '';
@@ -1331,6 +1337,7 @@ function closePreview() {
   const w = p.offsetWidth;
   if (w >= 200) localStorage.setItem('kanprompt_preview_w', w);
   p.style.width = ''; p.classList.remove('open','resizing');
+  setTimeout(updateArchivePosition, 210);
   selectedId=null; selectedItem=null; selectedCol=null; editMode=false; showReadView(); renderBoard();
 }
 function renderMarkdown(t) {
