@@ -455,7 +455,7 @@
         <span class="status-label" id="companionLabel">companion</span>
       </div>
       <button class="btn" onclick="launchClaudeCode()" id="claudeCodeBtn" style="display:none;" title="Claude Code im Projekt-Ordner starten">⚡ Claude Code</button>
-      <button class="btn" onclick="openClaudeAi()" id="claudeAiBtn" style="display:none;" title="Claude.ai Projekt öffnen">🧠 Claude.ai</button>
+      <button class="btn" onclick="openClaudeDesktop()" id="claudeDesktopBtn" title="Claude Desktop öffnen">🧠 Claude</button>
       <button class="btn" onclick="syncFolderToJson()" title="Ordner scannen → JSON abgleichen">🔄 Sync</button>
       <button class="btn" onclick="refreshFromDisk()">↻ Refresh</button>
       <button class="btn" onclick="togglePoll()" id="pollToggle">⏸ Pause</button>
@@ -574,11 +574,6 @@ const COLUMNS = [
   { id: 'inProgress', title: 'In Progress', folder: 'in-progress', jsonKey: 'inProgress' },
   { id: 'done',       title: 'Done',        folder: 'done',        jsonKey: 'done' },
 ];
-
-// Known Claude.ai project URLs (auto-seeded into localStorage)
-const KNOWN_CLAUDE_URLS = {
-  'erju_wp27': 'https://claude.ai/project/019c5713-c18f-767d-b02d-a3eee86b68b6',
-};
 
 // Prompt template for new prompts
 const PROMPT_TEMPLATE = (title) => `# ${title}
@@ -715,44 +710,10 @@ async function openTerminalAtProject() {
 }
 
 // ══════════════════════════════════════
-//  CLAUDE.AI PROJECT LINK
+//  CLAUDE DESKTOP
 // ══════════════════════════════════════
-function getClaudeAiUrl() {
-  if (!projectHandle) return null;
-  const key = 'kanprompt_claudeai_' + projectHandle.name;
-  let url = localStorage.getItem(key);
-  // Auto-seed from known URLs if not stored yet
-  if (!url && KNOWN_CLAUDE_URLS[projectHandle.name]) {
-    url = KNOWN_CLAUDE_URLS[projectHandle.name];
-    localStorage.setItem(key, url);
-  }
-  return url;
-}
-
-function setClaudeAiUrl(url) {
-  if (!projectHandle) return;
-  localStorage.setItem('kanprompt_claudeai_' + projectHandle.name, url);
-  updateClaudeAiBtn();
-}
-
-function updateClaudeAiBtn() {
-  const btn = document.getElementById('claudeAiBtn');
-  if (!btn) return;
-  const url = getClaudeAiUrl();
-  btn.style.display = url ? 'flex' : 'none';
-}
-
-function openClaudeAi() {
-  const url = getClaudeAiUrl();
-  if (url) {
-    window.open(url, '_blank');
-  } else {
-    const input = prompt('Claude.ai Projekt-URL eingeben:\n(z.B. https://claude.ai/project/xxx-xxx-xxx)', '');
-    if (input && input.startsWith('https://claude.ai/')) {
-      setClaudeAiUrl(input);
-      window.open(input, '_blank');
-    }
-  }
+function openClaudeDesktop() {
+  window.open('claude://', '_blank');
 }
 
 // ══════════════════════════════════════
@@ -1069,7 +1030,6 @@ function showApp() {
   document.getElementById('folderLabel').textContent = projectHandle.name + '/doc/prompts/';
   saveRecentProject(projectHandle.name);
   renderBoard(); updateInfoBar(); startPoll();
-  updateClaudeAiBtn();
 
   // Auto-resolve project path via companion
   setTimeout(() => resolveProjectPath(), 300);

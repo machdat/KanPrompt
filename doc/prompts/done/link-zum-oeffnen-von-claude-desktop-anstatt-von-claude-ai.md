@@ -94,34 +94,26 @@ function openClaudeDesktop() {
 4. In der HTML-Datei suchen: kein `KNOWN_CLAUDE_URLS`, kein `getClaudeAiUrl`, kein `setClaudeAiUrl`, kein `updateClaudeAiBtn`, kein `openClaudeAi`, kein `claudeAiBtn`
 5. App startet ohne JavaScript-Fehler in der Konsole
 
-## Session-Log — Pflichtaufgabe nach Abschluss
-
-Nachdem alle Änderungen umgesetzt und verifiziert sind, ist als **letzter Schritt** folgendes zu tun:
-
-Öffne diese Prompt-Datei und hänge am Ende — unterhalb dieses Abschnitts — ein ausgefülltes Session-Log an. Ersetze dabei diesen gesamten Abschnitt (ab der Überschrift „Session-Log") durch das fertige Log.
-
-Das Log muss folgende Struktur haben:
-
 ---
 
 # Session-Log
 
-- **Datum:** (heutiges Datum im Format YYYY-MM-DDTHH:MM:SS)
-- **Branch:** (Branch-Name)
-- **Ergebnis:** (Erfolgreich / Teilweise / Fehlgeschlagen)
+- **Datum:** 2026-03-15T17:20:00
+- **Branch:** master
+- **Ergebnis:** Erfolgreich
 
 ## Zusammenfassung
 
-(1-3 Sätze: Was wurde tatsächlich umgesetzt?)
+Der "🧠 Claude.ai" Button wurde durch einen "🧠 Claude" Button ersetzt, der via `claude://` Protokoll Claude Desktop startet. Die gesamte URL-Verwaltung (KNOWN_CLAUDE_URLS, getClaudeAiUrl, setClaudeAiUrl, updateClaudeAiBtn, openClaudeAi) wurde entfernt und durch eine einfache `openClaudeDesktop()` Funktion ersetzt.
 
 ## Geänderte Dateien
 
-(Liste aller geänderten Dateien mit Kurzbeschreibung der Änderung)
+- `kanprompt.html` — Button-HTML geändert (immer sichtbar, neue ID/Funktion), KNOWN_CLAUDE_URLS entfernt, 4 Claude.ai-Funktionen durch eine openClaudeDesktop() ersetzt, updateClaudeAiBtn()-Aufruf entfernt
 
 ## Abweichungen vom Prompt
 
-(Falls die Umsetzung vom Prompt abwich: Was wurde anders gemacht und warum? Falls keine Abweichung: „Keine.")
+Keine.
 
 ## Offene Punkte
 
-(Falls etwas offen geblieben ist. Falls nichts: „Keine.")
+Keine.

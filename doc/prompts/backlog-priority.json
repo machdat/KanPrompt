@@ -2,10 +2,10 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai",
-      "file": "link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai.md",
-      "title": "Link zum Öffnen von Claude Desktop anstatt von Claude.ai",
-      "new": "2026-03-15T13:40:39"
+      "id": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg",
+      "file": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg.md",
+      "title": "Button oder HotKey der einen schnellen Projektwechsel ermöglicht",
+      "new": "2026-03-14T17:14:12"
     },
     {
       "id": "claude-md-cc-integration",
@@ -32,12 +32,6 @@
       "new": "2026-03-14T17:12:21"
     },
     {
-      "id": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg",
-      "file": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg.md",
-      "title": "Button oder HotKey der einen schnellen Projektwechsel ermöglicht",
-      "new": "2026-03-14T17:14:12"
-    },
-    {
       "id": "refresh-sync-polling-sieht-keine-neuen-dateien",
       "file": "refresh-sync-polling-sieht-keine-neuen-dateien.md",
       "title": "refresh, sync, polling sieht keine neuen Dateien",
@@ -46,6 +40,14 @@
   ],
   "inProgress": [],
   "done": [
+    {
+      "id": "link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai",
+      "file": "link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai.md",
+      "title": "Link zum Öffnen von Claude Desktop anstatt von Claude.ai",
+      "new": "2026-03-15T13:40:39",
+      "inProgress": "2026-03-15T17:15:00",
+      "done": "2026-03-15T17:20:00"
+    },
     {
       "id": "update-workflow-docs-timestamps",
       "file": "update-workflow-docs-timestamps.md",
