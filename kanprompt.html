@@ -393,7 +393,7 @@
     background: var(--bg-card); border: 1px solid var(--border-subtle);
     cursor: pointer; transition: var(--transition);
   }
-  .recent-item:hover { border-color: var(--border); background: var(--bg-card-hover); }
+  .recent-item:hover, .recent-item.focused { border-color: var(--accent-blue); background: var(--bg-card-hover); }
   .recent-item-name {
     flex: 1; font-size: 13px; font-weight: 500; color: var(--text-primary);
   }
@@ -810,8 +810,25 @@ function renderRecentProjects() {
       <button class="recent-item-delete" onclick="event.stopPropagation();removeRecentProject('${esc(p.name)}')" title="Entfernen">✕</button>
     `;
     row.addEventListener('click', () => reopenProject(p.name));
+    row.addEventListener('mouseenter', () => { const items = list.querySelectorAll('.recent-item'); const idx = [...items].indexOf(row); if (idx >= 0) setRecentFocus(idx); });
     list.appendChild(row);
   });
+}
+
+let recentFocusIdx = -1;
+function setRecentFocus(idx) {
+  const items = document.querySelectorAll('#recentList .recent-item');
+  if (!items.length) return;
+  items.forEach(el => el.classList.remove('focused'));
+  recentFocusIdx = ((idx % items.length) + items.length) % items.length;
+  items[recentFocusIdx].classList.add('focused');
+  items[recentFocusIdx].scrollIntoView({ block: 'nearest' });
+}
+function getRecentFocusedName() {
+  const items = document.querySelectorAll('#recentList .recent-item');
+  if (recentFocusIdx < 0 || recentFocusIdx >= items.length) return null;
+  const nameEl = items[recentFocusIdx].querySelector('.recent-item-name');
+  return nameEl ? nameEl.textContent.replace(/^[⚡📂]\s*/, '') : null;
 }
 
 async function reopenProject(name) {
@@ -833,6 +850,7 @@ async function reopenProject(name) {
     return openProjectFolder();
   }
   // Permission granted — use the stored handle directly
+  resetProjectState();
   projectHandle = handle;
   await initProjectFromHandle();
 }
@@ -872,6 +890,7 @@ async function openFileExternally() {
 // ══════════════════════════════════════
 async function openProjectFolder() {
   try {
+    resetProjectState();
     projectHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
     await initProjectFromHandle();
   } catch (e) {
@@ -1036,26 +1055,34 @@ function showApp() {
   setTimeout(() => resolveProjectPath(), 300);
 }
 
+let switchedFromBoard = false;
 function switchProject() {
-  // Stop polling
+  // Pause polling (don't destroy state yet)
   polling = false;
   if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
 
-  // Close preview
-  closePreview();
-
-  // Reset state
-  projectHandle = null; dirHandle = null; subDirs = {}; jsonHandle = null; jsonData = null;
-  fileContentsCache = {};
-  lastJsonText = '';
-
-  // Clear board
-  document.getElementById('board').innerHTML = '';
+  switchedFromBoard = projectHandle !== null;
 
   // Show welcome screen, hide app
   document.getElementById('app').style.display = 'none';
   document.getElementById('welcomeScreen').style.display = '';
   renderRecentProjects();
+  // Auto-focus first recent project after render
+  setTimeout(() => setRecentFocus(0), 50);
+}
+function resumeBoard() {
+  if (!projectHandle || !jsonData) return;
+  switchedFromBoard = false;
+  document.getElementById('welcomeScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  polling = true; startPoll();
+}
+function resetProjectState() {
+  closePreview();
+  projectHandle = null; dirHandle = null; subDirs = {}; jsonHandle = null; jsonData = null;
+  fileContentsCache = {}; lastJsonText = '';
+  document.getElementById('board').innerHTML = '';
+  switchedFromBoard = false;
 }
 
 async function resolveProjectPath() {
@@ -1385,9 +1412,18 @@ function toast(m){const e=document.createElement('div');e.className='toast';e.te
 
 // ── KEYBOARD ──
 document.addEventListener('keydown', e => {
+  const onWelcome = document.getElementById('welcomeScreen').style.display !== 'none';
+  if ((e.ctrlKey||e.metaKey) && e.shiftKey && e.key==='O') { e.preventDefault(); switchProject(); return; }
+  if ((e.ctrlKey||e.metaKey) && e.key==='s' && editMode) { e.preventDefault(); saveEdit(); return; }
+  // Welcome-Screen keyboard navigation
+  if (onWelcome) {
+    if (e.key==='ArrowDown') { e.preventDefault(); setRecentFocus(recentFocusIdx + 1); return; }
+    if (e.key==='ArrowUp') { e.preventDefault(); setRecentFocus(recentFocusIdx - 1); return; }
+    if (e.key==='Enter') { e.preventDefault(); const name = getRecentFocusedName(); if (name) reopenProject(name); return; }
+    if (e.key==='Escape') { if (switchedFromBoard) { e.preventDefault(); resumeBoard(); } return; }
+    return;
+  }
   if (e.key==='Escape') { closeModal(); closeBlockedModal(); closeArchive(); if(editMode)cancelEdit(); else closePreview(); }
-  if ((e.ctrlKey||e.metaKey) && e.key==='s' && editMode) { e.preventDefault(); saveEdit(); }
-  if ((e.ctrlKey||e.metaKey) && e.shiftKey && e.key==='O') { e.preventDefault(); switchProject(); }
   const tag = document.activeElement.tagName;
   if (['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
   if (e.key==='n') { e.preventDefault(); openNewTaskModal(); }

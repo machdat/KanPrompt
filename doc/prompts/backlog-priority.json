@@ -6,22 +6,18 @@
       "file": "archive-search-filter.md",
       "title": "Archiv-Overlay: Suche und Filterung",
       "new": "2026-03-14T17:30:00"
-    },
-    {
-      "id": "refresh-sync-polling-sieht-keine-neuen-dateien",
-      "file": "refresh-sync-polling-sieht-keine-neuen-dateien.md",
-      "title": "refresh, sync, polling sieht keine neuen Dateien",
-      "new": "2026-03-14T21:14:51"
-    },
-    {
-      "id": "keyboard-navigation-recent-projects",
-      "file": "keyboard-navigation-recent-projects.md",
-      "title": "Keyboard Navigation Recent Projects",
-      "new": "2026-03-15T15:51:06"
     }
   ],
   "inProgress": [],
   "done": [
+    {
+      "id": "keyboard-navigation-recent-projects",
+      "file": "keyboard-navigation-recent-projects.md",
+      "title": "Keyboard-Navigation in der Recent-Projects-Liste",
+      "new": "2026-03-15T15:51:06",
+      "inProgress": "2026-03-15T19:25:00",
+      "done": "2026-03-15T19:35:00"
+    },
     {
       "id": "cli-button-entfernen-oder-ersetzen",
       "file": "cli-button-entfernen-oder-ersetzen.md",
