@@ -2,6 +2,12 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
+      "id": "keyboard-navigation-recent-projects",
+      "file": "keyboard-navigation-recent-projects.md",
+      "title": "Keyboard-Navigation in der Recent-Projects-Liste (Welcome-Screen)",
+      "new": "2026-03-15T19:00:00"
+    },
+    {
       "id": "cli-button-entfernen-oder-ersetzen",
       "file": "cli-button-entfernen-oder-ersetzen.md",
       "title": "CLI-Button im Header entfernen oder ersetzen",
