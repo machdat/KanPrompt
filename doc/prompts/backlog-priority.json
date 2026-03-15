@@ -8,6 +8,12 @@
       "new": "2026-03-14T17:14:12"
     },
     {
+      "id": "cli-button-entfernen-oder-ersetzen",
+      "file": "cli-button-entfernen-oder-ersetzen.md",
+      "title": "CLI-Button im Header entfernen oder ersetzen",
+      "new": "2026-03-15T18:45:00"
+    },
+    {
       "id": "archive-search-filter",
       "file": "archive-search-filter.md",
       "title": "Archiv-Overlay: Suche und Filterung",
