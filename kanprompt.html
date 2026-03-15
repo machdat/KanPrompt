@@ -1273,7 +1273,7 @@ function renderArchiveList(q) {
   document.getElementById('archiveCount').textContent = `${sorted.length} / ${all.length}`; list.innerHTML = '';
   if (!sorted.length) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Keine Einträge</div>'; return; }
   sorted.forEach(item => {
-    const r = document.createElement('div'); r.className = 'archive-item'; r.onclick = () => { closeArchive(); openPreview(item, dc); };
+    const r = document.createElement('div'); r.className = 'archive-item'; r.onclick = () => { openPreview(item, dc); };
     const doneFmt = item.done ? formatTS(item.done) : '';
     r.innerHTML = `<div class="archive-item-title">${esc(item.title)}</div><div class="archive-item-meta"><span>${esc(item.id)}</span>${doneFmt ? `<span>✅ ${doneFmt}</span>` : ''}</div>`;
     list.appendChild(r);
