@@ -1253,6 +1253,7 @@ async function openPreview(item, col) {
   pp.classList.add('open');
   document.getElementById('previewTitle').textContent = item.title;
   document.getElementById('editToggleBtn').textContent = '✎ Edit';
+  document.getElementById('editToggleBtn').style.display = '';
   const meta = document.getElementById('previewMeta');
   let mh = `<span>📄 ${col.folder}/${item.file}</span>`;
   if (item.new) mh += `<span>🆕 ${formatTS(item.new)}</span>`;
@@ -1321,13 +1322,25 @@ async function createNewPrompt() {
 //  WORKFLOW DOC
 // ══════════════════════════════════════
 async function openWorkflowDoc() {
-  if (!projectHandle) return;
-  const basePath = await getProjectPath();
-  if (!basePath) { toast('Projekt-Pfad unbekannt (Companion nötig)'); return; }
-  const filePath = basePath + '\\doc\\prompts\\README.md';
-  const result = await companionPost('/open-editor', { filePath });
-  if (result && result.action) toast('📋 Workflow-Doku geöffnet');
-  else toast('Companion nicht erreichbar');
+  if (!dirHandle) return;
+  try {
+    const fh = await dirHandle.getFileHandle('README.md');
+    const f = await fh.getFile();
+    const md = await f.text();
+    // Show in preview panel (read-only, no card selected)
+    selectedId = null; selectedItem = null; selectedCol = null; editMode = false;
+    renderBoard();
+    const pp = document.getElementById('previewPanel');
+    const savedW = parseInt(localStorage.getItem('kanprompt_preview_w'));
+    if (savedW >= 200) pp.style.width = savedW + 'px';
+    else pp.style.width = '';
+    pp.classList.add('open');
+    document.getElementById('previewTitle').textContent = 'Workflow-Doku';
+    document.getElementById('previewMeta').innerHTML = '<span>📄 doc/prompts/README.md</span>';
+    document.getElementById('editToggleBtn').style.display = 'none';
+    showReadView();
+    document.getElementById('previewContent').innerHTML = renderMarkdown(md);
+  } catch { toast('README.md nicht gefunden'); }
 }
 
 // ══════════════════════════════════════
