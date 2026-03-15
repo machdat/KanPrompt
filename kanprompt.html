@@ -1289,6 +1289,7 @@ async function refreshPreview() {
   toast('🔄 Aktualisiert');
 }
 function closePreview() {
+  workflowDocOpen = false;
   const p = document.getElementById('previewPanel');
   const w = p.offsetWidth;
   if (w >= 200) localStorage.setItem('kanprompt_preview_w', w);
@@ -1321,8 +1322,10 @@ async function createNewPrompt() {
 // ══════════════════════════════════════
 //  WORKFLOW DOC
 // ══════════════════════════════════════
+let workflowDocOpen = false;
 async function openWorkflowDoc() {
   if (!dirHandle) return;
+  if (workflowDocOpen) { workflowDocOpen = false; closePreview(); return; }
   try {
     const fh = await dirHandle.getFileHandle('README.md');
     const f = await fh.getFile();
@@ -1340,6 +1343,7 @@ async function openWorkflowDoc() {
     document.getElementById('editToggleBtn').style.display = 'none';
     showReadView();
     document.getElementById('previewContent').innerHTML = renderMarkdown(md);
+    workflowDocOpen = true;
   } catch { toast('README.md nicht gefunden'); }
 }
 
