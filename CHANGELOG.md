@@ -2,6 +2,36 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [0.7.3] - 2026-03-15
+
+### Added
+- Add KanPrompt prompt workflow (dogfooding) with 5 backlog items and 4 done items
+- Add schema versioning (v1.0.0) and CLAUDE.md
+- Auto git pull in update.ps1 before deploying
+- Replace Claude.ai button with Claude Desktop launcher
+
+### Changed
+- Update workflow docs to ISO timestamps with time-of-day
+
+### Fixed
+- Update Claude Desktop icon to ✨ and bump version to 0.7.3
+
+## [0.7.2] - 2026-03-14
+
+### Changed
+- Remove dead title tooltips on draggable cards
+
+## [0.7.1] - 2026-03-14
+
+### Fixed
+- Show date+time on all cards, e.g. 14.03. 16:45
+
+## [0.7.0] - 2026-03-14
+
+### Added
+- Initial repo structure v0.6.7
+- ISO timestamps with time-of-day, sorted done column
+
 ## [0.6.7] - 2026-03-14
 
 ### Changed

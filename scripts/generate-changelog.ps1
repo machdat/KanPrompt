@@ -18,12 +18,16 @@ $changelogPath = "$RepoRoot\CHANGELOG.md"
 # Read existing changelog to find already-documented versions
 $existingVersions = @()
 if (Test-Path $changelogPath) {
-    $existingContent = Get-Content $changelogPath -Raw
+    $existingContent = [System.IO.File]::ReadAllText($changelogPath, [System.Text.UTF8Encoding]::new($false))
     $existingVersions = [regex]::Matches($existingContent, '## \[([^\]]+)\]') |
         ForEach-Object { $_.Groups[1].Value }
 }
 
 Write-Host "Existing versions in CHANGELOG: $($existingVersions -join ', ')" -ForegroundColor Gray
+
+# Ensure git output is read as UTF-8
+$oldEncoding = [Console]::OutputEncoding
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 
 # Parse all commits, group by version
 $log = git -C $RepoRoot log --reverse --format="%H|%s|%ai" 2>$null
@@ -33,8 +37,10 @@ if (-not $log) {
 }
 
 # Build version map: version -> { date, commits[] }
+# Strategy: buffer commits, flush to version when a version marker is found.
+# This assigns commits BEFORE a version marker to that version (they were work towards it).
 $versions = [ordered]@{}
-$currentVersion = $null
+$buffer = @()
 
 foreach ($line in $log) {
     $parts = $line -split '\|', 3
@@ -43,26 +49,24 @@ foreach ($line in $log) {
     $msg = $parts[1]
     $date = ($parts[2] -split ' ')[0]  # YYYY-MM-DD
 
-    # Check if this commit contains a version marker
-    if ($msg -match '\(v(\d+\.\d+\.\d+)\)') {
-        $currentVersion = $Matches[1]
-        if (-not $versions.Contains($currentVersion)) {
-            $versions[$currentVersion] = @{ date = $date; commits = @() }
-        }
-        $versions[$currentVersion].date = $date
+    $detectedVersion = $null
+
+    # Check if this commit contains a version marker at the end
+    if ($msg -match '\(v(\d+\.\d+\.\d+)\)\s*$') {
+        $detectedVersion = $Matches[1]
     }
     # Also detect "bump version to X.Y.Z" pattern
     elseif ($msg -match 'version[- ](?:to )?(\d+\.\d+\.\d+)') {
-        $currentVersion = $Matches[1]
-        if (-not $versions.Contains($currentVersion)) {
-            $versions[$currentVersion] = @{ date = $date; commits = @() }
-        }
-        $versions[$currentVersion].date = $date
+        $detectedVersion = $Matches[1]
     }
 
-    # Add commit to current version (if we have one)
-    if ($currentVersion -and $versions.Contains($currentVersion)) {
-        $versions[$currentVersion].commits += $msg
+    if ($detectedVersion) {
+        # Flush buffer + this commit into the detected version
+        $buffer += $msg
+        $versions[$detectedVersion] = @{ date = $date; commits = $buffer }
+        $buffer = @()
+    } else {
+        $buffer += $msg
     }
 }
 
@@ -140,7 +144,7 @@ if ($DryRun) {
 
 # Insert new entries after the header
 if (Test-Path $changelogPath) {
-    $content = Get-Content $changelogPath -Raw
+    $content = [System.IO.File]::ReadAllText($changelogPath, [System.Text.UTF8Encoding]::new($false))
     # Insert after the header lines (# Changelog + blank line + description + blank line)
     if ($content -match '(?s)^(# Changelog\r?\n\r?\nAll notable changes.*?\r?\n\r?\n)(.*)$') {
         $header = $Matches[1]
@@ -155,5 +159,6 @@ if (Test-Path $changelogPath) {
     $content = "# Changelog`n`nAll notable changes to KanPrompt will be documented in this file.`n`n" + $newEntries
 }
 
-Set-Content $changelogPath -Value $content.TrimEnd() -Encoding UTF8 -NoNewline
+[System.IO.File]::WriteAllText($changelogPath, $content.TrimEnd() + "`n", [System.Text.UTF8Encoding]::new($false))
+[Console]::OutputEncoding = $oldEncoding
 Write-Host "CHANGELOG.md updated with: $($newVersions -join ', ')" -ForegroundColor Green

@@ -29,3 +29,29 @@ CHANGELOG.md wird von Hand geschrieben und hinkt dem Git-Log hinterher.
 
 1. Script ausführen → CHANGELOG enthält alle Versionen mit gruppierten Änderungen
 2. Erneut ausführen → keine Duplikate
+
+---
+
+# Session-Log
+
+- **Datum:** 2026-03-15T17:35:00
+- **Branch:** master
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+
+PowerShell-Script `scripts/generate-changelog.ps1` erstellt, das aus Git-Commit-Messages Versionen erkennt (via `(vX.Y.Z)` am Zeilenende oder `bump version to X.Y.Z`), Commits nach Conventional-Commit-Typ gruppiert (feat→Added, fix→Fixed, cleanup/docs→Changed, chore→übersprungen) und nur fehlende Versionen in CHANGELOG.md ergänzt. UTF-8-Encoding korrekt, idempotent, `-DryRun` Flag verfügbar.
+
+## Geänderte Dateien
+
+- `scripts/generate-changelog.ps1` — Neu: Changelog-Generator-Script
+- `CHANGELOG.md` — Automatisch ergänzt um v0.7.0, v0.7.1, v0.7.2, v0.7.3
+
+## Abweichungen vom Prompt
+
+- Keine Git-Tags vorhanden, daher werden Versionen aus Commit-Messages extrahiert statt aus Tags
+- Prompt hatte kein Session-Log-Template — hier nachgeholt
+
+## Offene Punkte
+
+Keine.

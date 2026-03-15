@@ -8,12 +8,6 @@
       "new": "2026-03-14T17:14:12"
     },
     {
-      "id": "auto-changelog",
-      "file": "auto-changelog.md",
-      "title": "CHANGELOG automatisch aus Git-Commits pflegen",
-      "new": "2026-03-14T17:30:00"
-    },
-    {
       "id": "archive-search-filter",
       "file": "archive-search-filter.md",
       "title": "Archiv-Overlay: Suche und Filterung",
@@ -28,6 +22,14 @@
   ],
   "inProgress": [],
   "done": [
+    {
+      "id": "auto-changelog",
+      "file": "auto-changelog.md",
+      "title": "CHANGELOG automatisch aus Git-Commits pflegen",
+      "new": "2026-03-14T17:30:00",
+      "inProgress": "2026-03-15T17:30:00",
+      "done": "2026-03-15T17:35:00"
+    },
     {
       "id": "kanprompt-initialisierung-beim-ersten-oeffnen-des-prjs",
       "file": "kanprompt-initialisierung-beim-ersten-oeffnen-des-prjs.md",
