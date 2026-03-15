@@ -28,6 +28,27 @@ if (-not (Test-Path "$RepoRoot\kanprompt.html")) {
     exit 1
 }
 
+# Git pull (if in a git repo with remote)
+if (Test-Path "$RepoRoot\.git") {
+    $remotes = git -C $RepoRoot remote 2>$null
+    if ($remotes) {
+        Write-Host "  git pull..." -ForegroundColor Gray -NoNewline
+        $pullResult = git -C $RepoRoot pull 2>&1
+        $pullExit = $LASTEXITCODE
+        if ($pullExit -eq 0) {
+            $pullText = ($pullResult | Out-String).Trim()
+            if ($pullText -eq "Already up to date.") {
+                Write-Host " already up to date" -ForegroundColor Gray
+            } else {
+                Write-Host " done" -ForegroundColor Green
+            }
+        } else {
+            Write-Host " failed (continuing with local files)" -ForegroundColor Yellow
+            Write-Host "  $pullResult" -ForegroundColor Yellow
+        }
+    }
+}
+
 # Get version from repo
 $ver = Select-String -Path "$RepoRoot\kanprompt.html" -Pattern "const VERSION = '([^']+)'" | 
     ForEach-Object { $_.Matches[0].Groups[1].Value }

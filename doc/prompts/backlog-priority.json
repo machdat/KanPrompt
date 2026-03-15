@@ -2,12 +2,6 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "one-step-deploy",
-      "file": "one-step-deploy.md",
-      "title": "Deploy vereinfachen: Ein-Schritt-Update",
-      "new": "2026-03-14T17:30:00"
-    },
-    {
       "id": "scaffold-und-dort-liegende-readmes-muessen-aktualisiert-werd",
       "file": "scaffold-und-dort-liegende-readmes-muessen-aktualisiert-werd.md",
       "title": "Scaffold und dort liegende readmes müssen aktualisiert werden",
@@ -64,6 +58,14 @@
   ],
   "inProgress": [],
   "done": [
+    {
+      "id": "one-step-deploy",
+      "file": "one-step-deploy.md",
+      "title": "Deploy vereinfachen: Ein-Schritt-Update",
+      "new": "2026-03-14T17:30:00",
+      "inProgress": "2026-03-15T16:00:00",
+      "done": "2026-03-15T16:05:00"
+    },
     {
       "id": "schema-versioning",
       "file": "schema-versioning.md",
