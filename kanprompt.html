@@ -850,7 +850,6 @@ async function reopenProject(name) {
     return openProjectFolder();
   }
   // Permission granted — use the stored handle directly
-  resetProjectState();
   projectHandle = handle;
   await initProjectFromHandle();
 }
@@ -890,7 +889,6 @@ async function openFileExternally() {
 // ══════════════════════════════════════
 async function openProjectFolder() {
   try {
-    resetProjectState();
     projectHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
     await initProjectFromHandle();
   } catch (e) {
@@ -900,6 +898,11 @@ async function openProjectFolder() {
 
 async function initProjectFromHandle() {
   try {
+    // Clean up previous project state
+    closePreview();
+    fileContentsCache = {}; lastJsonText = '';
+    switchedFromBoard = false;
+
     // Save handle to IndexedDB for quick re-open
     const saved = await saveHandleToIDB(projectHandle.name, projectHandle);
     if (saved) toast('⚡ Schnellzugriff gespeichert für ' + projectHandle.name);
