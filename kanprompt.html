@@ -546,8 +546,11 @@
         <button class="preview-close" onclick="closeArchive()">✕</button>
       </div>
     </div>
-    <input class="archive-search" id="archiveSearch" type="text"
-           placeholder="Suche nach Titel oder Dateiname..." oninput="filterArchive()">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input class="archive-search" id="archiveSearch" type="text" style="flex:1;"
+             placeholder="Suche nach Titel oder Dateiname..." oninput="filterArchive()">
+      <button class="btn btn-sm" id="archiveSortBtn" onclick="toggleArchiveSort()" title="Sortierung umschalten" style="white-space:nowrap;"></button>
+    </div>
     <div class="archive-list" id="archiveList"></div>
   </div>
 </div>
@@ -1255,11 +1258,18 @@ async function deleteItem(id) {
 // ══════════════════════════════════════
 function openArchive() { document.getElementById('archiveSearch').value=''; document.getElementById('archiveOverlay').classList.add('open'); renderArchiveList(''); setTimeout(()=>document.getElementById('archiveSearch').focus(),100); }
 function closeArchive() { document.getElementById('archiveOverlay').classList.remove('open'); }
+let archiveSortNewest = true;
+function toggleArchiveSort() { archiveSortNewest = !archiveSortNewest; filterArchive(); }
 function filterArchive() { renderArchiveList(document.getElementById('archiveSearch').value.trim().toLowerCase()); }
 function renderArchiveList(q) {
   const list = document.getElementById('archiveList'); const all = jsonData.done||[]; const dc = COLUMNS.find(c=>c.jsonKey==='done');
   const filt = q ? all.filter(i=>(i.title||'').toLowerCase().includes(q)||(i.file||'').toLowerCase().includes(q)) : all;
-  const sorted = [...filt].reverse();
+  const sorted = [...filt].sort((a, b) => {
+    const ta = a.done || a.inProgress || a.new || '';
+    const tb = b.done || b.inProgress || b.new || '';
+    return archiveSortNewest ? tb.localeCompare(ta) : ta.localeCompare(tb);
+  });
+  document.getElementById('archiveSortBtn').textContent = archiveSortNewest ? '↓ Neueste' : '↑ Älteste';
   document.getElementById('archiveCount').textContent = `${sorted.length} / ${all.length}`; list.innerHTML = '';
   if (!sorted.length) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Keine Einträge</div>'; return; }
   sorted.forEach(item => {
