@@ -40,7 +40,7 @@ Ersetze dabei diesen gesamten Abschnitt durch das fertige Log:
 
 # Session-Log
 
-- **Datum:** (heutiges Datum im Format YYYY-MM-DD)
+- **Datum:** (heutiges Datum im Format YYYY-MM-DDTHH:MM:SS)
 - **Branch:** (Branch-Name)
 - **Ergebnis:** (Erfolgreich / Teilweise / Fehlgeschlagen)
 
@@ -82,7 +82,7 @@ Jeder Eintrag hat folgende Felder:
 - `file` — vollständiger Dateiname
 - `title` — Beschreibung
 - `blocked` / `blockedBy` — nur im Backlog, CC überspringt blockierte Items
-- `new` — Datum (YYYY-MM-DD) wann der Prompt erstellt wurde
+- `new` — Timestamp (YYYY-MM-DDTHH:MM:SS) wann der Prompt erstellt wurde
 - `inProgress` — Datum wann CC mit der Bearbeitung begonnen hat
 - `done` — Datum wann abgeschlossen
 - `deleted` — Datum wann gelöscht

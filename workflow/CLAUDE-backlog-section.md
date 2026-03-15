@@ -14,7 +14,7 @@ Development tasks are driven by prompt files in `doc/prompts/` with a folder-bas
 
 The prioritized task queue is `doc/prompts/backlog-priority.json` with three arrays:
 `backlog`, `inProgress`, `done`. Each entry references a prompt file and carries
-timestamp fields (`new`, `inProgress`, `done`) in YYYY-MM-DD format.
+timestamp fields (`new`, `inProgress`, `done`) in YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).
 
 **Board management** happens in KanPrompt (standalone HTML app) or Claude.ai —
 NOT in Claude Code. CC only reads and updates the JSON when executing tasks.
@@ -27,13 +27,13 @@ NOT in Claude Code. CC only reads and updates the JSON when executing tasks.
 4. On confirmation:
    - Move the prompt file from `new/` to `in-progress/`
    - Move the entry from `backlog` to `inProgress` in the JSON
-   - Set `"inProgress": "YYYY-MM-DD"` with today's date
+   - Set `"inProgress": "YYYY-MM-DDTHH:MM:SS"` with current date and time
    - Begin implementation
 5. On completion:
    - Append the session log to the prompt file (see below)
    - Move the prompt file from `in-progress/` to `done/`
    - Move the entry from `inProgress` to `done` array in the JSON
-   - Set `"done": "YYYY-MM-DD"` with today's date
+   - Set `"done": "YYYY-MM-DDTHH:MM:SS"` with current date and time
 
 Do NOT start work without user confirmation. Always show what you intend to do first.
 
@@ -70,7 +70,7 @@ After all changes are implemented and verified, append this to the prompt file
 
 # Session-Log
 
-- **Datum:** (today's date, YYYY-MM-DD)
+- **Datum:** (today's date, YYYY-MM-DDTHH:MM:SS)
 - **Branch:** (the branch name)
 - **Ergebnis:** Erfolgreich / Teilweise / Fehlgeschlagen
 

@@ -118,34 +118,29 @@ Neuen Schritt 3 einfügen (bisheriger Schritt 3 wird 4):
 4. `workflow/scaffold/doc/prompts/TEMPLATE.md` enthält kein `YYYY-MM-DD` ohne `T` dahinter
 5. `workflow/README.md` erwähnt `.kanprompt-version.json`
 
-## Session-Log — Pflichtaufgabe nach Abschluss
-
-Nachdem alle Änderungen umgesetzt und verifiziert sind, ist als **letzter Schritt** folgendes zu tun:
-
-Öffne diese Prompt-Datei und hänge am Ende — unterhalb dieses Abschnitts — ein ausgefülltes Session-Log an. Ersetze dabei diesen gesamten Abschnitt (ab der Überschrift „Session-Log") durch das fertige Log.
-
-Das Log muss folgende Struktur haben:
-
 ---
 
 # Session-Log
 
-- **Datum:** (heutiges Datum im Format YYYY-MM-DDTHH:MM:SS)
-- **Branch:** (Branch-Name)
-- **Ergebnis:** (Erfolgreich / Teilweise / Fehlgeschlagen)
+- **Datum:** 2026-03-15T17:10:00
+- **Branch:** master
+- **Ergebnis:** Erfolgreich
 
 ## Zusammenfassung
 
-(1-3 Sätze: Was wurde tatsächlich umgesetzt?)
+Alle Timestamp-Referenzen in der Workflow-Dokumentation von `YYYY-MM-DD` auf `YYYY-MM-DDTHH:MM:SS` aktualisiert (4 Stellen in CLAUDE-backlog-section.md, 2 in scaffold README.md, 1 in TEMPLATE.md). Zusätzlich `.kanprompt-version.json`-Hinweis in workflow/README.md als neuen Setup-Schritt eingefügt.
 
 ## Geänderte Dateien
 
-(Liste aller geänderten Dateien mit Kurzbeschreibung der Änderung)
+- `workflow/CLAUDE-backlog-section.md` — 4 Timestamp-Formate auf ISO mit Uhrzeit aktualisiert
+- `workflow/scaffold/doc/prompts/README.md` — Session-Log-Datum und JSON-Feldbeschreibung aktualisiert
+- `workflow/scaffold/doc/prompts/TEMPLATE.md` — Session-Log-Datum aktualisiert
+- `workflow/README.md` — Neuer Schritt 3 mit `.kanprompt-version.json`-Hinweis
 
 ## Abweichungen vom Prompt
 
-(Falls die Umsetzung vom Prompt abwich: Was wurde anders gemacht und warum? Falls keine Abweichung: „Keine.")
+Keine.
 
 ## Offene Punkte
 
-(Falls etwas offen geblieben ist. Falls nichts: „Keine.")
+Keine.

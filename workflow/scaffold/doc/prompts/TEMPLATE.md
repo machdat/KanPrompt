@@ -42,7 +42,7 @@ Das Log muss folgende Struktur haben:
 
 # Session-Log
 
-- **Datum:** (heutiges Datum im Format YYYY-MM-DD)
+- **Datum:** (heutiges Datum im Format YYYY-MM-DDTHH:MM:SS)
 - **Branch:** (Branch-Name)
 - **Ergebnis:** (Erfolgreich / Teilweise / Fehlgeschlagen)
 

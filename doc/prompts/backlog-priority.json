@@ -2,12 +2,6 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "update-workflow-docs-timestamps",
-      "file": "update-workflow-docs-timestamps.md",
-      "title": "Workflow-Doku auf ISO-Timestamps aktualisieren",
-      "new": "2026-03-14T17:30:00"
-    },
-    {
       "id": "link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai",
       "file": "link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai.md",
       "title": "Link zum Öffnen von Claude Desktop anstatt von Claude.ai",
@@ -52,6 +46,14 @@
   ],
   "inProgress": [],
   "done": [
+    {
+      "id": "update-workflow-docs-timestamps",
+      "file": "update-workflow-docs-timestamps.md",
+      "title": "Workflow-Doku auf ISO-Timestamps aktualisieren",
+      "new": "2026-03-14T17:30:00",
+      "inProgress": "2026-03-15T17:05:00",
+      "done": "2026-03-15T17:10:00"
+    },
     {
       "id": "scaffold-und-dort-liegende-readmes-muessen-aktualisiert-werd",
       "file": "scaffold-und-dort-liegende-readmes-muessen-aktualisiert-werd.md",

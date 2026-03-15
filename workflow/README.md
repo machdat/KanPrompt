@@ -26,7 +26,8 @@ Wiederverwendbare Vorlage für den Kanban-gesteuerten CC-Prompt-Workflow.
 
 1. Öffne KanPrompt → "Projekt-Ordner öffnen" → KanPrompt erstellt `doc/prompts/` automatisch
 2. Kopiere den Inhalt von `CLAUDE-backlog-section.md` in die `CLAUDE.md` des Projekts
-3. Fertig — Prompts erstellen geht direkt in KanPrompt (+ Prompt Button)
+3. `.kanprompt-version.json` liegt schon im Scaffold — prüfen ob Schema-Version aktuell ist
+4. Fertig — Prompts erstellen geht direkt in KanPrompt (+ Prompt Button)
 
 ## Archiviert
 
