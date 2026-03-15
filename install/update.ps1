@@ -34,6 +34,24 @@ $ver = Select-String -Path "$RepoRoot\kanprompt.html" -Pattern "const VERSION = 
 
 Write-Host "KanPrompt Update -> v$ver" -ForegroundColor Cyan
 
+# Check schema version
+$schemaFile = "$RepoRoot\workflow\schema.json"
+$versionFile = "$RepoRoot\.kanprompt-version.json"
+
+if ((Test-Path $schemaFile) -and (Test-Path $versionFile)) {
+    $schema = Get-Content $schemaFile -Raw | ConvertFrom-Json
+    $projVersion = Get-Content $versionFile -Raw | ConvertFrom-Json
+
+    $currentSchema = $schema.currentVersion
+    $projectSchema = $projVersion.schema
+
+    if ($currentSchema -ne $projectSchema) {
+        Write-Host "  Schema: $projectSchema -> $currentSchema (migration needed)" -ForegroundColor Yellow
+    } else {
+        Write-Host "  Schema: $projectSchema (up to date)" -ForegroundColor Green
+    }
+}
+
 # Copy files
 Copy-Item "$RepoRoot\kanprompt.html" -Destination "$target\kanprompt.html" -Force
 foreach ($f in @("kanprompt-companion.js", "start-companion.bat", "start-companion-silent.vbs")) {
@@ -43,4 +61,13 @@ foreach ($f in @("kanprompt-companion.js", "start-companion.bat", "start-compani
 }
 
 Write-Host "  Updated to v$ver in $target" -ForegroundColor Green
+
+# Update version file
+if (Test-Path $versionFile) {
+    $projVersion = Get-Content $versionFile -Raw | ConvertFrom-Json
+    $projVersion.app = $ver
+    $projVersion.updatedAt = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss")
+    $projVersion | ConvertTo-Json -Depth 10 | Set-Content $versionFile -Encoding UTF8
+}
+
 Write-Host "  Reload browser (F5) to apply." -ForegroundColor Yellow

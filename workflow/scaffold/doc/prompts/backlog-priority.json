@@ -1,5 +1,5 @@
 {
-  "$schema": "Backlog priority for CC prompts. Timestamps (new/inProgress/done/deleted) are set when an item enters that phase. Format: YYYY-MM-DD.",
+  "$schema": "Backlog priority for CC prompts. Timestamps (new/inProgress/done/deleted) are set when an item enters that phase. Format: YYYY-MM-DDTHH:MM:SS (ISO with time-of-day).",
   "backlog": [],
   "inProgress": [],
   "done": []

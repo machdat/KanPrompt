@@ -1,0 +1,19 @@
+{
+  "currentVersion": "1.0.0",
+  "description": "KanPrompt Workflow Schema — definiert JSON-Format, Ordnerstruktur und Templates",
+  "versions": {
+    "1.0.0": {
+      "released": "2026-03-15",
+      "json": {
+        "fields": {
+          "backlog[]": ["id", "file", "title", "new"],
+          "inProgress[]": ["id", "file", "title", "new", "inProgress"],
+          "done[]": ["id", "file", "title", "new", "inProgress", "done"]
+        },
+        "timestampFormat": "YYYY-MM-DDTHH:MM:SS"
+      },
+      "folders": ["doc/prompts/new/", "doc/prompts/in-progress/", "doc/prompts/done/", "doc/prompts/deleted/"],
+      "files": ["doc/prompts/backlog-priority.json", "doc/prompts/README.md", "doc/prompts/TEMPLATE.md"]
+    }
+  }
+}
