@@ -1127,6 +1127,7 @@ function dateGroup(ds) {
 }
 
 function renderBoard() {
+  if (!jsonData) return;
   const board = document.getElementById('board');
   board.innerHTML = '';
   COLUMNS.forEach(col => {
