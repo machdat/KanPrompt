@@ -2,23 +2,22 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
-## [0.9.4] - 2026-03-16
-
-### Fixed
-- Alle File System Handles (dirHandle, jsonHandle, subDirs) werden bei Stale-Fehler automatisch refreshed (Retry-Pattern)
-- `writeJson()` crasht nicht mehr bei stale jsonHandle — Auto-Refresh + Retry
-- Drag & Drop, Prompt erstellen, Blocked setzen funktionieren jetzt auch nach externen Dateiänderungen
-- `readMdFile()`, `writeMdFile()`, `moveFile()`, `createMdFile()` mit Retry-on-stale
-- JSON-Polling und refreshFromDisk() mit Handle-Refresh bei Fehler
-
-### Added
-- Zentrale `refreshHandles()` Funktion — baut alle Handles vom projectHandle komplett neu auf
-- Auffälliges Sync-Warning-Banner (volle Breite, orange, animiert) statt kleinem Text im Header
-- Polling-Dot wird orange bei Sync-Problem
+## [0.10.0] - 2026-03-16
 
 ### Changed
-- `forceSync()` nutzt zentrale `refreshHandles()` statt duplizierten Code
-- Kein `{ create: true }` in refreshHandles() — nur in initProjectFromHandle() beim Erstanlegen
+- **Architektur-Refactoring:** Neues Safe-Write-Pattern für alle Dateioperationen
+- `safeWriteFile()` schreibt erst in `.tmp`, dann löscht alte Datei, dann finales Schreiben — kein Datenverlust bei Crash
+- `safeDirHandle()` traversiert immer frisch von `projectHandle` — nie stale Handles
+- `writeJson()` nutzt Safe-Write-Pattern statt delete+create
+- `writeMdFile()` nutzt Safe-Write-Pattern
+- `readMdFile()`, `moveFile()`, `createMdFile()`, `listMdFiles()` traversieren frisch via `safeDirHandle()`
+- Polling und `refreshFromDisk()` traversieren frisch via `safeDirHandle()`
+- `forceSync()` vereinfacht — keine Handle-Rebuild nötig
+- `refreshHandles()` und Retry-Loops entfernt — nicht mehr nötig mit `create:true` Pattern
+
+### Added
+- Recovery beim App-Start: `.tmp`-Datei wird erkannt und als Hauptdatei wiederhergestellt
+- Auffälliges Sync-Warning-Banner (volle Breite, orange, animiert) bei dauerhaften Sync-Problemen
 
 ## [0.9.3] - 2026-03-16
 

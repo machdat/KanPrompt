@@ -475,7 +475,7 @@
       </div>
       <button class="btn" onclick="launchClaudeCode()" id="claudeCodeBtn" style="display:none;" title="Claude Code im Projekt-Ordner starten">⚡ Claude Code</button>
       <button class="btn" onclick="openClaudeDesktop()" id="claudeDesktopBtn" title="Claude Desktop öffnen">✨ Claude</button>
-      <button class="btn" onclick="forceSync()" title="Ordner-Handles neu aufbauen → JSON abgleichen">🔄 Sync</button>
+      <button class="btn" onclick="forceSync()" title="Ordner scannen → JSON abgleichen">🔄 Sync</button>
       <button class="btn" onclick="refreshFromDisk()">↻ Refresh</button>
       <button class="btn" onclick="togglePoll()" id="pollToggle">⏸ Pause</button>
       <button class="btn" onclick="openWorkflowDoc()" title="Workflow-Doku im Editor öffnen">📋 Workflow</button>
@@ -592,7 +592,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.9.7';
+const VERSION = '0.10.0';
 const SCHEMA_VERSION = '1.0.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
@@ -968,6 +968,17 @@ async function initProjectFromHandle() {
     try { subDirs['deleted'] = await dirHandle.getDirectoryHandle('deleted', { create: true }); }
     catch { subDirs['deleted'] = null; }
 
+    // Recovery: check for interrupted safe-write
+    try {
+      const tmpH = await dirHandle.getFileHandle('.backlog-priority.json.tmp');
+      const tmpF = await tmpH.getFile(); const tmpContent = await tmpF.text();
+      JSON.parse(tmpContent); // validate JSON
+      const fH = await dirHandle.getFileHandle('backlog-priority.json', { create: true });
+      const w = await fH.createWritable(); await w.write(tmpContent); await w.close();
+      try { await dirHandle.removeEntry('.backlog-priority.json.tmp'); } catch {}
+      toast('⚠ Unterbrochene Speicherung wiederhergestellt');
+    } catch {} // No temp file or invalid — normal startup
+
     // Ensure backlog-priority.json exists
     let jsonExists = true;
     try { jsonHandle = await dirHandle.getFileHandle('backlog-priority.json'); }
@@ -1011,48 +1022,40 @@ async function initProjectFromHandle() {
     if (e.name !== 'AbortError') toast('Fehler: ' + e.message);
   }
 }
-async function refreshHandles() {
-  // Ensure we still have readwrite permission (may need user gesture after reload)
-  const perm = await projectHandle.queryPermission({ mode: 'readwrite' });
-  if (perm !== 'granted') {
-    const req = await projectHandle.requestPermission({ mode: 'readwrite' });
-    if (req !== 'granted') throw new Error('Schreibzugriff verweigert');
-  }
-  // Rebuild ALL handles from projectHandle (which is stable, browser-managed)
-  const docH = await projectHandle.getDirectoryHandle('doc');
-  const promptsH = await docH.getDirectoryHandle('prompts');
-  dirHandle = promptsH;
-  jsonHandle = await dirHandle.getFileHandle('backlog-priority.json');
-  for (const col of COLUMNS) {
-    try { subDirs[col.folder] = await dirHandle.getDirectoryHandle(col.folder); }
-    catch { subDirs[col.folder] = null; }
-  }
-  try { subDirs['deleted'] = await dirHandle.getDirectoryHandle('deleted'); }
-  catch { subDirs['deleted'] = null; }
+// ══════════════════════════════════════
+//  SAFE FILE I/O — core primitives
+// ══════════════════════════════════════
+async function safeDirHandle() {
+  const dH = await projectHandle.getDirectoryHandle('doc');
+  return await dH.getDirectoryHandle('prompts');
+}
+async function safeWriteFile(parentDirHandle, filename, content) {
+  const tmpName = '.' + filename + '.tmp';
+  // 1. Write to temp file (create:true → never stale)
+  const tmpH = await parentDirHandle.getFileHandle(tmpName, { create: true });
+  const tw = await tmpH.createWritable(); await tw.write(content); await tw.close();
+  // 2. Remove old file (may not exist on first write)
+  try { await parentDirHandle.removeEntry(filename); } catch {}
+  // 3. Write final file (create:true → fresh handle)
+  const fH = await parentDirHandle.getFileHandle(filename, { create: true });
+  const fw = await fH.createWritable(); await fw.write(content); await fw.close();
+  // 4. Cleanup temp
+  try { await parentDirHandle.removeEntry(tmpName); } catch {}
+  return fH;
 }
 async function loadJson() {
-  try {
-    const dH = await projectHandle.getDirectoryHandle('doc');
-    const pH = await dH.getDirectoryHandle('prompts');
-    const fH = await pH.getFileHandle('backlog-priority.json');
-    const f = await fH.getFile(); const t = await f.text();
-    dirHandle = pH; jsonHandle = fH; lastJsonText = t; jsonData = JSON.parse(t);
-  } catch (e) {
-    // Fallback to cached handle
-    const f = await jsonHandle.getFile(); const t = await f.text(); lastJsonText = t; jsonData = JSON.parse(t);
-  }
+  const pH = await safeDirHandle();
+  const fH = await pH.getFileHandle('backlog-priority.json');
+  const f = await fH.getFile(); const t = await f.text();
+  dirHandle = pH; jsonHandle = fH; lastJsonText = t; jsonData = JSON.parse(t);
 }
 async function writeJson() {
   const t = JSON.stringify(jsonData, null, 2) + '\n';
   const wasPolling = polling; polling = false;
   try {
-    const dH = await projectHandle.getDirectoryHandle('doc');
-    const pH = await dH.getDirectoryHandle('prompts');
-    // Delete old file and create a new one — bypasses stale state check entirely
-    try { await pH.removeEntry('backlog-priority.json'); } catch {}
-    const fH = await pH.getFileHandle('backlog-priority.json', { create: true });
-    const w = await fH.createWritable(); await w.write(t); await w.close();
-    dirHandle = pH; jsonHandle = fH; lastJsonText = t;
+    const pH = await safeDirHandle();
+    jsonHandle = await safeWriteFile(pH, 'backlog-priority.json', t);
+    dirHandle = pH; lastJsonText = t;
   } catch (e) {
     toast('Speichern fehlgeschlagen: ' + e.message);
     polling = wasPolling; throw e;
@@ -1066,47 +1069,55 @@ async function writeJson() {
 async function readMdFile(folder, filename) {
   const key = folder + '/' + filename;
   if (fileContentsCache[key]) return fileContentsCache[key];
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try { const dir = subDirs[folder]; if (!dir) return null; const fh = await dir.getFileHandle(filename); const f = await fh.getFile(); const t = await f.text(); fileContentsCache[key] = t; return t; }
-    catch { if (attempt === 0) { try { await refreshHandles(); } catch { return null; } } else { return null; } }
-  }
-  return null;
+  try {
+    const pH = await safeDirHandle();
+    const dir = await pH.getDirectoryHandle(folder);
+    subDirs[folder] = dir; dirHandle = pH;
+    const fh = await dir.getFileHandle(filename);
+    const f = await fh.getFile(); const t = await f.text();
+    fileContentsCache[key] = t; return t;
+  } catch { return null; }
 }
 async function writeMdFile(folder, filename, content) {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try { const dir = subDirs[folder]; if (!dir) return false; const fh = await dir.getFileHandle(filename); const w = await fh.createWritable(); await w.write(content); await w.close(); fileContentsCache[folder+'/'+filename] = content; return true; }
-    catch (e) { if (attempt === 0) { try { await refreshHandles(); } catch { toast('Speichern fehlgeschlagen: ' + e.message); return false; } } else { toast('Speichern fehlgeschlagen: ' + e.message); return false; } }
-  }
-  return false;
+  try {
+    const pH = await safeDirHandle();
+    const dir = await pH.getDirectoryHandle(folder);
+    subDirs[folder] = dir; dirHandle = pH;
+    await safeWriteFile(dir, filename, content);
+    fileContentsCache[folder+'/'+filename] = content; return true;
+  } catch (e) { toast('Speichern fehlgeschlagen: ' + e.message); return false; }
 }
 async function moveFile(filename, from, to) {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const s = subDirs[from], d = subDirs[to]; if (!s || !d) throw new Error('Ordner fehlt');
-      const sh = await s.getFileHandle(filename); const sf = await sh.getFile(); const c = await sf.text();
-      const dh = await d.getFileHandle(filename, { create: true }); const w = await dh.createWritable(); await w.write(c); await w.close();
-      await s.removeEntry(filename);
-      delete fileContentsCache[from+'/'+filename]; fileContentsCache[to+'/'+filename] = c;
-      return true;
-    } catch (e) { if (attempt === 0) { try { await refreshHandles(); } catch { toast('Verschieben fehlgeschlagen: ' + e.message); return false; } } else { toast('Verschieben fehlgeschlagen: ' + e.message); return false; } }
-  }
-  return false;
+  try {
+    const pH = await safeDirHandle(); dirHandle = pH;
+    const s = await pH.getDirectoryHandle(from); subDirs[from] = s;
+    const d = await pH.getDirectoryHandle(to); subDirs[to] = d;
+    // Read from source
+    const sh = await s.getFileHandle(filename); const sf = await sh.getFile(); const c = await sf.text();
+    // Write to destination (create:true → no stale)
+    const dh = await d.getFileHandle(filename, { create: true });
+    const w = await dh.createWritable(); await w.write(c); await w.close();
+    // Remove from source
+    await s.removeEntry(filename);
+    delete fileContentsCache[from+'/'+filename]; fileContentsCache[to+'/'+filename] = c;
+    return true;
+  } catch (e) { toast('Verschieben fehlgeschlagen: ' + e.message); return false; }
 }
 async function createMdFile(folder, filename, content) {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try { const dir = subDirs[folder]; if (!dir) return false; const fh = await dir.getFileHandle(filename, { create: true }); const w = await fh.createWritable(); await w.write(content); await w.close(); fileContentsCache[folder+'/'+filename] = content; return true; }
-    catch (e) { if (attempt === 0) { try { await refreshHandles(); } catch { toast('Erstellen fehlgeschlagen: ' + e.message); return false; } } else { toast('Erstellen fehlgeschlagen: ' + e.message); return false; } }
-  }
-  return false;
+  try {
+    const pH = await safeDirHandle();
+    const dir = await pH.getDirectoryHandle(folder);
+    subDirs[folder] = dir; dirHandle = pH;
+    const fh = await dir.getFileHandle(filename, { create: true });
+    const w = await fh.createWritable(); await w.write(content); await w.close();
+    fileContentsCache[folder+'/'+filename] = content; return true;
+  } catch (e) { toast('Erstellen fehlgeschlagen: ' + e.message); return false; }
 }
 async function listMdFiles(folder) {
   try {
-    // Always traverse from stable projectHandle
-    const dH = await projectHandle.getDirectoryHandle('doc');
-    const pH = await dH.getDirectoryHandle('prompts');
-    dirHandle = pH;
+    const pH = await safeDirHandle();
     const freshDir = await pH.getDirectoryHandle(folder);
-    subDirs[folder] = freshDir;
+    subDirs[folder] = freshDir; dirHandle = pH;
     const files = [];
     for await (const [name, h] of freshDir.entries()) {
       if (h.kind === 'file' && name.endsWith('.md')) files.push(name);
@@ -1145,7 +1156,6 @@ async function syncFolderToJson(silent) {
     }
     if (added || removed) { await writeJson(); renderBoard(); updateInfoBar(); toast(`Sync: +${added} neu, -${removed} entfernt`); }
     else if (!silent) toast('Sync: Alles aktuell');
-    // Track sync health for warning display
     if (anyNull) { syncFailCount++; } else { syncFailCount = 0; }
     updateSyncWarning();
   } catch (e) {
@@ -1163,12 +1173,9 @@ function updateSyncWarning() {
   else if (dot && !show && polling) dot.className = 'status-dot';
 }
 async function forceSync() {
-  try {
-    await refreshHandles();
-    syncFailCount = 0;
-    updateSyncWarning();
-    await syncFolderToJson(false);
-  } catch (e) { toast('Force-Sync fehlgeschlagen: ' + e.message); }
+  syncFailCount = 0;
+  updateSyncWarning();
+  await syncFolderToJson(false);
 }
 
 // ══════════════════════════════════════
@@ -1179,11 +1186,9 @@ function startPoll() {
   pollInterval = setInterval(async () => {
     if (!projectHandle || !polling) return;
     try {
-      const dH = await projectHandle.getDirectoryHandle('doc');
-      const pH = await dH.getDirectoryHandle('prompts');
+      const pH = await safeDirHandle();
       const fH = await pH.getFileHandle('backlog-priority.json');
-      const f = await fH.getFile();
-      const t = await f.text();
+      const f = await fH.getFile(); const t = await f.text();
       dirHandle = pH; jsonHandle = fH;
       if (t !== lastJsonText) { jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {}; renderBoard(); updateInfoBar(); toast('↻ Externe Änderung'); }
     } catch {}
@@ -1204,11 +1209,9 @@ function togglePoll() {
 async function refreshFromDisk() {
   if (!projectHandle) return;
   try {
-    const dH = await projectHandle.getDirectoryHandle('doc');
-    const pH = await dH.getDirectoryHandle('prompts');
+    const pH = await safeDirHandle();
     const fH = await pH.getFileHandle('backlog-priority.json');
-    const f = await fH.getFile();
-    const t = await f.text(); const ch = t !== lastJsonText;
+    const f = await fH.getFile(); const t = await f.text(); const ch = t !== lastJsonText;
     dirHandle = pH; jsonHandle = fH; jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {};
     renderBoard(); updateInfoBar(); updateSchemaBadge(); toast(ch ? '↻ Änderungen geladen' : '✓ Aktuell');
   } catch (e) { toast('Refresh: ' + e.message); }

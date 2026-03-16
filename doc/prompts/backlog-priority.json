@@ -175,6 +175,14 @@
       "title": "Fix Stale Handles Comprehensive",
       "new": "2026-03-16T10:03:12",
       "done": "2026-03-16T10:03:12"
+    },
+    {
+      "id": "refactor-safe-file-operations",
+      "file": "refactor-safe-file-operations.md",
+      "title": "Refactoring: Robustes Lesen und Schreiben mit File System Access API",
+      "new": "2026-03-16T11:30:00",
+      "inProgress": "2026-03-16T11:35:33",
+      "done": "2026-03-16T11:40:00"
     }
   ]
 }
