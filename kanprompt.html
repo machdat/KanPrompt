@@ -59,6 +59,47 @@
     background: var(--bg-card); padding: 4px 10px;
     border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
   }
+  .project-switcher { position: relative; }
+  .project-switcher-current {
+    font-size: 13px; color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-card); padding: 4px 10px;
+    border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+    transition: var(--transition);
+  }
+  .project-switcher-current:hover {
+    border-color: var(--border); color: var(--text-primary);
+    background: var(--bg-card-hover);
+  }
+  .project-switcher-arrow { font-size: 10px; color: var(--text-muted); transition: transform 150ms; }
+  .project-switcher.open .project-switcher-arrow { transform: rotate(180deg); }
+  .project-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0;
+    min-width: 280px; max-width: 420px;
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    z-index: 50; overflow: hidden;
+  }
+  .project-switcher.open .project-dropdown { display: block; }
+  .project-dropdown-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; cursor: pointer;
+    font-size: 12px; color: var(--text-secondary);
+    transition: var(--transition);
+  }
+  .project-dropdown-item:hover, .project-dropdown-item.focused { background: var(--bg-card-hover); color: var(--text-primary); }
+  .project-dropdown-item.active { color: var(--accent-blue); font-weight: 500; }
+  .project-dropdown-item .item-name {
+    flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .project-dropdown-item .item-hint {
+    font-size: 10px; color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .project-dropdown-divider { height: 1px; background: var(--border-subtle); margin: 2px 0; }
   .schema-badge {
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px; padding: 1px 8px;
@@ -460,9 +501,14 @@
   <div class="header">
     <div class="header-left">
       <div class="logo">&gt;_ KanPrompt <span class="version-tag" id="versionTag"></span></div>
-      <div class="project-label" id="folderLabel">—</div>
+      <div class="project-switcher" id="projectSwitcher">
+        <div class="project-switcher-current" id="projectSwitcherCurrent" onclick="toggleProjectDropdown()">
+          <span id="folderLabel">—</span>
+          <span class="project-switcher-arrow">▾</span>
+        </div>
+        <div class="project-dropdown" id="projectDropdown"></div>
+      </div>
       <span class="schema-badge" id="schemaBadge"></span>
-      <button class="btn" onclick="switchProject()" title="Projekt wechseln (Ctrl+Shift+O)">📂</button>
     </div>
     <div class="header-right">
       <div style="display:flex;align-items:center;gap:6px;margin-right:6px;">
@@ -491,7 +537,7 @@
         <h3 id="previewTitle">—</h3>
         <div class="preview-toolbar">
           <button class="btn btn-sm" onclick="refreshPreview()" title="Datei neu laden">🔄</button>
-          <button class="btn btn-sm companion-only" onclick="openInEditor()" title="In VS Code öffnen" style="display:none;">💻 VS Code</button>
+          <button class="btn btn-sm companion-only" onclick="openInEditor()" title="In Editor öffnen" style="display:none;">💻 Editor</button>
           <button class="btn btn-sm" id="openExternBtn" onclick="openFileExternally()" title="Datei herunterladen / extern öffnen">📤 Extern</button>
           <button class="btn btn-sm" id="editToggleBtn" onclick="toggleEditMode()">✎ Edit</button>
           <button class="preview-close" onclick="closePreview()">✕</button>
@@ -592,7 +638,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.10.0';
+const VERSION = '0.11.0';
 const SCHEMA_VERSION = '1.0.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
@@ -731,7 +777,7 @@ async function openInEditor() {
   if (!basePath) return;
   const filePath = basePath + '\\doc\\prompts\\' + selectedCol.folder + '\\' + selectedItem.file;
   const result = await companionPost('/open-editor', { filePath });
-  if (result && result.action) toast('💻 Geöffnet in ' + (result.editor || 'Editor'));
+  if (result && result.action) toast('💻 Im Editor geöffnet');
 }
 
 async function openFolderInExplorer() {
@@ -1223,7 +1269,7 @@ async function refreshFromDisk() {
 function showApp() {
   document.getElementById('welcomeScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  document.getElementById('folderLabel').textContent = projectHandle.name + '/doc/prompts/';
+  document.getElementById('folderLabel').textContent = projectHandle.name;
   saveRecentProject(projectHandle.name);
   renderBoard(); updateInfoBar(); updateSchemaBadge(); startPoll();
 
@@ -1261,6 +1307,95 @@ function resetProjectState() {
   document.getElementById('board').innerHTML = '';
   switchedFromBoard = false;
 }
+
+// ── PROJECT DROPDOWN ──
+let dropdownFocusIdx = -1;
+
+function toggleProjectDropdown() {
+  const switcher = document.getElementById('projectSwitcher');
+  if (switcher.classList.contains('open')) {
+    closeProjectDropdown();
+  } else {
+    renderProjectDropdown();
+    switcher.classList.add('open');
+    dropdownFocusIdx = -1;
+  }
+}
+
+function closeProjectDropdown() {
+  document.getElementById('projectSwitcher').classList.remove('open');
+  dropdownFocusIdx = -1;
+}
+
+function setDropdownFocus(idx) {
+  const items = document.querySelectorAll('#projectDropdown .project-dropdown-item');
+  if (!items.length) return;
+  items.forEach(el => el.classList.remove('focused'));
+  dropdownFocusIdx = ((idx % items.length) + items.length) % items.length;
+  items[dropdownFocusIdx].classList.add('focused');
+  items[dropdownFocusIdx].scrollIntoView({ block: 'nearest' });
+}
+
+function activateDropdownItem() {
+  const items = document.querySelectorAll('#projectDropdown .project-dropdown-item');
+  if (dropdownFocusIdx < 0 || dropdownFocusIdx >= items.length) return;
+  items[dropdownFocusIdx].click();
+}
+
+function isProjectDropdownOpen() {
+  return document.getElementById('projectSwitcher').classList.contains('open');
+}
+
+function renderProjectDropdown() {
+  const dd = document.getElementById('projectDropdown');
+  const projects = getRecentProjects();
+  dd.innerHTML = '';
+
+  projects.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'project-dropdown-item'
+      + (projectHandle && p.name === projectHandle.name ? ' active' : '');
+    const ago = timeAgo(p.ts);
+    item.innerHTML = `
+      <span class="item-name">${esc(p.name)}</span>
+      <span class="item-hint">${esc(ago)}</span>
+    `;
+    item.addEventListener('click', async () => {
+      closeProjectDropdown();
+      if (projectHandle && p.name === projectHandle.name) return;
+      await reopenProject(p.name);
+    });
+    dd.appendChild(item);
+
+    (async () => {
+      const h = await getHandleFromIDB(p.name);
+      const icon = h ? '⚡' : '📂';
+      item.querySelector('.item-name').textContent = icon + ' ' + p.name;
+    })();
+  });
+
+  if (projects.length > 0) {
+    const divider = document.createElement('div');
+    divider.className = 'project-dropdown-divider';
+    dd.appendChild(divider);
+  }
+
+  const openNew = document.createElement('div');
+  openNew.className = 'project-dropdown-item';
+  openNew.innerHTML = '<span class="item-name">📂 Anderes Projekt öffnen...</span>';
+  openNew.addEventListener('click', () => {
+    closeProjectDropdown();
+    openProjectFolder();
+  });
+  dd.appendChild(openNew);
+}
+
+document.addEventListener('click', (e) => {
+  const switcher = document.getElementById('projectSwitcher');
+  if (switcher && !switcher.contains(e.target)) {
+    closeProjectDropdown();
+  }
+});
 
 async function resolveProjectPath() {
   if (!projectHandle || !companionAvailable) return;
@@ -1808,7 +1943,7 @@ async function performUpgrade() {
 // ── KEYBOARD ──
 document.addEventListener('keydown', e => {
   const onWelcome = document.getElementById('welcomeScreen').style.display !== 'none';
-  if ((e.ctrlKey||e.metaKey) && e.shiftKey && e.key==='O') { e.preventDefault(); switchProject(); return; }
+  if ((e.ctrlKey||e.metaKey) && e.shiftKey && e.key==='O') { e.preventDefault(); if (onWelcome) openProjectFolder(); else toggleProjectDropdown(); return; }
   if ((e.ctrlKey||e.metaKey) && e.key==='s' && editMode) { e.preventDefault(); saveEdit(); return; }
   // Welcome-Screen keyboard navigation
   if (onWelcome) {
@@ -1818,7 +1953,15 @@ document.addEventListener('keydown', e => {
     if (e.key==='Escape') { if (switchedFromBoard) { e.preventDefault(); resumeBoard(); } return; }
     return;
   }
-  if (e.key==='Escape') { closeModal(); closeBlockedModal(); closeArchive(); if(editMode)cancelEdit(); else closePreview(); }
+  if (isProjectDropdownOpen()) {
+    if (e.key==='ArrowDown') { e.preventDefault(); setDropdownFocus(dropdownFocusIdx + 1); return; }
+    if (e.key==='ArrowUp') { e.preventDefault(); setDropdownFocus(dropdownFocusIdx - 1); return; }
+    if (e.key==='Enter') { e.preventDefault(); activateDropdownItem(); return; }
+    if (e.key==='Escape') { e.preventDefault(); closeProjectDropdown(); return; }
+  }
+  if (e.key==='Escape') {
+    closeModal(); closeBlockedModal(); closeArchive(); if(editMode)cancelEdit(); else closePreview();
+  }
   const tag = document.activeElement.tagName;
   if (['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
   if (e.key==='n') { e.preventDefault(); openNewTaskModal(); }

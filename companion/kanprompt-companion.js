@@ -8,7 +8,7 @@
  *   GET  /ping                → health check
  *   GET  /info                → list endpoints
  *   POST /find-project        → resolve folder name to full path
- *   POST /open-editor         → open file in VS Code / default editor
+ *   POST /open-editor         → open file in system default editor
  *   POST /open-terminal       → open terminal at directory
  *   POST /claude-code         → launch Claude Code at project path
  *   POST /open-folder         → open folder in Windows Explorer
@@ -108,15 +108,9 @@ const server = http.createServer(async (req, res) => {
       if (!filePath) return json(res, 400, { error: 'filePath required' });
       const resolved = path.resolve(filePath);
       const lineArg = line ? `:${line}` : '';
-      exec(`code --goto "${resolved}${lineArg}"`, (err) => {
-        if (err) {
-          exec(`start "" "${resolved}"`, (err2) => {
-            if (err2) return json(res, 500, { error: err2.message });
-            json(res, 200, { action: 'opened', editor: 'system-default', file: resolved });
-          });
-        } else {
-          json(res, 200, { action: 'opened', editor: 'vscode', file: resolved });
-        }
+      exec(`start "" "${resolved}"`, (err) => {
+        if (err) return json(res, 500, { error: err.message });
+        json(res, 200, { action: 'opened', editor: 'system-default', file: resolved });
       });
       return;
     }
@@ -193,7 +187,7 @@ server.listen(PORT, HOST, () => {
   │    GET  /ping            health      │
   │    GET  /info            help        │
   │    POST /find-project    resolve     │
-  │    POST /open-editor     VS Code    │
+  │    POST /open-editor     Editor     │
   │    POST /open-terminal   terminal    │
   │    POST /claude-code     Claude CC   │
   │    POST /open-folder     Explorer    │

@@ -2,12 +2,6 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "ui-tweaks-projectname-editor-button",
-      "file": "ui-tweaks-projectname-editor-button.md",
-      "title": "Ui Tweaks Projectname Editor Button",
-      "new": "2026-03-15T22:44:34"
-    },
-    {
       "id": "deleted-folder-searchable",
       "file": "deleted-folder-searchable.md",
       "title": "Deleted Folder Searchable",
@@ -24,9 +18,23 @@
       "file": "anweisung-an-cc-dass-die-ausfuehrung-in-einem-eigenen-worktr.md",
       "title": "Anweisung an CC dass die AusfÃ¼hrung in einem eigenen Worktree",
       "new": "2026-03-16T08:13:57"
+    },
+    {
+      "id": "cc-aus-kanprompt-antriggern",
+      "file": "cc-aus-kanprompt-antriggern.md",
+      "title": "CC aus Kanprompt antriggern",
+      "new": "2026-03-16T16:17:24"
     }
   ],
-  "inProgress": [],
+  "inProgress": [
+    {
+      "id": "ui-tweaks-projectname-editor-button",
+      "file": "ui-tweaks-projectname-editor-button.md",
+      "title": "Ui Tweaks Projectname Editor Button",
+      "new": "2026-03-16T20:46:42",
+      "inProgress": "2026-03-16T20:46:42"
+    }
+  ],
   "done": [
     {
       "id": "archive-search-filter",

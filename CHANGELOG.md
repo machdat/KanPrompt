@@ -2,6 +2,18 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [0.11.0] - 2026-03-16
+
+### Added
+- Projekt-Kombifeld im Header: Dropdown mit Recent-Projekte-Liste statt separatem Wechsel-Button
+- Klick auf Projektname öffnet Dropdown, "Anderes Projekt öffnen..." für Datei-Dialog
+
+### Changed
+- Projektname zeigt nicht mehr redundant `doc/prompts/`
+- Editor-Button sagt "Editor" statt "VS Code"
+- Companion-Server `/open-editor` nutzt System-Default-Editor direkt (statt VS Code mit Fallback)
+- Ctrl+Shift+O öffnet Projekt-Dropdown statt Welcome-Screen
+
 ## [0.10.0] - 2026-03-16
 
 ### Changed
