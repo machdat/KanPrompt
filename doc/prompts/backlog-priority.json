@@ -1,6 +1,30 @@
 {
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
+    {
+      "id": "ui-tweaks-projectname-editor-button",
+      "file": "ui-tweaks-projectname-editor-button.md",
+      "title": "Ui Tweaks Projectname Editor Button",
+      "new": "2026-03-15T22:44:34"
+    },
+    {
+      "id": "deleted-folder-searchable",
+      "file": "deleted-folder-searchable.md",
+      "title": "Deleted Folder Searchable",
+      "new": "2026-03-15T22:57:33"
+    },
+    {
+      "id": "prompt-type-auto-versioning",
+      "file": "prompt-type-auto-versioning.md",
+      "title": "Prompt Type Auto Versioning",
+      "new": "2026-03-15T23:21:28"
+    },
+    {
+      "id": "anweisung-an-cc-dass-die-ausfuehrung-in-einem-eigenen-worktr",
+      "file": "anweisung-an-cc-dass-die-ausfuehrung-in-einem-eigenen-worktr.md",
+      "title": "Anweisung an CC dass die AusfÃ¼hrung in einem eigenen Worktree",
+      "new": "2026-03-16T08:13:57"
+    }
   ],
   "inProgress": [],
   "done": [
@@ -31,7 +55,7 @@
     {
       "id": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg",
       "file": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg.md",
-      "title": "Button oder HotKey der einen schnellen Projektwechsel ermöglicht",
+      "title": "Button oder HotKey der einen schnellen Projektwechsel ermÃ¶glicht",
       "new": "2026-03-14T17:14:12",
       "inProgress": "2026-03-15T17:50:00",
       "done": "2026-03-15T18:00:00"
@@ -47,14 +71,14 @@
     {
       "id": "kanprompt-initialisierung-beim-ersten-oeffnen-des-prjs",
       "file": "kanprompt-initialisierung-beim-ersten-oeffnen-des-prjs.md",
-      "title": "KanPrompt initialisierung beim ersten Öffnen des Prjs",
+      "title": "KanPrompt initialisierung beim ersten Ã–ffnen des Prjs",
       "new": "2026-03-14T17:12:21",
       "done": "2026-03-15T16:35:00"
     },
     {
       "id": "claude-md-cc-integration",
       "file": "claude-md-cc-integration.md",
-      "title": "CLAUDE.md für CC-Integration anlegen",
+      "title": "CLAUDE.md fÃ¼r CC-Integration anlegen",
       "new": "2026-03-14T17:30:00",
       "inProgress": "2026-03-15T16:20:00",
       "done": "2026-03-15T16:25:00"
@@ -62,7 +86,7 @@
     {
       "id": "link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai",
       "file": "link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai.md",
-      "title": "Link zum Öffnen von Claude Desktop anstatt von Claude.ai",
+      "title": "Link zum Ã–ffnen von Claude Desktop anstatt von Claude.ai",
       "new": "2026-03-15T13:40:39",
       "inProgress": "2026-03-15T17:15:00",
       "done": "2026-03-15T17:20:00"
@@ -78,7 +102,7 @@
     {
       "id": "scaffold-und-dort-liegende-readmes-muessen-aktualisiert-werd",
       "file": "scaffold-und-dort-liegende-readmes-muessen-aktualisiert-werd.md",
-      "title": "Scaffold und dort liegende readmes müssen aktualisiert werden",
+      "title": "Scaffold und dort liegende readmes mÃ¼ssen aktualisiert werden",
       "new": "2026-03-14T20:49:29",
       "done": "2026-03-15T17:00:00"
     },
@@ -93,7 +117,7 @@
     {
       "id": "schema-versioning",
       "file": "schema-versioning.md",
-      "title": "Schema-Versionierung einführen",
+      "title": "Schema-Versionierung einfÃ¼hren",
       "new": "2026-03-15T14:42:49",
       "inProgress": "2026-03-15T14:42:49",
       "done": "2026-03-15T15:30:00"
@@ -117,7 +141,7 @@
     {
       "id": "done-column-newest-first",
       "file": "done-column-newest-first.md",
-      "title": "Done-Spalte: Neueste Einträge oben",
+      "title": "Done-Spalte: Neueste EintrÃ¤ge oben",
       "new": "2026-03-14T14:30:00",
       "inProgress": "2026-03-14T14:35:00",
       "done": "2026-03-14T14:50:00"
@@ -129,6 +153,28 @@
       "new": "2026-03-14T13:00:00",
       "inProgress": "2026-03-14T13:10:00",
       "done": "2026-03-14T14:00:00"
+    },
+    {
+      "id": "schema-version-display-and-upgrade",
+      "file": "schema-version-display-and-upgrade.md",
+      "title": "Schema Version Display And Upgrade",
+      "new": "2026-03-15T22:44:34",
+      "done": "2026-03-15T22:44:34"
+    },
+    {
+      "id": "fix-folder-sync-reliability",
+      "file": "fix-folder-sync-reliability.md",
+      "title": "Fix: Folder-Sync erkennt neue Dateien nicht zuverlässig",
+      "new": "2026-03-16T09:20:32",
+      "inProgress": "2026-03-16T09:38:03",
+      "done": "2026-03-16T10:00:00"
+    },
+    {
+      "id": "fix-stale-handles-comprehensive",
+      "file": "fix-stale-handles-comprehensive.md",
+      "title": "Fix Stale Handles Comprehensive",
+      "new": "2026-03-16T10:03:12",
+      "done": "2026-03-16T10:03:12"
     }
   ]
 }

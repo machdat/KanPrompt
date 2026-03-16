@@ -2,6 +2,44 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [0.9.4] - 2026-03-16
+
+### Fixed
+- Alle File System Handles (dirHandle, jsonHandle, subDirs) werden bei Stale-Fehler automatisch refreshed (Retry-Pattern)
+- `writeJson()` crasht nicht mehr bei stale jsonHandle — Auto-Refresh + Retry
+- Drag & Drop, Prompt erstellen, Blocked setzen funktionieren jetzt auch nach externen Dateiänderungen
+- `readMdFile()`, `writeMdFile()`, `moveFile()`, `createMdFile()` mit Retry-on-stale
+- JSON-Polling und refreshFromDisk() mit Handle-Refresh bei Fehler
+
+### Added
+- Zentrale `refreshHandles()` Funktion — baut alle Handles vom projectHandle komplett neu auf
+- Auffälliges Sync-Warning-Banner (volle Breite, orange, animiert) statt kleinem Text im Header
+- Polling-Dot wird orange bei Sync-Problem
+
+### Changed
+- `forceSync()` nutzt zentrale `refreshHandles()` statt duplizierten Code
+- Kein `{ create: true }` in refreshHandles() — nur in initProjectFromHandle() beim Erstanlegen
+
+## [0.9.3] - 2026-03-16
+
+### Fixed
+- Folder-Sync erkennt neue Dateien jetzt zuverlässig — Directory-Handles werden bei jedem Scan frisch geholt statt gecachte (stale) Handles zu nutzen
+- Kein stiller Datenverlust mehr: `listMdFiles()` gibt `null` bei Fehler zurück, nie fälschlich `[]`
+- Startup-Sync ist jetzt synchron (`await`) statt asynchronem `setTimeout(500ms)`
+- Manueller 🔄 Sync-Button baut alle Directory-Handles komplett neu auf (Force-Refresh)
+
+### Added
+- Visueller Sync-Warnhinweis (⚠ Sync-Problem) im Header nach 3 aufeinanderfolgenden Sync-Fehlern
+- Force-Sync Funktion: baut Handles vom Projekt-Root komplett neu auf
+
+## [0.9.0] - 2026-03-15
+
+### Added
+- Schema-Version Badge im Header (grün = aktuell, gelb = veraltet, rot = fehlend)
+- Upgrade-Modal mit Migrations-Registry für Schema-Updates
+- Erste Migration: Timestamps YYYY-MM-DD → YYYY-MM-DDTHH:MM:SS, TEMPLATE.md + deleted/ sicherstellen
+- `.kanprompt-version.json` wird nach Upgrade im Projekt-Root geschrieben
+
 ## [0.7.3] - 2026-03-15
 
 ### Added

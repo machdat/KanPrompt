@@ -59,12 +59,33 @@
     background: var(--bg-card); padding: 4px 10px;
     border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
   }
+  .schema-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; padding: 1px 8px;
+    border-radius: 3px; margin-left: 6px;
+    cursor: default; transition: var(--transition);
+  }
+  .schema-badge.ok { color: var(--accent-green); border: 1px solid var(--accent-green); }
+  .schema-badge.warn { color: var(--accent-orange); border: 1px solid var(--accent-orange); cursor: pointer; }
+  .schema-badge.warn:hover { background: rgba(210,153,34,.1); }
+  .schema-badge.missing { color: var(--accent-red); border: 1px solid var(--accent-red); cursor: pointer; }
+  .schema-badge.missing:hover { background: rgba(248,81,73,.08); }
   .header-right { display: flex; align-items: center; gap: 8px; }
   .status-dot {
     width: 8px; height: 8px; border-radius: 50%;
     background: var(--accent-green); animation: pulse 2s infinite;
   }
   .status-dot.paused { background: var(--text-muted); animation: none; }
+  .status-dot.warn { background: var(--accent-orange); animation: pulse 1s infinite; }
+  .sync-warning-banner {
+    display: none; align-items: center; justify-content: center; gap: 8px;
+    padding: 6px 16px;
+    background: rgba(210,153,34,.15); border-bottom: 2px solid var(--accent-orange);
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
+    color: var(--accent-orange); cursor: pointer; animation: warnPulse 2s infinite;
+  }
+  .sync-warning-banner:hover { background: rgba(210,153,34,.25); }
+  @keyframes warnPulse { 0%,100%{ opacity:1 } 50%{ opacity:.7 } }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
   .status-label {
     font-family: 'JetBrains Mono', monospace;
@@ -440,6 +461,7 @@
     <div class="header-left">
       <div class="logo">&gt;_ KanPrompt <span class="version-tag" id="versionTag"></span></div>
       <div class="project-label" id="folderLabel">—</div>
+      <span class="schema-badge" id="schemaBadge"></span>
       <button class="btn" onclick="switchProject()" title="Projekt wechseln (Ctrl+Shift+O)">📂</button>
     </div>
     <div class="header-right">
@@ -453,13 +475,14 @@
       </div>
       <button class="btn" onclick="launchClaudeCode()" id="claudeCodeBtn" style="display:none;" title="Claude Code im Projekt-Ordner starten">⚡ Claude Code</button>
       <button class="btn" onclick="openClaudeDesktop()" id="claudeDesktopBtn" title="Claude Desktop öffnen">✨ Claude</button>
-      <button class="btn" onclick="syncFolderToJson()" title="Ordner scannen → JSON abgleichen">🔄 Sync</button>
+      <button class="btn" onclick="forceSync()" title="Ordner-Handles neu aufbauen → JSON abgleichen">🔄 Sync</button>
       <button class="btn" onclick="refreshFromDisk()">↻ Refresh</button>
       <button class="btn" onclick="togglePoll()" id="pollToggle">⏸ Pause</button>
       <button class="btn" onclick="openWorkflowDoc()" title="Workflow-Doku im Editor öffnen">📋 Workflow</button>
       <button class="btn btn-primary" onclick="openNewTaskModal()">+ Prompt</button>
     </div>
   </div>
+  <div class="sync-warning-banner" id="syncWarning" onclick="forceSync()" title="Klicken für Force-Sync">⚠ Sync-Problem — Ordner-Zugriff gestört. Klicken zum Reparieren.</div>
   <div class="main">
     <div class="board" id="board"></div>
     <div class="preview-panel" id="previewPanel">
@@ -531,6 +554,19 @@
   </div>
 </div>
 
+<!-- UPGRADE MODAL -->
+<div class="modal-overlay" id="upgradeModalOverlay" onclick="event.target===this&&closeUpgradeModal()">
+  <div class="modal" style="width:520px;">
+    <h2>🔄 Schema-Upgrade</h2>
+    <div id="upgradeInfo" style="font-size:12px;color:var(--text-secondary);line-height:1.6;"></div>
+    <div id="upgradeLog" style="display:none;margin-top:12px;padding:10px;background:var(--bg-card);border-radius:var(--radius-sm);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-secondary);max-height:200px;overflow-y:auto;white-space:pre-wrap;"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeUpgradeModal()">Abbrechen</button>
+      <button class="btn btn-primary" id="upgradeBtn" onclick="performUpgrade()">🔄 Upgrade durchführen</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toasts"></div>
 
 <!-- ARCHIVE OVERLAY -->
@@ -556,17 +592,20 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.8.2';
+const VERSION = '0.9.7';
+const SCHEMA_VERSION = '1.0.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
 let companionCheckInterval = null;
 let projectHandle = null;  // project root (e.g. erju_wp27/)
 let dirHandle = null;      // doc/prompts/ subfolder
 let subDirs = {}, jsonHandle = null, jsonData = null;
-let lastJsonText = '', polling = true, pollInterval = null;
+let lastJsonText = '', polling = true, pollInterval = null, folderSyncInterval = null;
+let syncFailCount = 0; // consecutive sync failures for warning display
 let draggedId = null, dragSourceCol = null, dropTargetCol = null, dropTargetIndex = -1;
 let selectedId = null, selectedItem = null, selectedCol = null, editMode = false;
 let fileContentsCache = {};
+let projectSchemaVersion = null;
 const DONE_VISIBLE_COUNT = 5;
 const LS_KEY = 'kanprompt_recent_projects';
 const COLUMNS = [
@@ -952,15 +991,74 @@ async function initProjectFromHandle() {
       await w.close();
     }
 
+    // Read schema version from project root
+    try {
+      const vfh = await projectHandle.getFileHandle('.kanprompt-version.json');
+      const vf = await vfh.getFile();
+      const vt = await vf.text();
+      const vd = JSON.parse(vt);
+      projectSchemaVersion = vd.schema || null;
+    } catch {
+      projectSchemaVersion = null;
+    }
+
     await loadJson();
     showApp();
     toast('Projekt geladen: ' + projectHandle.name);
+    // Startup sync: guaranteed sync before board is considered ready
+    await syncFolderToJson(true);
   } catch (e) {
     if (e.name !== 'AbortError') toast('Fehler: ' + e.message);
   }
 }
-async function loadJson() { const f = await jsonHandle.getFile(); const t = await f.text(); lastJsonText = t; jsonData = JSON.parse(t); }
-async function writeJson() { const t = JSON.stringify(jsonData, null, 2) + '\n'; lastJsonText = t; const w = await jsonHandle.createWritable(); await w.write(t); await w.close(); }
+async function refreshHandles() {
+  // Ensure we still have readwrite permission (may need user gesture after reload)
+  const perm = await projectHandle.queryPermission({ mode: 'readwrite' });
+  if (perm !== 'granted') {
+    const req = await projectHandle.requestPermission({ mode: 'readwrite' });
+    if (req !== 'granted') throw new Error('Schreibzugriff verweigert');
+  }
+  // Rebuild ALL handles from projectHandle (which is stable, browser-managed)
+  const docH = await projectHandle.getDirectoryHandle('doc');
+  const promptsH = await docH.getDirectoryHandle('prompts');
+  dirHandle = promptsH;
+  jsonHandle = await dirHandle.getFileHandle('backlog-priority.json');
+  for (const col of COLUMNS) {
+    try { subDirs[col.folder] = await dirHandle.getDirectoryHandle(col.folder); }
+    catch { subDirs[col.folder] = null; }
+  }
+  try { subDirs['deleted'] = await dirHandle.getDirectoryHandle('deleted'); }
+  catch { subDirs['deleted'] = null; }
+}
+async function loadJson() {
+  try {
+    const dH = await projectHandle.getDirectoryHandle('doc');
+    const pH = await dH.getDirectoryHandle('prompts');
+    const fH = await pH.getFileHandle('backlog-priority.json');
+    const f = await fH.getFile(); const t = await f.text();
+    dirHandle = pH; jsonHandle = fH; lastJsonText = t; jsonData = JSON.parse(t);
+  } catch (e) {
+    // Fallback to cached handle
+    const f = await jsonHandle.getFile(); const t = await f.text(); lastJsonText = t; jsonData = JSON.parse(t);
+  }
+}
+async function writeJson() {
+  const t = JSON.stringify(jsonData, null, 2) + '\n';
+  const wasPolling = polling; polling = false;
+  try {
+    const dH = await projectHandle.getDirectoryHandle('doc');
+    const pH = await dH.getDirectoryHandle('prompts');
+    // Delete old file and create a new one — bypasses stale state check entirely
+    try { await pH.removeEntry('backlog-priority.json'); } catch {}
+    const fH = await pH.getFileHandle('backlog-priority.json', { create: true });
+    const w = await fH.createWritable(); await w.write(t); await w.close();
+    dirHandle = pH; jsonHandle = fH; lastJsonText = t;
+  } catch (e) {
+    toast('Speichern fehlgeschlagen: ' + e.message);
+    polling = wasPolling; throw e;
+  }
+  polling = wasPolling;
+}
 
 // ══════════════════════════════════════
 //  FILE OPERATIONS
@@ -968,58 +1066,109 @@ async function writeJson() { const t = JSON.stringify(jsonData, null, 2) + '\n';
 async function readMdFile(folder, filename) {
   const key = folder + '/' + filename;
   if (fileContentsCache[key]) return fileContentsCache[key];
-  try { const dir = subDirs[folder]; if (!dir) return null; const fh = await dir.getFileHandle(filename); const f = await fh.getFile(); const t = await f.text(); fileContentsCache[key] = t; return t; } catch { return null; }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try { const dir = subDirs[folder]; if (!dir) return null; const fh = await dir.getFileHandle(filename); const f = await fh.getFile(); const t = await f.text(); fileContentsCache[key] = t; return t; }
+    catch { if (attempt === 0) { try { await refreshHandles(); } catch { return null; } } else { return null; } }
+  }
+  return null;
 }
 async function writeMdFile(folder, filename, content) {
-  try { const dir = subDirs[folder]; if (!dir) return false; const fh = await dir.getFileHandle(filename); const w = await fh.createWritable(); await w.write(content); await w.close(); fileContentsCache[folder+'/'+filename] = content; return true; } catch (e) { toast('Speichern fehlgeschlagen: ' + e.message); return false; }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try { const dir = subDirs[folder]; if (!dir) return false; const fh = await dir.getFileHandle(filename); const w = await fh.createWritable(); await w.write(content); await w.close(); fileContentsCache[folder+'/'+filename] = content; return true; }
+    catch (e) { if (attempt === 0) { try { await refreshHandles(); } catch { toast('Speichern fehlgeschlagen: ' + e.message); return false; } } else { toast('Speichern fehlgeschlagen: ' + e.message); return false; } }
+  }
+  return false;
 }
 async function moveFile(filename, from, to) {
-  try {
-    const s = subDirs[from], d = subDirs[to]; if (!s || !d) throw new Error('Ordner fehlt');
-    const sh = await s.getFileHandle(filename); const sf = await sh.getFile(); const c = await sf.text();
-    const dh = await d.getFileHandle(filename, { create: true }); const w = await dh.createWritable(); await w.write(c); await w.close();
-    await s.removeEntry(filename);
-    delete fileContentsCache[from+'/'+filename]; fileContentsCache[to+'/'+filename] = c;
-    return true;
-  } catch (e) { toast('Verschieben fehlgeschlagen: ' + e.message); return false; }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const s = subDirs[from], d = subDirs[to]; if (!s || !d) throw new Error('Ordner fehlt');
+      const sh = await s.getFileHandle(filename); const sf = await sh.getFile(); const c = await sf.text();
+      const dh = await d.getFileHandle(filename, { create: true }); const w = await dh.createWritable(); await w.write(c); await w.close();
+      await s.removeEntry(filename);
+      delete fileContentsCache[from+'/'+filename]; fileContentsCache[to+'/'+filename] = c;
+      return true;
+    } catch (e) { if (attempt === 0) { try { await refreshHandles(); } catch { toast('Verschieben fehlgeschlagen: ' + e.message); return false; } } else { toast('Verschieben fehlgeschlagen: ' + e.message); return false; } }
+  }
+  return false;
 }
 async function createMdFile(folder, filename, content) {
-  try { const dir = subDirs[folder]; if (!dir) return false; const fh = await dir.getFileHandle(filename, { create: true }); const w = await fh.createWritable(); await w.write(content); await w.close(); fileContentsCache[folder+'/'+filename] = content; return true; } catch (e) { toast('Erstellen fehlgeschlagen: ' + e.message); return false; }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try { const dir = subDirs[folder]; if (!dir) return false; const fh = await dir.getFileHandle(filename, { create: true }); const w = await fh.createWritable(); await w.write(content); await w.close(); fileContentsCache[folder+'/'+filename] = content; return true; }
+    catch (e) { if (attempt === 0) { try { await refreshHandles(); } catch { toast('Erstellen fehlgeschlagen: ' + e.message); return false; } } else { toast('Erstellen fehlgeschlagen: ' + e.message); return false; } }
+  }
+  return false;
 }
 async function listMdFiles(folder) {
-  const dir = subDirs[folder]; if (!dir) return []; const files = [];
-  try { for await (const [name, h] of dir.entries()) { if (h.kind === 'file' && name.endsWith('.md')) files.push(name); } } catch {}
-  return files;
+  try {
+    // Always traverse from stable projectHandle
+    const dH = await projectHandle.getDirectoryHandle('doc');
+    const pH = await dH.getDirectoryHandle('prompts');
+    dirHandle = pH;
+    const freshDir = await pH.getDirectoryHandle(folder);
+    subDirs[folder] = freshDir;
+    const files = [];
+    for await (const [name, h] of freshDir.entries()) {
+      if (h.kind === 'file' && name.endsWith('.md')) files.push(name);
+    }
+    return files;
+  } catch { return null; }
 }
 
 // ══════════════════════════════════════
 //  FOLDER → JSON SYNC
 // ══════════════════════════════════════
-async function syncFolderToJson() {
-  let added = 0, removed = 0;
-  for (const col of COLUMNS) {
-    const diskFiles = await listMdFiles(col.folder);
-    const arr = jsonData[col.jsonKey] || [];
-    const jsonFiles = new Set(arr.map(i => i.file));
-    for (const f of diskFiles) {
-      if (!jsonFiles.has(f)) {
-        const id = f.replace('.md', '');
-        const title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        const today = nowStr();
-        const entry = { id, file: f, title };
-        if (col.jsonKey === 'backlog') entry.new = today;
-        if (col.jsonKey === 'inProgress') { entry.new = today; entry.inProgress = today; }
-        if (col.jsonKey === 'done') { entry.new = today; entry.done = today; }
-        arr.push(entry); added++;
+async function syncFolderToJson(silent) {
+  try {
+    let added = 0, removed = 0, anyNull = false;
+    for (const col of COLUMNS) {
+      const diskFiles = await listMdFiles(col.folder);
+      if (diskFiles === null) { anyNull = true; continue; } // folder inaccessible, skip — don't remove entries
+      const arr = jsonData[col.jsonKey] || [];
+      const jsonFiles = new Set(arr.map(i => i.file));
+      for (const f of diskFiles) {
+        if (!jsonFiles.has(f)) {
+          const id = f.replace('.md', '');
+          const title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          const today = nowStr();
+          const entry = { id, file: f, title };
+          if (col.jsonKey === 'backlog') entry.new = today;
+          if (col.jsonKey === 'inProgress') { entry.new = today; entry.inProgress = today; }
+          if (col.jsonKey === 'done') { entry.new = today; entry.done = today; }
+          arr.push(entry); added++;
+        }
       }
+      const diskSet = new Set(diskFiles);
+      const before = arr.length;
+      jsonData[col.jsonKey] = arr.filter(i => diskSet.has(i.file));
+      removed += before - jsonData[col.jsonKey].length;
     }
-    const diskSet = new Set(diskFiles);
-    const before = arr.length;
-    jsonData[col.jsonKey] = arr.filter(i => diskSet.has(i.file));
-    removed += before - jsonData[col.jsonKey].length;
+    if (added || removed) { await writeJson(); renderBoard(); updateInfoBar(); toast(`Sync: +${added} neu, -${removed} entfernt`); }
+    else if (!silent) toast('Sync: Alles aktuell');
+    // Track sync health for warning display
+    if (anyNull) { syncFailCount++; } else { syncFailCount = 0; }
+    updateSyncWarning();
+  } catch (e) {
+    syncFailCount++;
+    updateSyncWarning();
+    if (!silent) toast('Sync-Fehler: ' + e.message);
   }
-  if (added || removed) { await writeJson(); renderBoard(); updateInfoBar(); toast(`Sync: +${added} neu, -${removed} entfernt`); }
-  else toast('Sync: Alles aktuell');
+}
+function updateSyncWarning() {
+  const el = document.getElementById('syncWarning');
+  const dot = document.getElementById('pollDot');
+  const show = syncFailCount >= 3;
+  if (el) el.style.display = show ? 'flex' : 'none';
+  if (dot && show) dot.className = 'status-dot warn';
+  else if (dot && !show && polling) dot.className = 'status-dot';
+}
+async function forceSync() {
+  try {
+    await refreshHandles();
+    syncFailCount = 0;
+    updateSyncWarning();
+    await syncFolderToJson(false);
+  } catch (e) { toast('Force-Sync fehlgeschlagen: ' + e.message); }
 }
 
 // ══════════════════════════════════════
@@ -1028,9 +1177,23 @@ async function syncFolderToJson() {
 function startPoll() {
   if (pollInterval) clearInterval(pollInterval);
   pollInterval = setInterval(async () => {
-    if (!jsonHandle || !polling) return;
-    try { const f = await jsonHandle.getFile(); const t = await f.text(); if (t !== lastJsonText) { jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {}; renderBoard(); updateInfoBar(); toast('↻ Externe Änderung'); } } catch {}
+    if (!projectHandle || !polling) return;
+    try {
+      const dH = await projectHandle.getDirectoryHandle('doc');
+      const pH = await dH.getDirectoryHandle('prompts');
+      const fH = await pH.getFileHandle('backlog-priority.json');
+      const f = await fH.getFile();
+      const t = await f.text();
+      dirHandle = pH; jsonHandle = fH;
+      if (t !== lastJsonText) { jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {}; renderBoard(); updateInfoBar(); toast('↻ Externe Änderung'); }
+    } catch {}
   }, 2000);
+  // Periodic folder sync: detect new .md files created externally (e.g. by CC)
+  if (folderSyncInterval) clearInterval(folderSyncInterval);
+  folderSyncInterval = setInterval(async () => {
+    if (!jsonHandle || !polling) return;
+    await syncFolderToJson(true);
+  }, 10000);
 }
 function togglePoll() {
   polling = !polling;
@@ -1039,8 +1202,16 @@ function togglePoll() {
   document.getElementById('pollLabel').textContent = polling ? 'polling' : 'paused';
 }
 async function refreshFromDisk() {
-  if (!jsonHandle) return;
-  try { const f = await jsonHandle.getFile(); const t = await f.text(); const ch = t !== lastJsonText; jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {}; renderBoard(); updateInfoBar(); toast(ch ? '↻ Änderungen geladen' : '✓ Aktuell'); } catch (e) { toast('Refresh: ' + e.message); }
+  if (!projectHandle) return;
+  try {
+    const dH = await projectHandle.getDirectoryHandle('doc');
+    const pH = await dH.getDirectoryHandle('prompts');
+    const fH = await pH.getFileHandle('backlog-priority.json');
+    const f = await fH.getFile();
+    const t = await f.text(); const ch = t !== lastJsonText;
+    dirHandle = pH; jsonHandle = fH; jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {};
+    renderBoard(); updateInfoBar(); updateSchemaBadge(); toast(ch ? '↻ Änderungen geladen' : '✓ Aktuell');
+  } catch (e) { toast('Refresh: ' + e.message); }
 }
 
 // ══════════════════════════════════════
@@ -1051,7 +1222,7 @@ function showApp() {
   document.getElementById('app').style.display = 'flex';
   document.getElementById('folderLabel').textContent = projectHandle.name + '/doc/prompts/';
   saveRecentProject(projectHandle.name);
-  renderBoard(); updateInfoBar(); startPoll();
+  renderBoard(); updateInfoBar(); updateSchemaBadge(); startPoll();
 
   // Auto-resolve project path via companion
   setTimeout(() => resolveProjectPath(), 300);
@@ -1062,6 +1233,7 @@ function switchProject() {
   // Pause polling (don't destroy state yet)
   polling = false;
   if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+  if (folderSyncInterval) { clearInterval(folderSyncInterval); folderSyncInterval = null; }
 
   switchedFromBoard = projectHandle !== null;
 
@@ -1219,21 +1391,27 @@ async function handleDrop(itemId, targetColId, insertIndex) {
   if (!item || !srcCol) return;
   const tgtCol = COLUMNS.find(c => c.id===targetColId); if (!tgtCol) return;
 
-  if (srcCol.id === tgtCol.id) {
-    const a = jsonData[srcCol.jsonKey]; let adj = insertIndex; if (insertIndex > srcIdx) adj--;
-    if (adj === srcIdx) return;
-    a.splice(srcIdx, 1); if (adj < 0 || adj >= a.length) a.push(item); else a.splice(adj, 0, item);
-    await writeJson(); renderBoard(); updateInfoBar(); toast(`↕ ${item.title} → #${adj<0?a.length:adj+1}`);
-  } else {
-    if (!await moveFile(item.file, srcCol.folder, tgtCol.folder)) return;
-    jsonData[srcCol.jsonKey].splice(srcIdx, 1);
-    const today = nowStr();
-    if (tgtCol.jsonKey === 'backlog') { delete item.inProgress; delete item.done; }
-    if (tgtCol.jsonKey === 'inProgress') { item.inProgress = today; delete item.done; }
-    if (tgtCol.jsonKey === 'done') { item.done = today; }
-    if (!jsonData[tgtCol.jsonKey]) jsonData[tgtCol.jsonKey] = [];
-    const a = jsonData[tgtCol.jsonKey]; if (insertIndex<0||insertIndex>=a.length) a.push(item); else a.splice(insertIndex, 0, item);
-    await writeJson(); renderBoard(); updateInfoBar(); toast(`${item.file}: ${srcCol.folder}/ → ${tgtCol.folder}/`);
+  try {
+    if (srcCol.id === tgtCol.id) {
+      const a = jsonData[srcCol.jsonKey]; let adj = insertIndex; if (insertIndex > srcIdx) adj--;
+      if (adj === srcIdx) return;
+      a.splice(srcIdx, 1); if (adj < 0 || adj >= a.length) a.push(item); else a.splice(adj, 0, item);
+      await writeJson(); renderBoard(); updateInfoBar(); toast(`↕ ${item.title} → #${adj<0?a.length:adj+1}`);
+    } else {
+      if (!await moveFile(item.file, srcCol.folder, tgtCol.folder)) return;
+      jsonData[srcCol.jsonKey].splice(srcIdx, 1);
+      const today = nowStr();
+      if (tgtCol.jsonKey === 'backlog') { delete item.inProgress; delete item.done; }
+      if (tgtCol.jsonKey === 'inProgress') { item.inProgress = today; delete item.done; }
+      if (tgtCol.jsonKey === 'done') { item.done = today; }
+      if (!jsonData[tgtCol.jsonKey]) jsonData[tgtCol.jsonKey] = [];
+      const a = jsonData[tgtCol.jsonKey]; if (insertIndex<0||insertIndex>=a.length) a.push(item); else a.splice(insertIndex, 0, item);
+      await writeJson(); renderBoard(); updateInfoBar(); toast(`${item.file}: ${srcCol.folder}/ → ${tgtCol.folder}/`);
+    }
+  } catch (e) {
+    // Write failed — revert in-memory state from disk to stay consistent
+    toast('Verschieben fehlgeschlagen — lade Board neu');
+    try { await loadJson(); renderBoard(); updateInfoBar(); } catch {}
   }
 }
 
@@ -1396,7 +1574,204 @@ async function openWorkflowDoc() {
 // ══════════════════════════════════════
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
 function updateInfoBar(){if(!jsonData)return;const b=(jsonData.backlog||[]).length,i=(jsonData.inProgress||[]).length,d=(jsonData.done||[]).length;document.getElementById('taskCountInfo').textContent=`${b} backlog · ${i} active · ${d} done`;document.getElementById('lastSyncInfo').textContent='Sync: '+new Date().toLocaleTimeString('de-DE');const sp=projectHandle?localStorage.getItem('kanprompt_path_'+projectHandle.name):null;document.getElementById('folderPathInfo').textContent=sp||projectHandle?.name||'—';}
-function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;document.getElementById('toasts').appendChild(e);setTimeout(()=>e.remove(),3000);}
+function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;document.getElementById('toasts').appendChild(e);setTimeout(()=>e.remove(),5000);}
+
+// ══════════════════════════════════════
+//  SCHEMA MIGRATIONS REGISTRY
+// ══════════════════════════════════════
+const MIGRATIONS = [
+  {
+    from: null,
+    to: '1.0.0',
+    title: 'Initiale Schema-Einrichtung',
+    run: async (log) => {
+      let changes = 0;
+      // 1) Timestamps YYYY-MM-DD → YYYY-MM-DDTHH:MM:SS
+      const tsFields = ['new', 'inProgress', 'done', 'deleted'];
+      let migrated = 0;
+      for (const key of ['backlog', 'inProgress', 'done']) {
+        for (const item of (jsonData[key] || [])) {
+          for (const f of tsFields) {
+            if (item[f] && item[f].length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(item[f])) {
+              item[f] += 'T00:00:00';
+              migrated++;
+            }
+          }
+        }
+      }
+      if (migrated > 0) {
+        await writeJson();
+        log('\u2713 ' + migrated + ' Timestamps auf ISO-Format migriert');
+        changes += migrated;
+      } else {
+        log('\u00b7 Timestamps bereits im ISO-Format');
+      }
+      // 2) TEMPLATE.md anlegen falls fehlend
+      try {
+        await dirHandle.getFileHandle('TEMPLATE.md');
+        log('\u00b7 TEMPLATE.md existiert bereits');
+      } catch {
+        const th = await dirHandle.getFileHandle('TEMPLATE.md', { create: true });
+        const tw = await th.createWritable();
+        await tw.write(PROMPT_TEMPLATE('Titel'));
+        await tw.close();
+        log('\u2713 TEMPLATE.md erstellt');
+        changes++;
+      }
+      // 3) deleted/ Ordner sicherstellen
+      try {
+        await dirHandle.getDirectoryHandle('deleted', { create: true });
+        log('\u00b7 deleted/ Ordner vorhanden');
+      } catch {
+        log('\u26a0 deleted/ konnte nicht erstellt werden');
+      }
+      return changes;
+    }
+  },
+  // ── Zukünftige Migrationen hier anhängen ──
+  // {
+  //   from: '1.0.0',
+  //   to: '1.1.0',
+  //   title: 'Priority-Feld ergänzen',
+  //   run: async (log) => {
+  //     let changes = 0;
+  //     for (const item of (jsonData.backlog || [])) {
+  //       if (!item.priority) { item.priority = 'normal'; changes++; }
+  //     }
+  //     if (changes > 0) { await writeJson(); log('✓ ' + changes + ' Items mit Default-Priority ergänzt'); }
+  //     return changes;
+  //   }
+  // },
+];
+
+function getMigrationsNeeded(fromVersion) {
+  const needed = [];
+  let current = fromVersion;
+  for (const m of MIGRATIONS) {
+    if (m.from === current) { needed.push(m); current = m.to; }
+  }
+  if (current !== SCHEMA_VERSION && needed.length > 0) {
+    console.warn('[KanPrompt] Migrations-Kette endet bei ' + current + ', nicht bei ' + SCHEMA_VERSION);
+  }
+  return needed;
+}
+
+function updateSchemaBadge() {
+  const badge = document.getElementById('schemaBadge');
+  if (!badge) return;
+  if (projectSchemaVersion === SCHEMA_VERSION) {
+    badge.className = 'schema-badge ok';
+    badge.textContent = 'schema ' + SCHEMA_VERSION + ' \u2713';
+    badge.onclick = null;
+    badge.title = 'Schema ist aktuell';
+  } else if (projectSchemaVersion) {
+    badge.className = 'schema-badge warn';
+    badge.textContent = 'schema ' + projectSchemaVersion + ' \u26a0';
+    badge.onclick = () => openUpgradeModal();
+    badge.title = 'Schema veraltet \u2014 Klicken f\u00fcr Upgrade auf ' + SCHEMA_VERSION;
+  } else {
+    badge.className = 'schema-badge missing';
+    badge.textContent = 'kein Schema \u26a0';
+    badge.onclick = () => openUpgradeModal();
+    badge.title = 'Kein Schema erkannt \u2014 Klicken f\u00fcr Initialisierung';
+  }
+}
+
+function openUpgradeModal() {
+  const info = document.getElementById('upgradeInfo');
+  const log = document.getElementById('upgradeLog');
+  log.style.display = 'none'; log.textContent = '';
+  const btn = document.getElementById('upgradeBtn');
+  btn.disabled = false;
+  btn.textContent = '\ud83d\udd04 Upgrade durchf\u00fchren';
+
+  const migrations = getMigrationsNeeded(projectSchemaVersion);
+
+  let html = '';
+  if (migrations.length === 0) {
+    html += '<p><strong>Schema ist aktuell (' + SCHEMA_VERSION + ').</strong></p>';
+    btn.style.display = 'none';
+  } else {
+    btn.style.display = '';
+    const fromLabel = projectSchemaVersion || 'kein Schema';
+    html += '<p><strong>Upgrade: ' + esc(fromLabel) + ' \u2192 ' + SCHEMA_VERSION + '</strong></p>';
+    html += '<p>' + migrations.length + ' Migration' + (migrations.length > 1 ? 'en' : '') + ' geplant:</p>';
+    html += '<ol style="margin:6px 0 0 18px;font-size:12px;">';
+    for (const m of migrations) {
+      html += '<li><strong>' + esc(m.to) + '</strong> \u2014 ' + esc(m.title) + '</li>';
+    }
+    html += '</ol>';
+  }
+  html += '<p style="margin-top:8px;color:var(--text-muted);font-size:11px;">Bestehende Prompt-Inhalte werden nicht ver\u00e4ndert \u2014 nur Struktur und Metadaten.</p>';
+  info.innerHTML = html;
+  document.getElementById('upgradeModalOverlay').classList.add('open');
+}
+
+function closeUpgradeModal() {
+  document.getElementById('upgradeModalOverlay').classList.remove('open');
+}
+
+async function performUpgrade() {
+  const log = document.getElementById('upgradeLog');
+  const btn = document.getElementById('upgradeBtn');
+  log.style.display = 'block';
+  log.textContent = '';
+  btn.disabled = true;
+  btn.textContent = '\u23f3 Upgrade l\u00e4uft...';
+
+  const addLog = (msg) => {
+    log.textContent += msg + '\n';
+    log.scrollTop = log.scrollHeight;
+  };
+
+  try {
+    const migrations = getMigrationsNeeded(projectSchemaVersion);
+
+    if (migrations.length === 0) {
+      addLog('Nichts zu tun \u2014 Schema ist aktuell (' + SCHEMA_VERSION + ').');
+      btn.textContent = '\u2713 Aktuell';
+      return;
+    }
+
+    addLog('Upgrade-Pfad: ' + (projectSchemaVersion || 'kein Schema') + ' \u2192 ' + SCHEMA_VERSION);
+    addLog('Migrationen: ' + migrations.length);
+    addLog('\u2500'.repeat(40));
+
+    let totalChanges = 0;
+    for (const m of migrations) {
+      addLog('');
+      addLog('\u25b8 Migration \u2192 ' + m.to + ': ' + m.title);
+      const changes = await m.run(addLog);
+      totalChanges += changes;
+      addLog('  (' + changes + ' \u00c4nderungen)');
+    }
+
+    // .kanprompt-version.json schreiben (immer als letzter Schritt)
+    addLog('');
+    addLog('\u2500'.repeat(40));
+    const versionData = { schema: SCHEMA_VERSION, app: VERSION, updatedAt: nowStr() };
+    const vfh = await projectHandle.getFileHandle('.kanprompt-version.json', { create: true });
+    const w = await vfh.createWritable();
+    await w.write(JSON.stringify(versionData, null, 2) + '\n');
+    await w.close();
+    addLog('\u2713 .kanprompt-version.json \u2192 schema ' + SCHEMA_VERSION);
+
+    projectSchemaVersion = SCHEMA_VERSION;
+    updateSchemaBadge();
+    renderBoard();
+
+    addLog('');
+    addLog('\u2550\u2550\u2550 Upgrade abgeschlossen: ' + totalChanges + ' \u00c4nderungen \u2550\u2550\u2550');
+    btn.textContent = '\u2713 Abgeschlossen';
+    toast('Schema-Upgrade auf v' + SCHEMA_VERSION + ' abgeschlossen');
+  } catch (e) {
+    addLog('');
+    addLog('\u2717 FEHLER: ' + e.message);
+    btn.textContent = '\u2717 Fehlgeschlagen';
+    btn.disabled = false;
+    toast('Upgrade fehlgeschlagen: ' + e.message);
+  }
+}
 
 // ── PREVIEW RESIZE ──
 (function() {
