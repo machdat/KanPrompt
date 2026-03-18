@@ -550,6 +550,8 @@
         <div class="preview-toolbar">
           <button class="btn btn-sm" onclick="refreshPreview()" title="Datei neu laden">🔄</button>
           <button class="btn btn-sm companion-only" onclick="openInEditor()" title="In Editor öffnen" style="display:none;">💻 Editor</button>
+          <button class="btn btn-sm companion-only" onclick="startCCWithPrompt()" title="CC mit Prompt starten" style="display:none;">⚡ CC</button>
+          <label class="companion-only" style="display:none;font-size:10px;color:var(--text-muted);cursor:pointer;align-items:center;gap:3px;" title="In eigenem Git-Worktree ausführen"><input type="checkbox" id="worktreeToggle" checked style="margin:0;accent-color:var(--accent-blue);">Worktree</label>
           <button class="btn btn-sm" id="openExternBtn" onclick="openFileExternally()" title="Datei herunterladen / extern öffnen">📤 Extern</button>
           <button class="btn btn-sm" id="editToggleBtn" onclick="toggleEditMode()">✎ Edit</button>
           <button class="preview-close" onclick="closePreview()">✕</button>
@@ -675,7 +677,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.13.0';
+const VERSION = '0.14.0';
 const SCHEMA_VERSION = '1.2.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
@@ -815,6 +817,31 @@ async function openInEditor() {
   const filePath = basePath + '\\doc\\prompts\\' + selectedCol.folder + '\\' + selectedItem.file;
   const result = await companionPost('/open-editor', { filePath });
   if (result && result.action) toast('💻 Im Editor geöffnet');
+}
+
+async function startCCWithPrompt() {
+  if (!selectedItem || !selectedCol) return;
+  const basePath = await getProjectPath();
+  if (!basePath) return;
+  const useWorktree = document.getElementById('worktreeToggle')?.checked ?? true;
+  const itemType = selectedItem.type || 'bugfix';
+  const branchName = itemType + '/' + selectedItem.id;
+  const promptFilePath = basePath + '\\doc\\prompts\\' + selectedCol.folder + '\\' + selectedItem.file;
+
+  toast('⚡ CC wird gestartet' + (useWorktree ? ' (Worktree: ' + branchName + ')' : '') + '...');
+
+  const result = await companionPost('/start-cc-worktree', {
+    projectPath: basePath,
+    promptFilePath,
+    branchName,
+    useWorktree,
+  });
+
+  if (result && result.action === 'cc-started') {
+    toast('⚡ CC läuft' + (result.worktree ? ' in ' + result.branch : ''));
+  } else if (result && result.error) {
+    toast('Fehler: ' + result.error);
+  }
 }
 
 async function openFolderInExplorer() {

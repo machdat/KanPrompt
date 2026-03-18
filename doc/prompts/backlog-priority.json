@@ -2,14 +2,6 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "cc-aus-kanprompt-antriggern",
-      "file": "cc-aus-kanprompt-antriggern.md",
-      "title": "CC aus Kanprompt antriggern",
-      "new": "2026-03-16T16:17:24",
-      "type": "feature",
-      "num": 28
-    },
-    {
       "id": "anweisung-an-cc-dass-die-ausfuehrung-in-einem-eigenen-worktr",
       "file": "anweisung-an-cc-dass-die-ausfuehrung-in-einem-eigenen-worktr.md",
       "title": "Anweisung an CC dass die AusfÃ¼hrung in einem eigenen Worktree",
@@ -18,16 +10,7 @@
       "num": 30
     }
   ],
-  "inProgress": [
-    {
-      "id": "ui-improvements-sammlung",
-      "file": "ui-improvements-sammlung.md",
-      "title": "Ui Improvements Sammlung",
-      "num": 37,
-      "new": "2026-03-18T21:37:45",
-      "inProgress": "2026-03-18T21:37:45"
-    }
-  ],
+  "inProgress": [],
   "done": [
     {
       "id": "prompt-karten-eindeutige-nummer",
@@ -288,7 +271,15 @@
       "num": 36,
       "new": "2026-03-18T21:26:29",
       "done": "2026-03-18T21:26:29"
+    },
+    {
+      "id": "ui-improvements-sammlung",
+      "file": "ui-improvements-sammlung.md",
+      "title": "Ui Improvements Sammlung",
+      "num": 38,
+      "new": "2026-03-18T21:38:15",
+      "done": "2026-03-18T21:38:15"
     }
   ],
-  "nextNum": 38
+  "nextNum": 40
 }

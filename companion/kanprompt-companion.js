@@ -1,5 +1,5 @@
 /**
- * KanPrompt Companion Server v0.5.0
+ * KanPrompt Companion Server v0.6.0
  *
  * Tiny local HTTP server that bridges the browser sandbox gap.
  * KanPrompt (HTML) talks to this via fetch('http://localhost:9177/...').
@@ -11,6 +11,7 @@
  *   POST /open-editor         → open file in system default editor
  *   POST /open-terminal       → open terminal at directory
  *   POST /claude-code         → launch Claude Code at project path
+ *   POST /start-cc-worktree   → create worktree + launch CC with prompt
  *   POST /open-folder         → open folder in Windows Explorer
  *
  * Start:  node kanprompt-companion.js
@@ -76,6 +77,20 @@ function findProjectPath(folderName) {
   return results;
 }
 
+function launchCC(res, cwd, prompt, branchName, isWorktree) {
+  const escapedPrompt = prompt.replace(/"/g, '\\"');
+  const cmd = `start "Claude Code" cmd /k "cd /d "${cwd}" && claude -p "${escapedPrompt}""`;
+  exec(cmd, (err) => {
+    if (err) return json(res, 500, { error: 'CC-Start fehlgeschlagen: ' + err.message });
+    json(res, 200, {
+      action: 'cc-started',
+      cwd,
+      worktree: isWorktree,
+      branch: branchName,
+    });
+  });
+}
+
 // ══════════════════════════════════════
 //  REQUEST HANDLER
 // ══════════════════════════════════════
@@ -88,7 +103,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // ── PING ──
     if (route === '/ping' && req.method === 'GET') {
-      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '0.5.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
+      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '0.6.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
     }
 
     // ── FIND PROJECT (resolves folder name → full path) ──
@@ -144,6 +159,44 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // ── START CC WITH WORKTREE ──
+    if (route === '/start-cc-worktree' && req.method === 'POST') {
+      const { projectPath, promptFilePath, branchName, useWorktree } = await readBody(req);
+      if (!projectPath) return json(res, 400, { error: 'projectPath required' });
+      if (!promptFilePath) return json(res, 400, { error: 'promptFilePath required' });
+
+      const resolved = path.resolve(projectPath);
+      const promptAbsolute = path.resolve(promptFilePath);
+      const promptInstruction = `Lies die Prompt-Datei ${promptAbsolute} und setze alle darin beschriebenen Aenderungen um.`;
+
+      if (useWorktree && branchName) {
+        const worktreeBase = resolved + '-worktrees';
+        const branchSlug = branchName.replace(/\//g, '-');
+        const worktreePath = path.join(worktreeBase, branchSlug);
+
+        // Ensure worktree base dir exists
+        if (!fs.existsSync(worktreeBase)) fs.mkdirSync(worktreeBase, { recursive: true });
+
+        // Create worktree
+        const wtCmd = `git -C "${resolved}" worktree add -b "${branchName}" "${worktreePath}"`;
+        exec(wtCmd, (wtErr) => {
+          if (wtErr) {
+            // Branch might already exist — try without -b
+            const wtCmd2 = `git -C "${resolved}" worktree add "${worktreePath}" "${branchName}"`;
+            exec(wtCmd2, (wtErr2) => {
+              if (wtErr2) return json(res, 500, { error: 'Worktree-Erstellung fehlgeschlagen: ' + wtErr2.message });
+              launchCC(res, worktreePath, promptInstruction, branchName, true);
+            });
+            return;
+          }
+          launchCC(res, worktreePath, promptInstruction, branchName, true);
+        });
+      } else {
+        launchCC(res, resolved, promptInstruction, null, false);
+      }
+      return;
+    }
+
     // ── OPEN FOLDER ──
     if (route === '/open-folder' && req.method === 'POST') {
       const { dirPath } = await readBody(req);
@@ -158,15 +211,16 @@ const server = http.createServer(async (req, res) => {
     // ── INFO ──
     if (route === '/info' && req.method === 'GET') {
       return json(res, 200, {
-        server: 'kanprompt-companion', version: '0.5.0',
+        server: 'kanprompt-companion', version: '0.6.0',
         searchPaths: PROJECT_SEARCH_PATHS,
         endpoints: [
           'GET  /ping', 'GET  /info',
-          'POST /find-project  {name}',
-          'POST /open-editor   {filePath, line?}',
-          'POST /open-terminal {dirPath, command?}',
-          'POST /claude-code   {projectPath, prompt?}',
-          'POST /open-folder   {dirPath}',
+          'POST /find-project         {name}',
+          'POST /open-editor          {filePath, line?}',
+          'POST /open-terminal        {dirPath, command?}',
+          'POST /claude-code          {projectPath, prompt?}',
+          'POST /start-cc-worktree    {projectPath, promptFilePath, branchName?, useWorktree?}',
+          'POST /open-folder          {dirPath}',
         ],
       });
     }
@@ -180,7 +234,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`
   ┌──────────────────────────────────────┐
-  │  KanPrompt Companion  v0.5.0         │
+  │  KanPrompt Companion  v0.6.0         │
   │  http://${HOST}:${PORT}               │
   │                                      │
   │  Endpoints:                          │
@@ -190,6 +244,7 @@ server.listen(PORT, HOST, () => {
   │    POST /open-editor     Editor     │
   │    POST /open-terminal   terminal    │
   │    POST /claude-code     Claude CC   │
+  │    POST /start-cc-worktree  CC+WT   │
   │    POST /open-folder     Explorer    │
   │                                      │
   │  Press Ctrl+C to stop               │

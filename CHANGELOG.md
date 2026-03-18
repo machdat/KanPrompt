@@ -2,6 +2,17 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [0.14.0] - 2026-03-18
+
+### Added
+- "⚡ CC" Button im Preview-Panel: startet Claude Code direkt mit der Prompt-Datei
+- Worktree-Checkbox: optional isolierter Git-Worktree pro Prompt (Default: an)
+- Companion-Endpoint `/start-cc-worktree`: erstellt Worktree + startet CC
+- Branch-Namensstrategie: `{type}/{id}` (z.B. `feature/cc-aus-kanprompt-antriggern`)
+
+### Changed
+- Companion-Server auf v0.6.0
+
 ## [0.13.0] - 2026-03-18
 
 ### Added
