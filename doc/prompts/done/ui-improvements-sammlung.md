@@ -35,8 +35,22 @@ Die Schriftgröße für den Namen des aktuell ausgewählten Projekts (z.B. "KanP
 1. Projekt auswählen → Projektname prüfen: Schriftgröße ist deutlich größer als andere Textelemente
 2. _(wird mit jedem neuen Punkt ergänzt)_
 
-## Session-Log — Pflichtaufgabe nach Abschluss
+---
 
-Nachdem alle Änderungen umgesetzt und verifiziert sind, ist als **letzter Schritt** folgendes zu tun:
-Öffne diese Prompt-Datei und hänge am Ende ein ausgefülltes Session-Log an.
-Ersetze dabei diesen gesamten Abschnitt durch das fertige Log.
+# Session-Log
+
+- **Datum:** 2026-03-18T21:33:00
+- **Branch:** master
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+Schriftgröße des Projektnamens im Header von 13px auf 20px (150%) vergrößert.
+
+## Geänderte Dateien
+- `kanprompt.html` — CSS `.project-switcher-current` font-size: 13px → 20px
+
+## Abweichungen vom Prompt
+Keine.
+
+## Offene Punkte
+Keine.

@@ -6,16 +6,8 @@
       "file": "cc-aus-kanprompt-antriggern.md",
       "title": "CC aus Kanprompt antriggern",
       "new": "2026-03-16T16:17:24",
-      "type": "bugfix",
+      "type": "feature",
       "num": 28
-    },
-    {
-      "id": "ui-improvements-sammlung",
-      "file": "ui-improvements-sammlung.md",
-      "title": "Ui Improvements Sammlung",
-      "new": "2026-03-16T21:03:27",
-      "type": "bugfix",
-      "num": 29
     },
     {
       "id": "anweisung-an-cc-dass-die-ausfuehrung-in-einem-eigenen-worktr",
@@ -26,7 +18,16 @@
       "num": 30
     }
   ],
-  "inProgress": [],
+  "inProgress": [
+    {
+      "id": "ui-improvements-sammlung",
+      "file": "ui-improvements-sammlung.md",
+      "title": "Ui Improvements Sammlung",
+      "num": 37,
+      "new": "2026-03-18T21:37:45",
+      "inProgress": "2026-03-18T21:37:45"
+    }
+  ],
   "done": [
     {
       "id": "prompt-karten-eindeutige-nummer",
@@ -289,5 +290,5 @@
       "done": "2026-03-18T21:26:29"
     }
   ],
-  "nextNum": 37
+  "nextNum": 38
 }
