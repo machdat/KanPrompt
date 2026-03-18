@@ -42,8 +42,23 @@ Prompt-Karten werden derzeit nur über ihren Dateinamen identifiziert. Dieser is
 4. Karte zwischen Spalten verschieben → Nummer bleibt gleich
 5. Projekt schließen und neu öffnen → Nummern sind erhalten
 
-## Session-Log — Pflichtaufgabe nach Abschluss
+---
 
-Nachdem alle Änderungen umgesetzt und verifiziert sind, ist als **letzter Schritt** folgendes zu tun:
-Öffne diese Prompt-Datei und hänge am Ende ein ausgefülltes Session-Log an.
-Ersetze dabei diesen gesamten Abschnitt durch das fertige Log.
+# Session-Log
+
+- **Datum:** 2026-03-18T21:15:00
+- **Branch:** master
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+Jede Prompt-Karte erhält eine stabile, eindeutige Nummer (#1, #2, ...) pro Projekt. Nummern werden im JSON als `num`-Feld gespeichert, ein `nextNum`-Counter auf Root-Ebene verhindert Recycling. Schema-Migration 1.1.0→1.2.0 nummeriert alle bestehenden Items (done chronologisch, dann inProgress, dann backlog).
+
+## Geänderte Dateien
+- `kanprompt.html` — `getNextNum()`/`assignNum()` Hilfsfunktionen, `createCard()` zeigt stabile `#num` statt Position, `openPreview()` Meta zeigt `#num`, `createNewPrompt()`/`syncFolderToJson()`/`restoreDeleted()` weisen Nummern zu, Archiv-Liste zeigt `#num`, Migration 1.1.0→1.2.0, SCHEMA_VERSION auf 1.2.0
+- `workflow/schema.json` — Version 1.2.0 mit `num`/`nextNum`-Felddefinition
+
+## Abweichungen vom Prompt
+- Design-Entscheidung: `num`-Feld im JSON + `nextNum`-Counter (statt Dateiname-Präfix oder separater Index-Datei)
+
+## Offene Punkte
+Keine.

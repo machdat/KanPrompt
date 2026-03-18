@@ -2,11 +2,16 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "prompt-karten-eindeutige-nummer",
-      "file": "prompt-karten-eindeutige-nummer.md",
-      "title": "Prompt Karten Eindeutige Nummer",
-      "new": "2026-03-16T21:06:17",
-      "type": "bugfix"
+      "id": "duplikat-beim-erstellen-von-prompts",
+      "file": "duplikat-beim-erstellen-von-prompts.md",
+      "title": "Duplikat Beim Erstellen Von Prompts",
+      "new": "2026-03-18T21:13:02"
+    },
+    {
+      "id": "selektion-des-promp-typs-auch-in-der-vorschau",
+      "file": "selektion-des-promp-typs-auch-in-der-vorschau.md",
+      "title": "Selektion Des Promp Typs Auch In Der Vorschau",
+      "new": "2026-03-18T20:58:17"
     },
     {
       "id": "cc-aus-kanprompt-antriggern",
@@ -40,22 +45,13 @@
   "inProgress": [],
   "done": [
     {
-      "id": "upgrade-prozess-beendigung",
-      "file": "upgrade-prozess-beendigung.md",
-      "title": "Upgrade-Prozess Beendigung",
-      "new": "2026-03-16T22:38:28",
-      "inProgress": "2026-03-18T21:03:00",
-      "done": "2026-03-18T21:05:00",
+      "id": "prompt-karten-eindeutige-nummer",
+      "file": "prompt-karten-eindeutige-nummer.md",
+      "title": "Prompt Karten Eindeutige Nummer",
+      "new": "2026-03-16T21:06:17",
+      "inProgress": "2026-03-18T21:10:00",
+      "done": "2026-03-18T21:15:00",
       "type": "bugfix"
-    },
-    {
-      "id": "prompt-type-auto-versioning",
-      "file": "prompt-type-auto-versioning.md",
-      "title": "Prompt Type Auto Versioning",
-      "new": "2026-03-15T23:21:28",
-      "inProgress": "2026-03-18T20:48:14",
-      "done": "2026-03-18T20:55:00",
-      "type": "feature"
     },
     {
       "id": "archive-search-filter",
@@ -250,6 +246,20 @@
       "inProgress": "2026-03-18T20:33:01",
       "done": "2026-03-18T20:42:14",
       "type": "bugfix"
+    },
+    {
+      "id": "prompt-type-auto-versioning",
+      "file": "prompt-type-auto-versioning.md",
+      "title": "Prompt Type Auto Versioning",
+      "new": "2026-03-18T21:13:02",
+      "done": "2026-03-18T21:13:02"
+    },
+    {
+      "id": "upgrade-prozess-beendigung",
+      "file": "upgrade-prozess-beendigung.md",
+      "title": "Upgrade Prozess Beendigung",
+      "new": "2026-03-18T21:13:02",
+      "done": "2026-03-18T21:13:02"
     }
   ]
 }

@@ -676,7 +676,7 @@
 //  STATE
 // ══════════════════════════════════════
 const VERSION = '0.12.0';
-const SCHEMA_VERSION = '1.1.0';
+const SCHEMA_VERSION = '1.2.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
 let companionCheckInterval = null;
@@ -1225,7 +1225,7 @@ async function syncFolderToJson(silent) {
           const id = f.replace('.md', '');
           const title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
           const today = nowStr();
-          const entry = { id, file: f, title };
+          const entry = { id, file: f, title, num: getNextNum() };
           if (col.jsonKey === 'backlog') entry.new = today;
           if (col.jsonKey === 'inProgress') { entry.new = today; entry.inProgress = today; }
           if (col.jsonKey === 'done') { entry.new = today; entry.done = today; }
@@ -1535,7 +1535,7 @@ function createCard(item, col, index) {
   const dsDisplay = formatTS(ds);
   el.innerHTML = `
     <div class="card-actions"><button class="card-action-btn" onclick="toggleBlocked('${item.id}')" title="${item.blocked?'Unblock':'Block'}">⊘</button><button class="card-action-btn delete" onclick="deleteItem('${item.id}')" title="Löschen">✕</button></div>
-    <div class="card-title"><span class="prio-num">#${index+1}</span>${esc(item.title)}</div>
+    <div class="card-title"><span class="prio-num">${item.num ? '#'+item.num : ''}</span>${esc(item.title)}</div>
     <div class="card-file">${esc(item.file)}</div>
     <div class="card-meta">
       <span class="badge badge-type" style="color:${TYPE_COLORS[item.type||'bugfix']};border-color:${TYPE_COLORS[item.type||'bugfix']}">${TYPE_LABELS[item.type||'bugfix']} ${item.type||'bugfix'}</span>
@@ -1682,7 +1682,7 @@ function renderArchiveList(q) {
   sorted.forEach(item => {
     const r = document.createElement('div'); r.className = 'archive-item'; r.onclick = () => { openPreview(item, dc); };
     const doneFmt = item.done ? formatTS(item.done) : '';
-    r.innerHTML = `<div class="archive-item-title">${esc(item.title)}</div><div class="archive-item-meta"><span>${esc(item.id)}</span>${doneFmt ? `<span>✅ ${doneFmt}</span>` : ''}</div>`;
+    r.innerHTML = `<div class="archive-item-title">${item.num ? '<span style="color:var(--text-muted);font-size:11px;">#'+item.num+'</span> ' : ''}${esc(item.title)}</div><div class="archive-item-meta"><span>${esc(item.id)}</span>${doneFmt ? `<span>✅ ${doneFmt}</span>` : ''}</div>`;
     list.appendChild(r);
   });
 }
@@ -1804,7 +1804,7 @@ async function restoreDeleted(filename) {
       const firstLine = content.split('\n')[0];
       if (firstLine.startsWith('# ')) title = firstLine.slice(2).trim();
     }
-    jsonData.backlog.push({ id, file: filename, title, new: nowStr() });
+    jsonData.backlog.push({ id, file: filename, title, num: getNextNum(), new: nowStr() });
     await writeJson();
     renderBoard();
     updateInfoBar();
@@ -1850,7 +1850,8 @@ async function openPreview(item, col) {
   document.getElementById('editToggleBtn').style.display = '';
   const meta = document.getElementById('previewMeta');
   const itype = item.type || 'bugfix';
-  let mh = `<span>📄 ${col.folder}/${item.file}</span>`;
+  let mh = item.num ? `<span>#${item.num}</span>` : '';
+  mh += `<span>📄 ${col.folder}/${item.file}</span>`;
   mh += `<span>${TYPE_LABELS[itype]||''} ${itype}</span>`;
   if (item.new) mh += `<span>🆕 ${formatTS(item.new)}</span>`;
   if (item.inProgress) mh += `<span>🔧 ${formatTS(item.inProgress)}</span>`;
@@ -1912,7 +1913,7 @@ async function createNewPrompt() {
   if(!title){toast('Titel fehlt');return;} if(!fn)fn=slugify(title)+'.md'; if(!fn.endsWith('.md'))fn+='.md';
   const id=fn.replace('.md',''), today=nowStr();
   if(!await createMdFile('new',fn,c||PROMPT_TEMPLATE(title)))return;
-  jsonData.backlog.push({id,file:fn,title,type:getSelectedType(),new:today});
+  jsonData.backlog.push({id,file:fn,title,type:getSelectedType(),num:getNextNum(),new:today});
   await writeJson(); renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: new/'+fn);
 }
 
@@ -1948,6 +1949,15 @@ async function openWorkflowDoc() {
 //  HELPERS
 // ══════════════════════════════════════
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function getNextNum() {
+  const n = jsonData.nextNum || 1;
+  jsonData.nextNum = n + 1;
+  return n;
+}
+function assignNum(item) {
+  if (!item.num) item.num = getNextNum();
+  return item.num;
+}
 function updateInfoBar(){if(!jsonData)return;const b=(jsonData.backlog||[]).length,i=(jsonData.inProgress||[]).length,d=(jsonData.done||[]).length;document.getElementById('taskCountInfo').textContent=`${b} backlog · ${i} active · ${d} done`;document.getElementById('lastSyncInfo').textContent='Sync: '+new Date().toLocaleTimeString('de-DE');const sp=projectHandle?localStorage.getItem('kanprompt_path_'+projectHandle.name):null;document.getElementById('folderPathInfo').textContent=sp||projectHandle?.name||'—';const vpi=document.getElementById('versionPlanInfo');const planned=computePlannedVersion();vpi.textContent=planned?`v${VERSION} → v${planned.version}`:'';}
 
 function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;document.getElementById('toasts').appendChild(e);setTimeout(()=>e.remove(),5000);}
@@ -2022,6 +2032,23 @@ const MIGRATIONS = [
         log('\u00b7 Alle Items haben bereits einen Typ');
       }
       return changes;
+    }
+  },
+  {
+    from: '1.1.0',
+    to: '1.2.0',
+    title: 'Eindeutige Nummern pro Prompt-Karte',
+    run: async (log) => {
+      let num = 1;
+      // Done zuerst (älteste zuerst nach done-Timestamp), dann inProgress, dann backlog
+      const doneItems = [...(jsonData.done || [])].sort((a, b) => (a.done || a.new || '').localeCompare(b.done || b.new || ''));
+      for (const item of doneItems) { if (!item.num) { item.num = num++; } else { num = Math.max(num, item.num + 1); } }
+      for (const item of (jsonData.inProgress || [])) { if (!item.num) { item.num = num++; } else { num = Math.max(num, item.num + 1); } }
+      for (const item of (jsonData.backlog || [])) { if (!item.num) { item.num = num++; } else { num = Math.max(num, item.num + 1); } }
+      jsonData.nextNum = num;
+      await writeJson();
+      log('\u2713 ' + (num - 1) + ' Items nummeriert, nextNum = ' + num);
+      return num - 1;
     }
   },
 ];

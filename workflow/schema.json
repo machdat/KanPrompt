@@ -1,5 +1,5 @@
 {
-  "currentVersion": "1.1.0",
+  "currentVersion": "1.2.0",
   "description": "KanPrompt Workflow Schema — definiert JSON-Format, Ordnerstruktur und Templates",
   "versions": {
     "1.0.0": {
@@ -23,6 +23,23 @@
           "backlog[]": ["id", "file", "title", "type", "new"],
           "inProgress[]": ["id", "file", "title", "type", "new", "inProgress"],
           "done[]": ["id", "file", "title", "type", "new", "inProgress", "done"]
+        },
+        "typeValues": ["bugfix", "feature", "release"],
+        "typeDefault": "bugfix",
+        "timestampFormat": "YYYY-MM-DDTHH:MM:SS"
+      },
+      "folders": ["doc/prompts/new/", "doc/prompts/in-progress/", "doc/prompts/done/", "doc/prompts/deleted/"],
+      "files": ["doc/prompts/backlog-priority.json", "doc/prompts/README.md", "doc/prompts/TEMPLATE.md"]
+    },
+    "1.2.0": {
+      "released": "2026-03-18",
+      "changes": "Eindeutige Nummer (num) pro Item, nextNum-Counter auf Root-Ebene",
+      "json": {
+        "rootFields": ["nextNum"],
+        "fields": {
+          "backlog[]": ["id", "file", "title", "type", "num", "new"],
+          "inProgress[]": ["id", "file", "title", "type", "num", "new", "inProgress"],
+          "done[]": ["id", "file", "title", "type", "num", "new", "inProgress", "done"]
         },
         "typeValues": ["bugfix", "feature", "release"],
         "typeDefault": "bugfix",
