@@ -9,6 +9,12 @@
       "type": "bugfix"
     },
     {
+      "id": "selektion-des-promp-typs-auch-in-der-vorschau",
+      "file": "selektion-des-promp-typs-auch-in-der-vorschau.md",
+      "title": "Selektion Des Promp Typs Auch In Der Vorschau",
+      "new": "2026-03-18T20:58:17"
+    },
+    {
       "id": "prompt-karten-eindeutige-nummer",
       "file": "prompt-karten-eindeutige-nummer.md",
       "title": "Prompt Karten Eindeutige Nummer",
@@ -35,19 +41,26 @@
       "title": "Anweisung an CC dass die AusfÃ¼hrung in einem eigenen Worktree",
       "new": "2026-03-16T08:13:57",
       "type": "bugfix"
+    },
+    {
+      "id": "selektion-des-promp-typs-auch-in-der-vorschau",
+      "file": "selektion-des-promp-typs-auch-in-der-vorschau.md",
+      "title": "Selektion des Promp-Typs auch in der Vorschau",
+      "type": "feature",
+      "new": "2026-03-18T20:58:17"
     }
   ],
-  "inProgress": [
+  "inProgress": [],
+  "done": [
     {
       "id": "prompt-type-auto-versioning",
       "file": "prompt-type-auto-versioning.md",
       "title": "Prompt Type Auto Versioning",
       "new": "2026-03-15T23:21:28",
       "inProgress": "2026-03-18T20:48:14",
-      "type": "bugfix"
-    }
-  ],
-  "done": [
+      "done": "2026-03-18T20:55:00",
+      "type": "feature"
+    },
     {
       "id": "archive-search-filter",
       "file": "archive-search-filter.md",

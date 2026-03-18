@@ -325,8 +325,23 @@ Diese Karte setzt voraus, dass `schema-version-display-and-upgrade` abgeschlosse
 17. `computeNextVersion('0.8.2', 'release')` = `'1.0.0'`
 18. `.kanprompt-version.json` wird nach Done-Drop aktualisiert
 
-## Session-Log — Pflichtaufgabe nach Abschluss
+---
 
-Nachdem alle Änderungen umgesetzt und verifiziert sind, ist als **letzter Schritt** folgendes zu tun:
-Öffne diese Prompt-Datei und hänge am Ende ein ausgefülltes Session-Log an.
-Ersetze dabei diesen gesamten Abschnitt durch das fertige Log.
+# Session-Log
+
+- **Datum:** 2026-03-18T20:55:00
+- **Branch:** master
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+Prompt-Typ-System implementiert: Jede Karte trägt einen Typ (bugfix/feature/release), der die Versionierung steuert. Typ-Auswahl im Erstellungs-Modal, farbige Badges auf Karten und in der Preview, automatische Versionsberechnung beim Done-Drop mit Toast-Hinweis und .kanprompt-version.json-Update. Schema-Migration 1.0.0 → 1.1.0 setzt allen bestehenden Items `type: "bugfix"`.
+
+## Geänderte Dateien
+- `kanprompt.html` — CSS (.type-selector, .type-option, .badge-type), HTML (Typ-Auswahl im Modal, versionPlanInfo in Info-Bar), JS (TYPE_LABELS/TYPE_COLORS, selectType, getSelectedType, computeNextVersion, suggestVersionBump, updateProjectVersionFile, computePlannedVersion, Migration 1.0.0→1.1.0), SCHEMA_VERSION auf 1.1.0
+- `workflow/schema.json` — Version 1.1.0 mit type-Felddefinition hinzugefügt
+
+## Abweichungen vom Prompt
+Keine.
+
+## Offene Punkte
+Keine.
