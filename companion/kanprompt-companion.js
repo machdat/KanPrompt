@@ -80,7 +80,8 @@ function findProjectPath(folderName) {
 function launchCC(res, cwd, prompt, branchName, isWorktree) {
   // Write temp batch file to avoid Windows nested-quote issues
   const tmpBat = path.join(os.tmpdir(), 'kanprompt-cc-' + Date.now() + '.bat');
-  const title = 'Claude Code' + (branchName ? ' - ' + branchName : '');
+  const projectName = path.basename(isWorktree ? path.resolve(cwd, '..', '..') : cwd);
+  const title = 'CC: ' + projectName + (branchName ? ' | ' + branchName : '');
   const lines = [
     '@echo off',
     'title ' + title,
