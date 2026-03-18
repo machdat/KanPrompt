@@ -294,8 +294,24 @@ Das Deleted-Overlay soll die gleiche Positionierung wie das Archiv-Overlay verwe
 8. Overlay schließen mit ✕ oder Escape
 9. Shortcut `d` öffnet/schließt das Overlay
 
-## Session-Log — Pflichtaufgabe nach Abschluss
+---
 
-Nachdem alle Änderungen umgesetzt und verifiziert sind, ist als **letzter Schritt** folgendes zu tun:
-Öffne diese Prompt-Datei und hänge am Ende ein ausgefülltes Session-Log an.
-Ersetze dabei diesen gesamten Abschnitt durch das fertige Log.
+# Session-Log
+
+- **Datum:** 2026-03-18T20:42:14
+- **Branch:** master
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+Deleted-Overlay implementiert: Gelöschte Prompts können über ein Overlay (analog zum Done-Archiv) eingesehen, durchsucht, in der Vorschau angezeigt, wiederhergestellt oder endgültig gelöscht werden. Button mit Count in der Info-Bar, Keyboard-Shortcut `D`.
+
+## Geänderte Dateien
+- `kanprompt.html` — Deleted-Overlay HTML, JavaScript-Funktionen (loadDeletedFiles, openDeleted, closeDeleted, filterDeleted, renderDeletedList, previewDeleted, restoreDeleted, permanentDelete, updateDeletedCount, updateDeletedPosition, toggleDeleted), Button in Info-Bar, Keyboard-Shortcut, Version-Bump auf 0.12.0
+- `CHANGELOG.md` — Eintrag für v0.12.0
+
+## Abweichungen vom Prompt
+- Button-Platzierung: Option A gewählt (Info-Bar rechts), da dezent und immer sichtbar
+- Bestehende CSS-Klassen vollständig wiederverwendet, kein eigenes CSS nötig
+
+## Offene Punkte
+Keine.

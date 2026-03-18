@@ -38,15 +38,7 @@
       "new": "2026-03-16T08:13:57"
     }
   ],
-  "inProgress": [
-    {
-      "id": "deleted-folder-searchable",
-      "file": "deleted-folder-searchable.md",
-      "title": "Deleted Folder Searchable",
-      "new": "2026-03-15T22:57:33",
-      "inProgress": "2026-03-18T20:33:01"
-    }
-  ],
+  "inProgress": [],
   "done": [
     {
       "id": "archive-search-filter",
@@ -211,6 +203,14 @@
       "new": "2026-03-16T20:46:42",
       "inProgress": "2026-03-16T20:46:42",
       "done": "2026-03-16T20:56:33"
+    },
+    {
+      "id": "deleted-folder-searchable",
+      "file": "deleted-folder-searchable.md",
+      "title": "Deleted Folder Searchable",
+      "new": "2026-03-15T22:57:33",
+      "inProgress": "2026-03-18T20:33:01",
+      "done": "2026-03-18T20:42:14"
     }
   ]
 }
