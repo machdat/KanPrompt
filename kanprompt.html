@@ -563,6 +563,7 @@
       <span class="info-text" id="taskCountInfo">—</span>
     </div>
     <div class="info-bar-right">
+      <button class="btn btn-sm" id="deletedBtn" onclick="toggleDeleted()" title="Gelöschte Prompts (D)" style="font-size:10px;padding:2px 6px;">🗑</button>
       <span class="info-text" id="lastSyncInfo">—</span>
     </div>
   </div>
@@ -634,11 +635,27 @@
   </div>
 </div>
 
+<!-- DELETED OVERLAY -->
+<div class="archive-overlay" id="deletedOverlay">
+  <div class="archive-panel">
+    <div class="archive-header">
+      <h2>🗑 Gelöscht</h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="count" id="deletedCount">0</span>
+        <button class="preview-close" onclick="closeDeleted()">✕</button>
+      </div>
+    </div>
+    <input class="archive-search" id="deletedSearch" type="text"
+           placeholder="Suche nach Dateiname..." oninput="filterDeleted()">
+    <div class="archive-list" id="deletedList"></div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.11.0';
+const VERSION = '0.12.0';
 const SCHEMA_VERSION = '1.0.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
@@ -1271,7 +1288,7 @@ function showApp() {
   document.getElementById('app').style.display = 'flex';
   document.getElementById('folderLabel').textContent = projectHandle.name;
   saveRecentProject(projectHandle.name);
-  renderBoard(); updateInfoBar(); updateSchemaBadge(); startPoll();
+  renderBoard(); updateInfoBar(); updateSchemaBadge(); updateDeletedCount(); startPoll();
 
   // Auto-resolve project path via companion
   setTimeout(() => resolveProjectPath(), 300);
@@ -1563,7 +1580,7 @@ async function deleteItem(id) {
   if (!item || !srcCol) return;
   if (subDirs['deleted']) await moveFile(item.file, srcCol.folder, 'deleted');
   const a = jsonData[srcCol.jsonKey]; const i = a.findIndex(x => x.id===id); if (i>=0) a.splice(i, 1);
-  await writeJson(); if (selectedId===id) closePreview(); renderBoard(); updateInfoBar(); toast('→ deleted/: ' + item.file);
+  await writeJson(); if (selectedId===id) closePreview(); renderBoard(); updateInfoBar(); updateDeletedCount(); toast('→ deleted/: ' + item.file);
 }
 
 // ══════════════════════════════════════
@@ -1574,7 +1591,7 @@ function updateArchivePosition() {
   const pp = document.getElementById('previewPanel');
   overlay.style.right = (pp.classList.contains('open') ? pp.offsetWidth + 12 : 8) + 'px';
 }
-function openArchive() { document.getElementById('archiveSearch').value=''; document.getElementById('archiveOverlay').classList.add('open'); updateArchivePosition(); renderArchiveList(''); setTimeout(()=>document.getElementById('archiveSearch').focus(),100); }
+function openArchive() { closeDeleted(); document.getElementById('archiveSearch').value=''; document.getElementById('archiveOverlay').classList.add('open'); updateArchivePosition(); renderArchiveList(''); setTimeout(()=>document.getElementById('archiveSearch').focus(),100); }
 function closeArchive() { document.getElementById('archiveOverlay').classList.remove('open'); }
 let archiveSortNewest = true;
 function toggleArchiveSort() { archiveSortNewest = !archiveSortNewest; filterArchive(); }
@@ -1599,6 +1616,152 @@ function renderArchiveList(q) {
 }
 
 // ══════════════════════════════════════
+//  DELETED OVERLAY
+// ══════════════════════════════════════
+let deletedItems = [];
+let deletedCountVal = 0;
+
+async function updateDeletedCount() {
+  const files = await listMdFiles('deleted');
+  deletedCountVal = files ? files.length : 0;
+  const btn = document.getElementById('deletedBtn');
+  if (btn) btn.textContent = '🗑' + (deletedCountVal > 0 ? ' ' + deletedCountVal : '');
+}
+
+async function loadDeletedFiles() {
+  const files = await listMdFiles('deleted');
+  if (!files) return [];
+  const items = [];
+  for (const filename of files) {
+    const id = filename.replace('.md', '');
+    let title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const content = await readMdFile('deleted', filename);
+    if (content) {
+      const firstLine = content.split('\n')[0];
+      if (firstLine.startsWith('# ')) title = firstLine.slice(2).trim();
+    }
+    items.push({ id, file: filename, title });
+  }
+  return items;
+}
+
+function toggleDeleted() {
+  const overlay = document.getElementById('deletedOverlay');
+  if (overlay.classList.contains('open')) closeDeleted();
+  else openDeleted();
+}
+
+async function openDeleted() {
+  closeArchive();
+  document.getElementById('deletedSearch').value = '';
+  document.getElementById('deletedOverlay').classList.add('open');
+  updateDeletedPosition();
+  deletedItems = await loadDeletedFiles();
+  renderDeletedList('');
+  setTimeout(() => document.getElementById('deletedSearch').focus(), 100);
+}
+
+function closeDeleted() {
+  document.getElementById('deletedOverlay').classList.remove('open');
+}
+
+function filterDeleted() {
+  renderDeletedList(document.getElementById('deletedSearch').value.trim().toLowerCase());
+}
+
+function updateDeletedPosition() {
+  const overlay = document.getElementById('deletedOverlay');
+  const pp = document.getElementById('previewPanel');
+  overlay.style.right = (pp.classList.contains('open') ? pp.offsetWidth + 12 : 8) + 'px';
+}
+
+function renderDeletedList(q) {
+  const list = document.getElementById('deletedList');
+  const filtered = q
+    ? deletedItems.filter(i => i.title.toLowerCase().includes(q) || i.file.toLowerCase().includes(q))
+    : deletedItems;
+  document.getElementById('deletedCount').textContent = filtered.length + ' / ' + deletedItems.length;
+  list.innerHTML = '';
+  if (!filtered.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Keine gelöschten Prompts</div>';
+    return;
+  }
+  filtered.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'archive-item';
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+        <div style="flex:1;min-width:0;">
+          <div class="archive-item-title">${esc(item.title)}</div>
+          <div class="archive-item-meta"><span>${esc(item.file)}</span></div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn btn-sm" onclick="event.stopPropagation();restoreDeleted('${esc(item.file)}')" title="Zurück ins Backlog">↩</button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();permanentDelete('${esc(item.file)}')" title="Endgültig löschen" style="color:var(--accent-red);">✕</button>
+        </div>
+      </div>
+    `;
+    row.addEventListener('click', () => previewDeleted(item));
+    list.appendChild(row);
+  });
+}
+
+async function previewDeleted(item) {
+  selectedId = null; selectedItem = item; selectedCol = null; editMode = false;
+  const pp = document.getElementById('previewPanel');
+  pp.classList.add('open');
+  updateDeletedPosition();
+  document.getElementById('previewTitle').textContent = '🗑 ' + item.title;
+  document.getElementById('previewMeta').innerHTML = '<span>🗑 deleted/' + esc(item.file) + '</span>';
+  document.getElementById('editToggleBtn').style.display = 'none';
+  showReadView();
+  const content = document.getElementById('previewContent');
+  content.textContent = 'Lade...';
+  const md = await readMdFile('deleted', item.file);
+  content.innerHTML = md ? renderMarkdown(md) : '(Datei nicht lesbar)';
+}
+
+async function restoreDeleted(filename) {
+  if (!confirm('Prompt zurück ins Backlog verschieben?')) return;
+  try {
+    if (!await moveFile(filename, 'deleted', 'new')) return;
+    const id = filename.replace('.md', '');
+    let title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const content = await readMdFile('new', filename);
+    if (content) {
+      const firstLine = content.split('\n')[0];
+      if (firstLine.startsWith('# ')) title = firstLine.slice(2).trim();
+    }
+    jsonData.backlog.push({ id, file: filename, title, new: nowStr() });
+    await writeJson();
+    renderBoard();
+    updateInfoBar();
+    deletedItems = deletedItems.filter(i => i.file !== filename);
+    filterDeleted();
+    updateDeletedCount();
+    toast('↩ Wiederhergestellt: ' + filename);
+  } catch (e) {
+    toast('Fehler: ' + e.message);
+  }
+}
+
+async function permanentDelete(filename) {
+  if (!confirm('⚠ "' + filename + '" endgültig löschen?\n\nDiese Aktion kann NICHT rückgängig gemacht werden!')) return;
+  try {
+    const dir = subDirs['deleted'];
+    if (!dir) { toast('deleted/ Ordner nicht verfügbar'); return; }
+    await dir.removeEntry(filename);
+    delete fileContentsCache['deleted/' + filename];
+    deletedItems = deletedItems.filter(i => i.file !== filename);
+    filterDeleted();
+    updateDeletedCount();
+    toast('✕ Endgültig gelöscht: ' + filename);
+  } catch (e) {
+    toast('Fehler: ' + e.message);
+  }
+}
+
+// ══════════════════════════════════════
 //  PREVIEW (read + edit)
 // ══════════════════════════════════════
 async function openPreview(item, col) {
@@ -1609,7 +1772,7 @@ async function openPreview(item, col) {
   if (savedW >= 200) pp.style.width = savedW + 'px';
   else pp.style.width = '';
   pp.classList.add('open');
-  setTimeout(updateArchivePosition, 210);
+  setTimeout(updateArchivePosition, 210); setTimeout(updateDeletedPosition, 210);
   document.getElementById('previewTitle').textContent = item.title;
   document.getElementById('editToggleBtn').textContent = '✎ Edit';
   document.getElementById('editToggleBtn').style.display = '';
@@ -1653,7 +1816,7 @@ function closePreview() {
   const w = p.offsetWidth;
   if (w >= 200) localStorage.setItem('kanprompt_preview_w', w);
   p.style.width = ''; p.classList.remove('open','resizing');
-  setTimeout(updateArchivePosition, 210);
+  setTimeout(updateArchivePosition, 210); setTimeout(updateDeletedPosition, 210);
   selectedId=null; selectedItem=null; selectedCol=null; editMode=false; showReadView(); renderBoard();
 }
 function renderMarkdown(t) {
@@ -1960,12 +2123,13 @@ document.addEventListener('keydown', e => {
     if (e.key==='Escape') { e.preventDefault(); closeProjectDropdown(); return; }
   }
   if (e.key==='Escape') {
-    closeModal(); closeBlockedModal(); closeArchive(); if(editMode)cancelEdit(); else closePreview();
+    closeModal(); closeBlockedModal(); closeArchive(); closeDeleted(); if(editMode)cancelEdit(); else closePreview();
   }
   const tag = document.activeElement.tagName;
   if (['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
   if (e.key==='n') { e.preventDefault(); openNewTaskModal(); }
   if (e.key==='r') { e.preventDefault(); refreshFromDisk(); }
+  if (e.key==='d') { e.preventDefault(); toggleDeleted(); }
   if (e.key==='e' && selectedItem) { e.preventDefault(); toggleEditMode(); }
 });
 

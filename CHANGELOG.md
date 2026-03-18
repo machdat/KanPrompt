@@ -2,6 +2,15 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [0.12.0] - 2026-03-18
+
+### Added
+- Deleted-Overlay: Gelöschte Prompts einsehen, durchsuchen, Vorschau, wiederherstellen oder endgültig löschen
+- 🗑-Button in der Info-Bar mit Anzahl gelöschter Dateien
+- Keyboard-Shortcut `D` öffnet/schließt das Deleted-Overlay
+- Restore verschiebt Datei zurück nach `new/` und fügt Eintrag ins Backlog ein
+- Endgültiges Löschen mit Bestätigungsdialog
+
 ## [0.11.0] - 2026-03-16
 
 ### Added

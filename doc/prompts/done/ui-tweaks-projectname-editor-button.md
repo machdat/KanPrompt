@@ -328,8 +328,25 @@ Wenn kein Projekt geöffnet ist (erster App-Start), wird weiterhin der Welcome-S
 15. Editor-Button → Datei öffnet sich im System-Default-Editor
 16. CHANGELOG.md enthält Eintrag für v0.10.0
 
-## Session-Log — Pflichtaufgabe nach Abschluss
+---
 
-Nachdem alle Änderungen umgesetzt und verifiziert sind, ist als **letzter Schritt** folgendes zu tun:
-Öffne diese Prompt-Datei und hänge am Ende ein ausgefülltes Session-Log an.
-Ersetze dabei diesen gesamten Abschnitt durch das fertige Log.
+# Session-Log
+
+- **Datum:** 2026-03-16T20:56:33
+- **Branch:** master
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+Alle drei UI-Verbesserungen umgesetzt: Projektname als klickbares Dropdown mit Recent-Projects-Liste, generischer Editor-Button statt "VS Code", und bereinigter Projektname ohne `/doc/prompts/`-Suffix. Version auf v0.11.0 angehoben (statt v0.10.0 wie im Prompt, da zwischenzeitlich v0.10.0 für ein anderes Release vergeben war).
+
+## Geänderte Dateien
+- `kanprompt.html` — Project-Switcher-Dropdown im Header, CSS-Klassen, Keyboard-Navigation, Editor-Button-Text, Version-Bump
+- `companion/kanprompt-companion.js` — `/open-editor` nutzt System-Default-Editor direkt
+- `CHANGELOG.md` — Eintrag für v0.11.0
+- `doc/prompts/backlog-priority.json` — Prompt nach inProgress verschoben
+
+## Abweichungen vom Prompt
+Version wurde auf v0.11.0 statt v0.10.0 gesetzt, da v0.10.0 bereits für ein anderes Release (refactor safe file operations) vergeben war.
+
+## Offene Punkte
+Keine.

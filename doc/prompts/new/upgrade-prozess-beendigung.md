@@ -1,8 +1,8 @@
-# Test
+# upgrade prozess beendigung
 
 ## Problem / Motivation
 
-[Beschreibung des Problems oder der gewünschten Funktionalität]
+nach Ende des Upgradeprozesses sehe ich dass das Upgrade funktioniert hat -> Success. Allerdings komme ich aus dem Fenster nur durch Abbrechen heraus, was sich irgendwie nicht richtig anfühlt. Hier sollte ein Ok-Button das Upgrade quittieren oder "Schliessen" aber abbrechen ist definitiv der falsche Ausdruck.
 
 ## Betroffene Dateien
 
