@@ -49,8 +49,22 @@ Nach einem erfolgreichen Schema-Upgrade ist der Nutzer im Modal-Dialog gefangen.
 5. ✓ Reload: Migration nicht erneut angeboten (Version in `.kanprompt-version.json` vorhanden)
 6. ✓ Bei Upgrade-Fehler: Error-Log rot, "Abbrechen" bleibt einziger Exit-Button
 
-## Session-Log — Pflichtaufgabe nach Abschluss
+---
 
-Nachdem alle Änderungen umgesetzt und verifiziert sind, ist als **letzter Schritt** folgendes zu tun:
-Öffne diese Prompt-Datei und hänge am Ende ein ausgefülltes Session-Log an.
-Ersetze dabei diesen gesamten Abschnitt durch das fertige Log.
+# Session-Log
+
+- **Datum:** 2026-03-18T21:05:00
+- **Branch:** master
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+Nach erfolgreichem Schema-Upgrade wird der "Upgrade durchführen"-Button versteckt und der "Abbrechen"-Button zu einem grünen "✓ OK"-Button (btn-primary) umgewandelt. Bei "Schema aktuell" zeigt der Button "OK" statt "Abbrechen". Bei Fehlern bleibt "Abbrechen" als Exit.
+
+## Geänderte Dateien
+- `kanprompt.html` — Cancel-Button bekommt `id="upgradeCancelBtn"`, `openUpgradeModal()` setzt Button-State zurück, `performUpgrade()` wandelt bei Erfolg Cancel→"✓ OK" um und versteckt Upgrade-Button
+
+## Abweichungen vom Prompt
+Keine.
+
+## Offene Punkte
+Keine.

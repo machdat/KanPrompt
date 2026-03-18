@@ -2,19 +2,6 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "upgrade-prozess-beendigung",
-      "file": "upgrade-prozess-beendigung.md",
-      "title": "upgrade prozess beendigung",
-      "new": "2026-03-16T22:38:28",
-      "type": "bugfix"
-    },
-    {
-      "id": "selektion-des-promp-typs-auch-in-der-vorschau",
-      "file": "selektion-des-promp-typs-auch-in-der-vorschau.md",
-      "title": "Selektion Des Promp Typs Auch In Der Vorschau",
-      "new": "2026-03-18T20:58:17"
-    },
-    {
       "id": "prompt-karten-eindeutige-nummer",
       "file": "prompt-karten-eindeutige-nummer.md",
       "title": "Prompt Karten Eindeutige Nummer",
@@ -52,6 +39,15 @@
   ],
   "inProgress": [],
   "done": [
+    {
+      "id": "upgrade-prozess-beendigung",
+      "file": "upgrade-prozess-beendigung.md",
+      "title": "Upgrade-Prozess Beendigung",
+      "new": "2026-03-16T22:38:28",
+      "inProgress": "2026-03-18T21:03:00",
+      "done": "2026-03-18T21:05:00",
+      "type": "bugfix"
+    },
     {
       "id": "prompt-type-auto-versioning",
       "file": "prompt-type-auto-versioning.md",

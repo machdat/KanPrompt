@@ -628,7 +628,7 @@
     <div id="upgradeInfo" style="font-size:12px;color:var(--text-secondary);line-height:1.6;"></div>
     <div id="upgradeLog" style="display:none;margin-top:12px;padding:10px;background:var(--bg-card);border-radius:var(--radius-sm);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-secondary);max-height:200px;overflow-y:auto;white-space:pre-wrap;"></div>
     <div class="modal-actions">
-      <button class="btn" onclick="closeUpgradeModal()">Abbrechen</button>
+      <button class="btn" id="upgradeCancelBtn" onclick="closeUpgradeModal()">Abbrechen</button>
       <button class="btn btn-primary" id="upgradeBtn" onclick="performUpgrade()">🔄 Upgrade durchführen</button>
     </div>
   </div>
@@ -2066,6 +2066,9 @@ function openUpgradeModal() {
   const btn = document.getElementById('upgradeBtn');
   btn.disabled = false;
   btn.textContent = '\ud83d\udd04 Upgrade durchf\u00fchren';
+  const cancelBtn = document.getElementById('upgradeCancelBtn');
+  cancelBtn.textContent = 'Abbrechen';
+  cancelBtn.className = 'btn';
 
   const migrations = getMigrationsNeeded(projectSchemaVersion);
 
@@ -2073,6 +2076,7 @@ function openUpgradeModal() {
   if (migrations.length === 0) {
     html += '<p><strong>Schema ist aktuell (' + SCHEMA_VERSION + ').</strong></p>';
     btn.style.display = 'none';
+    cancelBtn.textContent = 'OK';
   } else {
     btn.style.display = '';
     const fromLabel = projectSchemaVersion || 'kein Schema';
@@ -2144,7 +2148,10 @@ async function performUpgrade() {
 
     addLog('');
     addLog('\u2550\u2550\u2550 Upgrade abgeschlossen: ' + totalChanges + ' \u00c4nderungen \u2550\u2550\u2550');
-    btn.textContent = '\u2713 Abgeschlossen';
+    btn.style.display = 'none';
+    const cancelBtn = document.getElementById('upgradeCancelBtn');
+    cancelBtn.textContent = '\u2713 OK';
+    cancelBtn.className = 'btn btn-primary';
     toast('Schema-Upgrade auf v' + SCHEMA_VERSION + ' abgeschlossen');
   } catch (e) {
     addLog('');
