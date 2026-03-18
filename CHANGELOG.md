@@ -2,6 +2,23 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [0.13.0] - 2026-03-18
+
+### Added
+- Prompt-Typ pro Karte (bugfix/feature/release) mit farbigen Badges und Typ-Selector im Erstellungs-Modal
+- Automatische Versionsberechnung beim Done-Drop mit Toast-Hinweis
+- Versions-Plan-Anzeige in der Info-Bar (current → next)
+- Eindeutige stabile Nummern pro Prompt-Karte (#1, #2, ...) mit nextNum-Counter
+- Typ-Selektion direkt im Preview-Panel per klickbare Buttons
+
+### Fixed
+- Upgrade-Modal zeigt nach erfolgreichem Schema-Upgrade "✓ OK" statt "Abbrechen"
+- Duplikat-Bug beim Erstellen von Prompts behoben (globaler ID-Check in syncFolderToJson)
+
+### Changed
+- Schema-Migration 1.0.0 → 1.1.0 (type-Feld) und 1.1.0 → 1.2.0 (num-Feld, nextNum-Counter)
+- SCHEMA_VERSION auf 1.2.0
+
 ## [0.12.0] - 2026-03-18
 
 ### Added
