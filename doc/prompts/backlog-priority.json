@@ -2,13 +2,6 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "selektion-des-promp-typs-auch-in-der-vorschau",
-      "file": "selektion-des-promp-typs-auch-in-der-vorschau.md",
-      "title": "Selektion Des Promp Typs Auch In Der Vorschau",
-      "new": "2026-03-18T20:58:17",
-      "num": 27
-    },
-    {
       "id": "cc-aus-kanprompt-antriggern",
       "file": "cc-aus-kanprompt-antriggern.md",
       "title": "CC aus Kanprompt antriggern",
@@ -31,14 +24,6 @@
       "new": "2026-03-16T08:13:57",
       "type": "bugfix",
       "num": 30
-    },
-    {
-      "id": "selektion-des-promp-typs-auch-in-der-vorschau",
-      "file": "selektion-des-promp-typs-auch-in-der-vorschau.md",
-      "title": "Selektion des Promp-Typs auch in der Vorschau",
-      "type": "feature",
-      "new": "2026-03-18T20:58:17",
-      "num": 31
     }
   ],
   "inProgress": [],
@@ -294,7 +279,15 @@
       "new": "2026-03-18T21:13:02",
       "inProgress": "2026-03-18T21:20:00",
       "done": "2026-03-18T21:22:00"
+    },
+    {
+      "id": "selektion-des-promp-typs-auch-in-der-vorschau",
+      "file": "selektion-des-promp-typs-auch-in-der-vorschau.md",
+      "title": "Selektion Des Promp Typs Auch In Der Vorschau",
+      "num": 36,
+      "new": "2026-03-18T21:26:29",
+      "done": "2026-03-18T21:26:29"
     }
   ],
-  "nextNum": 34
+  "nextNum": 37
 }

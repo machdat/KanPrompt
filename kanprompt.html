@@ -1862,16 +1862,30 @@ async function openPreview(item, col) {
   const itype = item.type || 'bugfix';
   let mh = item.num ? `<span>#${item.num}</span>` : '';
   mh += `<span>📄 ${col.folder}/${item.file}</span>`;
-  mh += `<span>${TYPE_LABELS[itype]||''} ${itype}</span>`;
   if (item.new) mh += `<span>🆕 ${formatTS(item.new)}</span>`;
   if (item.inProgress) mh += `<span>🔧 ${formatTS(item.inProgress)}</span>`;
   if (item.done) mh += `<span>✅ ${formatTS(item.done)}</span>`;
   if (item.blocked) mh += `<span style="color:var(--accent-red)">⊘ ${item.blockedBy||'blocked'}</span>`;
+  mh += `<span class="type-selector" id="previewTypeSelector">`;
+  for (const t of ['bugfix', 'feature', 'release']) {
+    mh += `<button class="type-option${t===itype?' active':''}" data-type="${t}" onclick="changeItemType('${t}')">${TYPE_LABELS[t]} ${t}</button>`;
+  }
+  mh += `</span>`;
   meta.innerHTML = mh;
   showReadView();
   const content = document.getElementById('previewContent'); content.textContent = 'Lade...';
   const md = await readMdFile(col.folder, item.file);
   content.innerHTML = md ? renderMarkdown(md) : '(Datei nicht gefunden)';
+}
+async function changeItemType(newType) {
+  if (!selectedItem) return;
+  selectedItem.type = newType;
+  await writeJson();
+  renderBoard();
+  updateInfoBar();
+  const sel = document.getElementById('previewTypeSelector');
+  if (sel) sel.querySelectorAll('.type-option').forEach(b => { b.classList.toggle('active', b.dataset.type === newType); });
+  toast(`Typ → ${TYPE_LABELS[newType]} ${newType}`);
 }
 function showReadView() { document.getElementById('previewContent').style.display='block'; document.getElementById('previewEditor').style.display='none'; editMode=false; document.getElementById('editToggleBtn').textContent='✎ Edit'; }
 async function toggleEditMode() {

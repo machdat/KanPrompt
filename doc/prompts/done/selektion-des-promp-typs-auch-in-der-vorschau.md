@@ -54,8 +54,22 @@ Aktuell ist der Prompt-Typ (`bugfix`, `feature`, `release`) nur im `backlog-prio
 6. ✓ Karte ohne `type` → wird auf `"bugfix"` gesetzt (Default)
 7. ✓ In Edit-Mode ist Typ-Selektion auch sichtbar/editierbar
 
-## Session-Log — Pflichtaufgabe nach Abschluss
+---
 
-Nachdem alle Änderungen umgesetzt und verifiziert sind, ist als **letzter Schritt** folgendes zu tun:
-Öffne diese Prompt-Datei und hänge am Ende ein ausgefülltes Session-Log an.
-Ersetze dabei diesen gesamten Abschnitt durch das fertige Log.
+# Session-Log
+
+- **Datum:** 2026-03-18T21:28:00
+- **Branch:** master
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+Typ-Selektion direkt im Preview-Panel: Die statische Typ-Anzeige wurde durch klickbare Buttons (bugfix/feature/release) ersetzt. Klick ändert den Typ sofort in der JSON und aktualisiert Board + Info-Bar. Nutzt die bestehenden `.type-option`-CSS-Klassen.
+
+## Geänderte Dateien
+- `kanprompt.html` — `openPreview()`: Typ-Selector als klickbare Buttons im Meta-Bereich, neue `changeItemType()`-Funktion
+
+## Abweichungen vom Prompt
+- Keine Radio-Buttons im klassischen Sinne, sondern die bestehenden `.type-option`-Buttons (konsistent mit dem Erstellungs-Modal)
+
+## Offene Punkte
+Keine.
