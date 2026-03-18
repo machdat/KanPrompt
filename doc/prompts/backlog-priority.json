@@ -2,43 +2,51 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "prompt-type-auto-versioning",
-      "file": "prompt-type-auto-versioning.md",
-      "title": "Prompt Type Auto Versioning",
-      "new": "2026-03-15T23:21:28"
-    },
-    {
-      "id": "cc-aus-kanprompt-antriggern",
-      "file": "cc-aus-kanprompt-antriggern.md",
-      "title": "CC aus Kanprompt antriggern",
-      "new": "2026-03-16T16:17:24"
-    },
-    {
-      "id": "ui-improvements-sammlung",
-      "file": "ui-improvements-sammlung.md",
-      "title": "Ui Improvements Sammlung",
-      "new": "2026-03-16T21:03:27"
+      "id": "upgrade-prozess-beendigung",
+      "file": "upgrade-prozess-beendigung.md",
+      "title": "upgrade prozess beendigung",
+      "new": "2026-03-16T22:38:28",
+      "type": "bugfix"
     },
     {
       "id": "prompt-karten-eindeutige-nummer",
       "file": "prompt-karten-eindeutige-nummer.md",
       "title": "Prompt Karten Eindeutige Nummer",
-      "new": "2026-03-16T21:06:17"
+      "new": "2026-03-16T21:06:17",
+      "type": "bugfix"
     },
     {
-      "id": "upgrade-prozess-beendigung",
-      "file": "upgrade-prozess-beendigung.md",
-      "title": "upgrade prozess beendigung",
-      "new": "2026-03-16T22:38:28"
+      "id": "cc-aus-kanprompt-antriggern",
+      "file": "cc-aus-kanprompt-antriggern.md",
+      "title": "CC aus Kanprompt antriggern",
+      "new": "2026-03-16T16:17:24",
+      "type": "bugfix"
+    },
+    {
+      "id": "ui-improvements-sammlung",
+      "file": "ui-improvements-sammlung.md",
+      "title": "Ui Improvements Sammlung",
+      "new": "2026-03-16T21:03:27",
+      "type": "bugfix"
     },
     {
       "id": "anweisung-an-cc-dass-die-ausfuehrung-in-einem-eigenen-worktr",
       "file": "anweisung-an-cc-dass-die-ausfuehrung-in-einem-eigenen-worktr.md",
       "title": "Anweisung an CC dass die AusfÃ¼hrung in einem eigenen Worktree",
-      "new": "2026-03-16T08:13:57"
+      "new": "2026-03-16T08:13:57",
+      "type": "bugfix"
     }
   ],
-  "inProgress": [],
+  "inProgress": [
+    {
+      "id": "prompt-type-auto-versioning",
+      "file": "prompt-type-auto-versioning.md",
+      "title": "Prompt Type Auto Versioning",
+      "new": "2026-03-15T23:21:28",
+      "inProgress": "2026-03-18T20:48:14",
+      "type": "bugfix"
+    }
+  ],
   "done": [
     {
       "id": "archive-search-filter",
@@ -46,7 +54,8 @@
       "title": "Archiv-Overlay: Suche und Filterung",
       "new": "2026-03-14T17:30:00",
       "inProgress": "2026-03-15T19:50:00",
-      "done": "2026-03-15T19:55:00"
+      "done": "2026-03-15T19:55:00",
+      "type": "bugfix"
     },
     {
       "id": "keyboard-navigation-recent-projects",
@@ -54,7 +63,8 @@
       "title": "Keyboard-Navigation in der Recent-Projects-Liste",
       "new": "2026-03-15T15:51:06",
       "inProgress": "2026-03-15T19:25:00",
-      "done": "2026-03-15T19:35:00"
+      "done": "2026-03-15T19:35:00",
+      "type": "bugfix"
     },
     {
       "id": "cli-button-entfernen-oder-ersetzen",
@@ -62,7 +72,8 @@
       "title": "CLI-Button im Header entfernen oder ersetzen",
       "new": "2026-03-15T18:45:00",
       "inProgress": "2026-03-15T19:10:00",
-      "done": "2026-03-15T19:15:00"
+      "done": "2026-03-15T19:15:00",
+      "type": "bugfix"
     },
     {
       "id": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg",
@@ -70,7 +81,8 @@
       "title": "Button oder HotKey der einen schnellen Projektwechsel ermÃ¶glicht",
       "new": "2026-03-14T17:14:12",
       "inProgress": "2026-03-15T17:50:00",
-      "done": "2026-03-15T18:00:00"
+      "done": "2026-03-15T18:00:00",
+      "type": "bugfix"
     },
     {
       "id": "auto-changelog",
@@ -78,14 +90,16 @@
       "title": "CHANGELOG automatisch aus Git-Commits pflegen",
       "new": "2026-03-14T17:30:00",
       "inProgress": "2026-03-15T17:30:00",
-      "done": "2026-03-15T17:35:00"
+      "done": "2026-03-15T17:35:00",
+      "type": "bugfix"
     },
     {
       "id": "kanprompt-initialisierung-beim-ersten-oeffnen-des-prjs",
       "file": "kanprompt-initialisierung-beim-ersten-oeffnen-des-prjs.md",
       "title": "KanPrompt initialisierung beim ersten Ã–ffnen des Prjs",
       "new": "2026-03-14T17:12:21",
-      "done": "2026-03-15T16:35:00"
+      "done": "2026-03-15T16:35:00",
+      "type": "bugfix"
     },
     {
       "id": "claude-md-cc-integration",
@@ -93,7 +107,8 @@
       "title": "CLAUDE.md fÃ¼r CC-Integration anlegen",
       "new": "2026-03-14T17:30:00",
       "inProgress": "2026-03-15T16:20:00",
-      "done": "2026-03-15T16:25:00"
+      "done": "2026-03-15T16:25:00",
+      "type": "bugfix"
     },
     {
       "id": "link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai",
@@ -101,7 +116,8 @@
       "title": "Link zum Ã–ffnen von Claude Desktop anstatt von Claude.ai",
       "new": "2026-03-15T13:40:39",
       "inProgress": "2026-03-15T17:15:00",
-      "done": "2026-03-15T17:20:00"
+      "done": "2026-03-15T17:20:00",
+      "type": "bugfix"
     },
     {
       "id": "update-workflow-docs-timestamps",
@@ -109,14 +125,16 @@
       "title": "Workflow-Doku auf ISO-Timestamps aktualisieren",
       "new": "2026-03-14T17:30:00",
       "inProgress": "2026-03-15T17:05:00",
-      "done": "2026-03-15T17:10:00"
+      "done": "2026-03-15T17:10:00",
+      "type": "bugfix"
     },
     {
       "id": "scaffold-und-dort-liegende-readmes-muessen-aktualisiert-werd",
       "file": "scaffold-und-dort-liegende-readmes-muessen-aktualisiert-werd.md",
       "title": "Scaffold und dort liegende readmes mÃ¼ssen aktualisiert werden",
       "new": "2026-03-14T20:49:29",
-      "done": "2026-03-15T17:00:00"
+      "done": "2026-03-15T17:00:00",
+      "type": "bugfix"
     },
     {
       "id": "one-step-deploy",
@@ -124,7 +142,8 @@
       "title": "Deploy vereinfachen: Ein-Schritt-Update",
       "new": "2026-03-14T17:30:00",
       "inProgress": "2026-03-15T16:00:00",
-      "done": "2026-03-15T16:05:00"
+      "done": "2026-03-15T16:05:00",
+      "type": "bugfix"
     },
     {
       "id": "schema-versioning",
@@ -132,7 +151,8 @@
       "title": "Schema-Versionierung einfÃ¼hren",
       "new": "2026-03-15T14:42:49",
       "inProgress": "2026-03-15T14:42:49",
-      "done": "2026-03-15T15:30:00"
+      "done": "2026-03-15T15:30:00",
+      "type": "bugfix"
     },
     {
       "id": "iso-timestamps-with-time",
@@ -140,7 +160,8 @@
       "title": "ISO-Timestamps mit Uhrzeit + sortierte Done-Spalte",
       "new": "2026-03-14T15:00:00",
       "inProgress": "2026-03-14T15:30:00",
-      "done": "2026-03-14T17:10:00"
+      "done": "2026-03-14T17:10:00",
+      "type": "bugfix"
     },
     {
       "id": "fix-preview-panel-width",
@@ -148,7 +169,8 @@
       "title": "Fix: Preview-Panel unsichtbar (1px Breite)",
       "new": "2026-03-14T14:00:00",
       "inProgress": "2026-03-14T14:10:00",
-      "done": "2026-03-14T14:30:00"
+      "done": "2026-03-14T14:30:00",
+      "type": "bugfix"
     },
     {
       "id": "done-column-newest-first",
@@ -156,7 +178,8 @@
       "title": "Done-Spalte: Neueste EintrÃ¤ge oben",
       "new": "2026-03-14T14:30:00",
       "inProgress": "2026-03-14T14:35:00",
-      "done": "2026-03-14T14:50:00"
+      "done": "2026-03-14T14:50:00",
+      "type": "bugfix"
     },
     {
       "id": "setup-git-repo",
@@ -164,14 +187,16 @@
       "title": "Git-Repo aufsetzen und Dateien entflechten",
       "new": "2026-03-14T13:00:00",
       "inProgress": "2026-03-14T13:10:00",
-      "done": "2026-03-14T14:00:00"
+      "done": "2026-03-14T14:00:00",
+      "type": "bugfix"
     },
     {
       "id": "schema-version-display-and-upgrade",
       "file": "schema-version-display-and-upgrade.md",
       "title": "Schema Version Display And Upgrade",
       "new": "2026-03-15T22:44:34",
-      "done": "2026-03-15T22:44:34"
+      "done": "2026-03-15T22:44:34",
+      "type": "bugfix"
     },
     {
       "id": "fix-folder-sync-reliability",
@@ -179,14 +204,16 @@
       "title": "Fix: Folder-Sync erkennt neue Dateien nicht zuverlässig",
       "new": "2026-03-16T09:20:32",
       "inProgress": "2026-03-16T09:38:03",
-      "done": "2026-03-16T10:00:00"
+      "done": "2026-03-16T10:00:00",
+      "type": "bugfix"
     },
     {
       "id": "fix-stale-handles-comprehensive",
       "file": "fix-stale-handles-comprehensive.md",
       "title": "Fix Stale Handles Comprehensive",
       "new": "2026-03-16T10:03:12",
-      "done": "2026-03-16T10:03:12"
+      "done": "2026-03-16T10:03:12",
+      "type": "bugfix"
     },
     {
       "id": "refactor-safe-file-operations",
@@ -194,7 +221,8 @@
       "title": "Refactoring: Robustes Lesen und Schreiben mit File System Access API",
       "new": "2026-03-16T11:30:00",
       "inProgress": "2026-03-16T11:35:33",
-      "done": "2026-03-16T11:40:00"
+      "done": "2026-03-16T11:40:00",
+      "type": "bugfix"
     },
     {
       "id": "ui-tweaks-projectname-editor-button",
@@ -202,7 +230,8 @@
       "title": "Ui Tweaks Projectname Editor Button",
       "new": "2026-03-16T20:46:42",
       "inProgress": "2026-03-16T20:46:42",
-      "done": "2026-03-16T20:56:33"
+      "done": "2026-03-16T20:56:33",
+      "type": "bugfix"
     },
     {
       "id": "deleted-folder-searchable",
@@ -210,7 +239,8 @@
       "title": "Deleted Folder Searchable",
       "new": "2026-03-15T22:57:33",
       "inProgress": "2026-03-18T20:33:01",
-      "done": "2026-03-18T20:42:14"
+      "done": "2026-03-18T20:42:14",
+      "type": "bugfix"
     }
   ]
 }

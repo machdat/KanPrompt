@@ -214,7 +214,19 @@
     background: rgba(248,81,73,.08); cursor: pointer;
   }
   .badge-blocked:hover { background: rgba(248,81,73,.15); }
+  .badge-type { border: 1px solid; }
   .badge-date { color: var(--text-muted); border: 1px solid var(--border-subtle); }
+  .type-selector { display: flex; gap: 4px; }
+  .type-option {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    padding: 4px 10px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--bg-card);
+    color: var(--text-secondary); cursor: pointer; transition: var(--transition);
+  }
+  .type-option:hover { border-color: var(--border); color: var(--text-primary); }
+  .type-option.active[data-type="bugfix"] { border-color: var(--accent-orange); color: var(--accent-orange); background: rgba(210,153,34,.08); }
+  .type-option.active[data-type="feature"] { border-color: var(--accent-blue); color: var(--accent-blue); background: rgba(88,166,255,.08); }
+  .type-option.active[data-type="release"] { border-color: var(--accent-green); color: var(--accent-green); background: rgba(63,185,80,.08); }
   .card-actions {
     position: absolute; top: 5px; right: 5px;
     display: flex; gap: 2px; opacity: 0; transition: var(--transition);
@@ -561,6 +573,7 @@
     <div class="info-bar-left">
       <span class="info-text" id="folderPathInfo">—</span>
       <span class="info-text" id="taskCountInfo">—</span>
+      <span class="info-text" id="versionPlanInfo"></span>
     </div>
     <div class="info-bar-right">
       <button class="btn btn-sm" id="deletedBtn" onclick="toggleDeleted()" title="Gelöschte Prompts (D)" style="font-size:10px;padding:2px 6px;">🗑</button>
@@ -575,6 +588,13 @@
     <h2>Neuer Prompt</h2>
     <div class="form-group"><label>Titel</label>
       <input type="text" id="newTitle" placeholder="z.B. Fix: Geomap-Rendering bei negativen Radien"></div>
+    <div class="form-group"><label>Typ</label>
+      <div class="type-selector" id="newType">
+        <button type="button" class="type-option active" data-type="bugfix" onclick="selectType(this)">🐛 Bugfix</button>
+        <button type="button" class="type-option" data-type="feature" onclick="selectType(this)">✨ Feature</button>
+        <button type="button" class="type-option" data-type="release" onclick="selectType(this)">🚀 Release</button>
+      </div>
+    </div>
     <div class="form-group"><label>Dateiname</label>
       <input type="text" id="newFilename" placeholder="wird automatisch generiert">
       <div class="form-hint">Format: typ-kurzbeschreibung.md (z.B. fix-geomap-radius.md)</div></div>
@@ -656,7 +676,7 @@
 //  STATE
 // ══════════════════════════════════════
 const VERSION = '0.12.0';
-const SCHEMA_VERSION = '1.0.0';
+const SCHEMA_VERSION = '1.1.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
 let companionCheckInterval = null;
@@ -1442,6 +1462,10 @@ async function getProjectPath() {
   return localStorage.getItem(key);
 }
 function nowStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + 'T' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0'); }
+const TYPE_LABELS = { bugfix: '🐛', feature: '✨', release: '🚀' };
+const TYPE_COLORS = { bugfix: 'var(--accent-orange)', feature: 'var(--accent-blue)', release: 'var(--accent-green)' };
+function selectType(btn) { btn.parentElement.querySelectorAll('.type-option').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+function getSelectedType() { const a = document.querySelector('#newType .type-option.active'); return a ? a.dataset.type : 'bugfix'; }
 function dateOnly(ts) { return ts ? ts.slice(0, 10) : ''; }
 function formatTS(ts) { if (!ts) return ''; const d = dateOnly(ts); const dd = d.slice(8,10) + '.' + d.slice(5,7) + '.'; if (ts.length > 10) return dd + ' ' + ts.slice(11, 16); return dd; }
 function dateGroup(ds) {
@@ -1514,6 +1538,7 @@ function createCard(item, col, index) {
     <div class="card-title"><span class="prio-num">#${index+1}</span>${esc(item.title)}</div>
     <div class="card-file">${esc(item.file)}</div>
     <div class="card-meta">
+      <span class="badge badge-type" style="color:${TYPE_COLORS[item.type||'bugfix']};border-color:${TYPE_COLORS[item.type||'bugfix']}">${TYPE_LABELS[item.type||'bugfix']} ${item.type||'bugfix'}</span>
       ${item.blocked ? `<span class="badge badge-blocked" title="${esc(item.blockedBy||'blocked')}" onclick="toggleBlocked('${item.id}')">⊘ ${esc(item.blockedBy||'blocked')}</span>` : ''}
       ${ds ? `<span class="badge badge-date">${dsDisplay}</span>` : ''}
     </div>`;
@@ -1562,12 +1587,59 @@ async function handleDrop(itemId, targetColId, insertIndex) {
       if (!jsonData[tgtCol.jsonKey]) jsonData[tgtCol.jsonKey] = [];
       const a = jsonData[tgtCol.jsonKey]; if (insertIndex<0||insertIndex>=a.length) a.push(item); else a.splice(insertIndex, 0, item);
       await writeJson(); renderBoard(); updateInfoBar(); toast(`${item.file}: ${srcCol.folder}/ → ${tgtCol.folder}/`);
+      if (tgtCol.jsonKey === 'done' && item.type) {
+        const nextVer = computeNextVersion(VERSION, item.type);
+        if (nextVer !== VERSION) suggestVersionBump(item, nextVer);
+      }
     }
   } catch (e) {
     // Write failed — revert in-memory state from disk to stay consistent
     toast('Verschieben fehlgeschlagen — lade Board neu');
     try { await loadJson(); renderBoard(); updateInfoBar(); } catch {}
   }
+}
+
+// ══════════════════════════════════════
+//  VERSION COMPUTATION
+// ══════════════════════════════════════
+function computeNextVersion(currentVersion, type) {
+  const parts = currentVersion.split('.').map(Number);
+  while (parts.length < 3) parts.push(0);
+  switch (type) {
+    case 'release': return (parts[0] + 1) + '.0.0';
+    case 'feature': return parts[0] + '.' + (parts[1] + 1) + '.0';
+    case 'bugfix': default: return parts[0] + '.' + parts[1] + '.' + (parts[2] + 1);
+  }
+}
+function suggestVersionBump(item, nextVersion) {
+  const t = item.type || 'bugfix';
+  const label = { bugfix: '🐛 Bugfix', feature: '✨ Feature', release: '🚀 Release' }[t];
+  toast(`${label} abgeschlossen → nächste Version: v${nextVersion}`);
+  updateProjectVersionFile(nextVersion);
+}
+async function updateProjectVersionFile(newVersion) {
+  if (!projectHandle) return;
+  try {
+    const vfh = await projectHandle.getFileHandle('.kanprompt-version.json');
+    const vf = await vfh.getFile();
+    const vd = JSON.parse(await vf.text());
+    vd.app = newVersion;
+    vd.updatedAt = nowStr();
+    const w = await vfh.createWritable();
+    await w.write(JSON.stringify(vd, null, 2) + '\n');
+    await w.close();
+  } catch {}
+}
+function computePlannedVersion() {
+  const allOpen = [...(jsonData.backlog || []), ...(jsonData.inProgress || [])];
+  let dominantType = null;
+  for (const item of allOpen) {
+    const t = item.type || 'bugfix';
+    if (t === 'release') { dominantType = 'release'; break; }
+    if (t === 'feature' && dominantType !== 'release') dominantType = 'feature';
+    if (t === 'bugfix' && !dominantType) dominantType = 'bugfix';
+  }
+  return dominantType ? { version: computeNextVersion(VERSION, dominantType), type: dominantType } : null;
 }
 
 // ══════════════════════════════════════
@@ -1777,7 +1849,9 @@ async function openPreview(item, col) {
   document.getElementById('editToggleBtn').textContent = '✎ Edit';
   document.getElementById('editToggleBtn').style.display = '';
   const meta = document.getElementById('previewMeta');
+  const itype = item.type || 'bugfix';
   let mh = `<span>📄 ${col.folder}/${item.file}</span>`;
+  mh += `<span>${TYPE_LABELS[itype]||''} ${itype}</span>`;
   if (item.new) mh += `<span>🆕 ${formatTS(item.new)}</span>`;
   if (item.inProgress) mh += `<span>🔧 ${formatTS(item.inProgress)}</span>`;
   if (item.done) mh += `<span>✅ ${formatTS(item.done)}</span>`;
@@ -1830,7 +1904,7 @@ function renderMarkdown(t) {
 // ══════════════════════════════════════
 //  NEW PROMPT
 // ══════════════════════════════════════
-function openNewTaskModal() { document.getElementById('newTitle').value=''; document.getElementById('newFilename').value=''; document.getElementById('newFilename').dataset.manual=''; document.getElementById('newContent').value=''; document.getElementById('newContent').dataset.manual=''; document.getElementById('modalOverlay').classList.add('open'); setTimeout(()=>document.getElementById('newTitle').focus(),100); }
+function openNewTaskModal() { document.getElementById('newTitle').value=''; document.getElementById('newFilename').value=''; document.getElementById('newFilename').dataset.manual=''; document.getElementById('newContent').value=''; document.getElementById('newContent').dataset.manual=''; document.querySelectorAll('#newType .type-option').forEach(b=>b.classList.remove('active')); document.querySelector('#newType .type-option[data-type="bugfix"]').classList.add('active'); document.getElementById('modalOverlay').classList.add('open'); setTimeout(()=>document.getElementById('newTitle').focus(),100); }
 function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
 function slugify(s) { return s.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60); }
 async function createNewPrompt() {
@@ -1838,7 +1912,7 @@ async function createNewPrompt() {
   if(!title){toast('Titel fehlt');return;} if(!fn)fn=slugify(title)+'.md'; if(!fn.endsWith('.md'))fn+='.md';
   const id=fn.replace('.md',''), today=nowStr();
   if(!await createMdFile('new',fn,c||PROMPT_TEMPLATE(title)))return;
-  jsonData.backlog.push({id,file:fn,title,new:today});
+  jsonData.backlog.push({id,file:fn,title,type:getSelectedType(),new:today});
   await writeJson(); renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: new/'+fn);
 }
 
@@ -1874,7 +1948,8 @@ async function openWorkflowDoc() {
 //  HELPERS
 // ══════════════════════════════════════
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
-function updateInfoBar(){if(!jsonData)return;const b=(jsonData.backlog||[]).length,i=(jsonData.inProgress||[]).length,d=(jsonData.done||[]).length;document.getElementById('taskCountInfo').textContent=`${b} backlog · ${i} active · ${d} done`;document.getElementById('lastSyncInfo').textContent='Sync: '+new Date().toLocaleTimeString('de-DE');const sp=projectHandle?localStorage.getItem('kanprompt_path_'+projectHandle.name):null;document.getElementById('folderPathInfo').textContent=sp||projectHandle?.name||'—';}
+function updateInfoBar(){if(!jsonData)return;const b=(jsonData.backlog||[]).length,i=(jsonData.inProgress||[]).length,d=(jsonData.done||[]).length;document.getElementById('taskCountInfo').textContent=`${b} backlog · ${i} active · ${d} done`;document.getElementById('lastSyncInfo').textContent='Sync: '+new Date().toLocaleTimeString('de-DE');const sp=projectHandle?localStorage.getItem('kanprompt_path_'+projectHandle.name):null;document.getElementById('folderPathInfo').textContent=sp||projectHandle?.name||'—';const vpi=document.getElementById('versionPlanInfo');const planned=computePlannedVersion();vpi.textContent=planned?`v${VERSION} → v${planned.version}`:'';}
+
 function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;document.getElementById('toasts').appendChild(e);setTimeout(()=>e.remove(),5000);}
 
 // ══════════════════════════════════════
@@ -1929,20 +2004,26 @@ const MIGRATIONS = [
       return changes;
     }
   },
-  // ── Zukünftige Migrationen hier anhängen ──
-  // {
-  //   from: '1.0.0',
-  //   to: '1.1.0',
-  //   title: 'Priority-Feld ergänzen',
-  //   run: async (log) => {
-  //     let changes = 0;
-  //     for (const item of (jsonData.backlog || [])) {
-  //       if (!item.priority) { item.priority = 'normal'; changes++; }
-  //     }
-  //     if (changes > 0) { await writeJson(); log('✓ ' + changes + ' Items mit Default-Priority ergänzt'); }
-  //     return changes;
-  //   }
-  // },
+  {
+    from: '1.0.0',
+    to: '1.1.0',
+    title: 'Prompt-Typ für automatische Versionierung',
+    run: async (log) => {
+      let changes = 0;
+      for (const key of ['backlog', 'inProgress', 'done']) {
+        for (const item of (jsonData[key] || [])) {
+          if (!item.type) { item.type = 'bugfix'; changes++; }
+        }
+      }
+      if (changes > 0) {
+        await writeJson();
+        log('\u2713 ' + changes + ' Items mit Default-Typ "bugfix" ergänzt');
+      } else {
+        log('\u00b7 Alle Items haben bereits einen Typ');
+      }
+      return changes;
+    }
+  },
 ];
 
 function getMigrationsNeeded(fromVersion) {
