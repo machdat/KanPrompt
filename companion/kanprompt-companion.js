@@ -78,9 +78,20 @@ function findProjectPath(folderName) {
 }
 
 function launchCC(res, cwd, prompt, branchName, isWorktree) {
-  const escapedPrompt = prompt.replace(/"/g, '\\"');
-  const cmd = `start "Claude Code" cmd /k "cd /d "${cwd}" && claude -p "${escapedPrompt}""`;
-  exec(cmd, (err) => {
+  // Write temp batch file to avoid Windows nested-quote issues
+  const tmpBat = path.join(os.tmpdir(), 'kanprompt-cc-' + Date.now() + '.bat');
+  const title = 'Claude Code' + (branchName ? ' - ' + branchName : '');
+  const lines = [
+    '@echo off',
+    'title ' + title,
+    'cd /d "' + cwd + '"',
+    'claude -p "' + prompt.replace(/"/g, '""') + '"',
+    'echo.',
+    'echo   CC beendet. Dieses Fenster kann geschlossen werden.',
+    'pause',
+  ];
+  fs.writeFileSync(tmpBat, lines.join('\r\n'));
+  exec('start "" "' + tmpBat + '"', (err) => {
     if (err) return json(res, 500, { error: 'CC-Start fehlgeschlagen: ' + err.message });
     json(res, 200, {
       action: 'cc-started',
