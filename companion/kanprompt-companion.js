@@ -92,14 +92,12 @@ function launchCC(res, cwd, prompt, branchName, isWorktree) {
     isWorktree ? 'echo   Branch:    ' + branchName : 'echo   Modus:     Direkt (kein Worktree)',
     'echo   Verzeichnis: ' + cwd,
     'echo.',
-    'echo   Claude Code wird gestartet...',
+    'echo   Prompt-Anweisung in Zwischenablage kopiert.',
+    'echo   Einfach mit Ctrl+V in Claude Code einfuegen.',
     'echo.',
     'cd /d "' + cwd + '"',
-    'claude -p "' + prompt.replace(/"/g, '""') + '"',
-    'echo.',
-    'echo   ──────────────────────────────────────',
-    'echo   CC beendet. Dieses Fenster kann geschlossen werden.',
-    'pause',
+    'echo ' + prompt.replace(/"/g, '""') + '| clip',
+    'claude',
   ];
   fs.writeFileSync(tmpBat, lines.join('\r\n'));
   exec('start "" "' + tmpBat + '"', (err) => {
