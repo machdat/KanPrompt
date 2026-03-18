@@ -1215,6 +1215,9 @@ async function listMdFiles(folder) {
 async function syncFolderToJson(silent) {
   try {
     let added = 0, removed = 0, anyNull = false;
+    // Build global ID set across all columns to prevent duplicates
+    const allIds = new Set();
+    for (const c of COLUMNS) for (const item of (jsonData[c.jsonKey] || [])) allIds.add(item.id);
     for (const col of COLUMNS) {
       const diskFiles = await listMdFiles(col.folder);
       if (diskFiles === null) { anyNull = true; continue; } // folder inaccessible, skip — don't remove entries
@@ -1223,18 +1226,25 @@ async function syncFolderToJson(silent) {
       for (const f of diskFiles) {
         if (!jsonFiles.has(f)) {
           const id = f.replace('.md', '');
+          if (allIds.has(id)) continue; // already exists in another column
           const title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
           const today = nowStr();
           const entry = { id, file: f, title, num: getNextNum() };
           if (col.jsonKey === 'backlog') entry.new = today;
           if (col.jsonKey === 'inProgress') { entry.new = today; entry.inProgress = today; }
           if (col.jsonKey === 'done') { entry.new = today; entry.done = today; }
-          arr.push(entry); added++;
+          arr.push(entry); added++; allIds.add(id);
         }
       }
       const diskSet = new Set(diskFiles);
       const before = arr.length;
-      jsonData[col.jsonKey] = arr.filter(i => diskSet.has(i.file));
+      // Filter to disk files and deduplicate by id (keep first occurrence)
+      const seen = new Set();
+      jsonData[col.jsonKey] = arr.filter(i => {
+        if (!diskSet.has(i.file) || seen.has(i.id)) return false;
+        seen.add(i.id);
+        return true;
+      });
       removed += before - jsonData[col.jsonKey].length;
     }
     if (added || removed) { await writeJson(); renderBoard(); updateInfoBar(); toast(`Sync: +${added} neu, -${removed} entfernt`); }

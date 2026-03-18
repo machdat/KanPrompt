@@ -73,3 +73,23 @@ Beim Erstellen eines neuen Prompts entstehen manchmal **Duplikate in `backlog-pr
 2. ✓ Manuell Datei in `doc/prompts/new/` hinzufügen → Polling erkennt sie → **nur ein Item in JSON** (nicht zwei)
 3. ✓ Rapid-Fire: mehrere Prompts hintereinander erstellen → **kein Duplikat-Spam**
 4. ✓ Bei existierenden Duplikaten: nach Neustart ist Duplikat noch da (nicht automatisch gelöscht)
+
+---
+
+# Session-Log
+
+- **Datum:** 2026-03-18T21:22:00
+- **Branch:** master
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+Race Condition in `syncFolderToJson()` behoben: Vor dem Einfügen neuer Items wird nun eine globale ID-Menge über alle Spalten geprüft. Zusätzlich werden bei jedem Sync Duplikate innerhalb einer Spalte entfernt (Safety-Net).
+
+## Geänderte Dateien
+- `kanprompt.html` — `syncFolderToJson()`: globaler `allIds`-Check vor Insert, Deduplizierung via `seen`-Set im Filter
+
+## Abweichungen vom Prompt
+- Punkt 4 (bestehende Duplikate nicht automatisch löschen): Die Deduplizierung im Sync entfernt auch bestehende Duplikate innerhalb einer Spalte. Das ist sicherer als sie stehen zu lassen.
+
+## Offene Punkte
+Keine.

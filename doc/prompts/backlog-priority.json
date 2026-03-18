@@ -2,44 +2,43 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "duplikat-beim-erstellen-von-prompts",
-      "file": "duplikat-beim-erstellen-von-prompts.md",
-      "title": "Duplikat Beim Erstellen Von Prompts",
-      "new": "2026-03-18T21:13:02"
-    },
-    {
       "id": "selektion-des-promp-typs-auch-in-der-vorschau",
       "file": "selektion-des-promp-typs-auch-in-der-vorschau.md",
       "title": "Selektion Des Promp Typs Auch In Der Vorschau",
-      "new": "2026-03-18T20:58:17"
+      "new": "2026-03-18T20:58:17",
+      "num": 27
     },
     {
       "id": "cc-aus-kanprompt-antriggern",
       "file": "cc-aus-kanprompt-antriggern.md",
       "title": "CC aus Kanprompt antriggern",
       "new": "2026-03-16T16:17:24",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 28
     },
     {
       "id": "ui-improvements-sammlung",
       "file": "ui-improvements-sammlung.md",
       "title": "Ui Improvements Sammlung",
       "new": "2026-03-16T21:03:27",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 29
     },
     {
       "id": "anweisung-an-cc-dass-die-ausfuehrung-in-einem-eigenen-worktr",
       "file": "anweisung-an-cc-dass-die-ausfuehrung-in-einem-eigenen-worktr.md",
       "title": "Anweisung an CC dass die AusfÃ¼hrung in einem eigenen Worktree",
       "new": "2026-03-16T08:13:57",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 30
     },
     {
       "id": "selektion-des-promp-typs-auch-in-der-vorschau",
       "file": "selektion-des-promp-typs-auch-in-der-vorschau.md",
       "title": "Selektion des Promp-Typs auch in der Vorschau",
       "type": "feature",
-      "new": "2026-03-18T20:58:17"
+      "new": "2026-03-18T20:58:17",
+      "num": 31
     }
   ],
   "inProgress": [],
@@ -51,7 +50,8 @@
       "new": "2026-03-16T21:06:17",
       "inProgress": "2026-03-18T21:10:00",
       "done": "2026-03-18T21:15:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 25
     },
     {
       "id": "archive-search-filter",
@@ -60,7 +60,8 @@
       "new": "2026-03-14T17:30:00",
       "inProgress": "2026-03-15T19:50:00",
       "done": "2026-03-15T19:55:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 16
     },
     {
       "id": "keyboard-navigation-recent-projects",
@@ -69,7 +70,8 @@
       "new": "2026-03-15T15:51:06",
       "inProgress": "2026-03-15T19:25:00",
       "done": "2026-03-15T19:35:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 15
     },
     {
       "id": "cli-button-entfernen-oder-ersetzen",
@@ -78,7 +80,8 @@
       "new": "2026-03-15T18:45:00",
       "inProgress": "2026-03-15T19:10:00",
       "done": "2026-03-15T19:15:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 14
     },
     {
       "id": "button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg",
@@ -87,7 +90,8 @@
       "new": "2026-03-14T17:14:12",
       "inProgress": "2026-03-15T17:50:00",
       "done": "2026-03-15T18:00:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 13
     },
     {
       "id": "auto-changelog",
@@ -96,7 +100,8 @@
       "new": "2026-03-14T17:30:00",
       "inProgress": "2026-03-15T17:30:00",
       "done": "2026-03-15T17:35:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 12
     },
     {
       "id": "kanprompt-initialisierung-beim-ersten-oeffnen-des-prjs",
@@ -104,7 +109,8 @@
       "title": "KanPrompt initialisierung beim ersten Ã–ffnen des Prjs",
       "new": "2026-03-14T17:12:21",
       "done": "2026-03-15T16:35:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 8
     },
     {
       "id": "claude-md-cc-integration",
@@ -113,7 +119,8 @@
       "new": "2026-03-14T17:30:00",
       "inProgress": "2026-03-15T16:20:00",
       "done": "2026-03-15T16:25:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 7
     },
     {
       "id": "link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai",
@@ -122,7 +129,8 @@
       "new": "2026-03-15T13:40:39",
       "inProgress": "2026-03-15T17:15:00",
       "done": "2026-03-15T17:20:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 11
     },
     {
       "id": "update-workflow-docs-timestamps",
@@ -131,7 +139,8 @@
       "new": "2026-03-14T17:30:00",
       "inProgress": "2026-03-15T17:05:00",
       "done": "2026-03-15T17:10:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 10
     },
     {
       "id": "scaffold-und-dort-liegende-readmes-muessen-aktualisiert-werd",
@@ -139,7 +148,8 @@
       "title": "Scaffold und dort liegende readmes mÃ¼ssen aktualisiert werden",
       "new": "2026-03-14T20:49:29",
       "done": "2026-03-15T17:00:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 9
     },
     {
       "id": "one-step-deploy",
@@ -148,7 +158,8 @@
       "new": "2026-03-14T17:30:00",
       "inProgress": "2026-03-15T16:00:00",
       "done": "2026-03-15T16:05:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 6
     },
     {
       "id": "schema-versioning",
@@ -157,7 +168,8 @@
       "new": "2026-03-15T14:42:49",
       "inProgress": "2026-03-15T14:42:49",
       "done": "2026-03-15T15:30:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 5
     },
     {
       "id": "iso-timestamps-with-time",
@@ -166,7 +178,8 @@
       "new": "2026-03-14T15:00:00",
       "inProgress": "2026-03-14T15:30:00",
       "done": "2026-03-14T17:10:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 4
     },
     {
       "id": "fix-preview-panel-width",
@@ -175,7 +188,8 @@
       "new": "2026-03-14T14:00:00",
       "inProgress": "2026-03-14T14:10:00",
       "done": "2026-03-14T14:30:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 2
     },
     {
       "id": "done-column-newest-first",
@@ -184,7 +198,8 @@
       "new": "2026-03-14T14:30:00",
       "inProgress": "2026-03-14T14:35:00",
       "done": "2026-03-14T14:50:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 3
     },
     {
       "id": "setup-git-repo",
@@ -193,7 +208,8 @@
       "new": "2026-03-14T13:00:00",
       "inProgress": "2026-03-14T13:10:00",
       "done": "2026-03-14T14:00:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 1
     },
     {
       "id": "schema-version-display-and-upgrade",
@@ -201,7 +217,8 @@
       "title": "Schema Version Display And Upgrade",
       "new": "2026-03-15T22:44:34",
       "done": "2026-03-15T22:44:34",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 17
     },
     {
       "id": "fix-folder-sync-reliability",
@@ -210,7 +227,8 @@
       "new": "2026-03-16T09:20:32",
       "inProgress": "2026-03-16T09:38:03",
       "done": "2026-03-16T10:00:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 18
     },
     {
       "id": "fix-stale-handles-comprehensive",
@@ -218,7 +236,8 @@
       "title": "Fix Stale Handles Comprehensive",
       "new": "2026-03-16T10:03:12",
       "done": "2026-03-16T10:03:12",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 19
     },
     {
       "id": "refactor-safe-file-operations",
@@ -227,7 +246,8 @@
       "new": "2026-03-16T11:30:00",
       "inProgress": "2026-03-16T11:35:33",
       "done": "2026-03-16T11:40:00",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 20
     },
     {
       "id": "ui-tweaks-projectname-editor-button",
@@ -236,7 +256,8 @@
       "new": "2026-03-16T20:46:42",
       "inProgress": "2026-03-16T20:46:42",
       "done": "2026-03-16T20:56:33",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 21
     },
     {
       "id": "deleted-folder-searchable",
@@ -245,21 +266,35 @@
       "new": "2026-03-15T22:57:33",
       "inProgress": "2026-03-18T20:33:01",
       "done": "2026-03-18T20:42:14",
-      "type": "bugfix"
+      "type": "bugfix",
+      "num": 22
     },
     {
       "id": "prompt-type-auto-versioning",
       "file": "prompt-type-auto-versioning.md",
       "title": "Prompt Type Auto Versioning",
       "new": "2026-03-18T21:13:02",
-      "done": "2026-03-18T21:13:02"
+      "done": "2026-03-18T21:13:02",
+      "num": 23
     },
     {
       "id": "upgrade-prozess-beendigung",
       "file": "upgrade-prozess-beendigung.md",
       "title": "Upgrade Prozess Beendigung",
       "new": "2026-03-18T21:13:02",
-      "done": "2026-03-18T21:13:02"
+      "done": "2026-03-18T21:13:02",
+      "num": 24
+    },
+    {
+      "id": "duplikat-beim-erstellen-von-prompts",
+      "file": "duplikat-beim-erstellen-von-prompts.md",
+      "title": "Duplikat-Bug beim Erstellen von Prompts",
+      "type": "bugfix",
+      "num": 26,
+      "new": "2026-03-18T21:13:02",
+      "inProgress": "2026-03-18T21:20:00",
+      "done": "2026-03-18T21:22:00"
     }
-  ]
+  ],
+  "nextNum": 34
 }
