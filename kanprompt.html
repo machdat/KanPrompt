@@ -144,6 +144,12 @@
   .btn-primary { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
   .btn-primary:hover { background: #4d9aef; }
   .btn-sm { font-size: 11px; padding: 3px 8px; }
+  .btn-cc {
+    font-size: 14px; padding: 6px 16px;
+    background: var(--accent-blue); color: #fff; border-color: var(--accent-blue);
+    box-shadow: 0 0 8px rgba(74, 144, 226, 0.3);
+  }
+  .btn-cc:hover { background: #4d9aef; box-shadow: 0 0 12px rgba(74, 144, 226, 0.5); }
 
   /* ── MAIN LAYOUT ── */
   .main { flex: 1; display: flex; overflow: hidden; }
@@ -550,10 +556,11 @@
         <div class="preview-toolbar">
           <button class="btn btn-sm" onclick="refreshPreview()" title="Datei neu laden">🔄</button>
           <button class="btn btn-sm companion-only" onclick="openInEditor()" title="In Editor öffnen" style="display:none;">💻 Editor</button>
-          <button class="btn btn-sm companion-only" onclick="startCCWithPrompt()" title="CC mit Prompt starten" style="display:none;">⚡ CC</button>
-          <label class="companion-only" style="display:none;font-size:10px;color:var(--text-muted);cursor:pointer;align-items:center;gap:3px;" title="In eigenem Git-Worktree ausführen"><input type="checkbox" id="worktreeToggle" checked style="margin:0;accent-color:var(--accent-blue);">Worktree</label>
           <button class="btn btn-sm" id="openExternBtn" onclick="openFileExternally()" title="Datei herunterladen / extern öffnen">📤 Extern</button>
           <button class="btn btn-sm" id="editToggleBtn" onclick="toggleEditMode()">✎ Edit</button>
+          <div style="flex:1;"></div>
+          <label class="companion-only" style="display:none;font-size:10px;color:var(--text-muted);cursor:pointer;align-items:center;gap:3px;" title="In eigenem Git-Worktree ausführen"><input type="checkbox" id="worktreeToggle" checked style="margin:0;accent-color:var(--accent-blue);">Worktree</label>
+          <button class="btn btn-cc companion-only" onclick="startCCWithPrompt()" title="CC mit Prompt starten" style="display:none;">⚡ CC</button>
           <button class="preview-close" onclick="closePreview()">✕</button>
         </div>
       </div>
@@ -677,7 +684,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.14.0';
+const VERSION = '0.15.0';
 const SCHEMA_VERSION = '1.2.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
