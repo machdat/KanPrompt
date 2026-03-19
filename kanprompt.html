@@ -560,7 +560,7 @@
           <button class="btn btn-sm" id="editToggleBtn" onclick="toggleEditMode()">✎ Edit</button>
           <div style="flex:1;"></div>
           <label class="companion-only" style="display:none;font-size:10px;color:var(--text-muted);cursor:pointer;align-items:center;gap:3px;" title="In eigenem Git-Worktree ausführen"><input type="checkbox" id="worktreeToggle" checked style="margin:0;accent-color:var(--accent-blue);">Worktree</label>
-          <button class="btn btn-cc companion-only" onclick="startCCWithPrompt()" title="CC mit Prompt starten" style="display:none;">⚡ CC</button>
+          <button class="btn btn-cc companion-only" onclick="startCCWithPrompt(event)" title="CC mit Prompt starten (Shift+Klick = silent)" style="display:none;">⚡ CC</button>
           <button class="preview-close" onclick="closePreview()">✕</button>
         </div>
       </div>
@@ -684,7 +684,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.15.0';
+const VERSION = '0.16.0';
 const SCHEMA_VERSION = '1.2.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
@@ -791,6 +791,22 @@ function updateCompanionUI() {
   document.querySelectorAll('.companion-only').forEach(el => {
     el.style.display = companionAvailable ? 'flex' : 'none';
   });
+  updateCCButtonState();
+}
+function updateCCButtonState() {
+  const isBacklog = selectedCol?.folder === 'new';
+  const ccBtn = document.querySelector('.btn-cc');
+  const wtLabel = ccBtn?.previousElementSibling; // worktree toggle label
+  if (ccBtn) {
+    ccBtn.disabled = !isBacklog;
+    ccBtn.style.opacity = isBacklog ? '' : '0.4';
+    ccBtn.style.pointerEvents = isBacklog ? '' : 'none';
+    ccBtn.title = isBacklog ? 'CC mit Prompt starten' : 'Nur für Backlog-Prompts verfügbar';
+  }
+  if (wtLabel && wtLabel.classList.contains('companion-only')) {
+    wtLabel.style.opacity = isBacklog ? '' : '0.4';
+    wtLabel.style.pointerEvents = isBacklog ? '' : 'none';
+  }
 }
 
 async function companionPost(endpoint, body) {
@@ -826,26 +842,29 @@ async function openInEditor() {
   if (result && result.action) toast('💻 Im Editor geöffnet');
 }
 
-async function startCCWithPrompt() {
+async function startCCWithPrompt(event) {
   if (!selectedItem || !selectedCol) return;
   const basePath = await getProjectPath();
   if (!basePath) return;
   const useWorktree = document.getElementById('worktreeToggle')?.checked ?? true;
+  const interactive = !(event && event.shiftKey); // Shift+Klick = silent (kein Resume)
   const itemType = selectedItem.type || 'bugfix';
   const branchName = itemType + '/' + selectedItem.id;
   const promptFilePath = basePath + '\\doc\\prompts\\' + selectedCol.folder + '\\' + selectedItem.file;
 
-  toast('⚡ CC wird gestartet' + (useWorktree ? ' (Worktree: ' + branchName + ')' : '') + '...');
+  const modeLabel = interactive ? 'Live + Resume' : 'Live (silent)';
+  toast('⚡ CC wird gestartet (' + modeLabel + ')' + (useWorktree ? ' — Worktree: ' + branchName : '') + '...');
 
-  const result = await companionPost('/start-cc-worktree', {
+  const result = await companionPost('/start-cc', {
     projectPath: basePath,
     promptFilePath,
     branchName,
     useWorktree,
+    interactive,
   });
 
   if (result && result.action === 'cc-started') {
-    toast('⚡ CC läuft' + (result.worktree ? ' in ' + result.branch : ''));
+    toast('⚡ CC läuft' + (result.worktree ? ' in ' + result.branch : '') + ' (' + (result.mode || 'live') + ')');
   } else if (result && result.error) {
     toast('Fehler: ' + result.error);
   }
@@ -1835,6 +1854,7 @@ async function previewDeleted(item) {
   content.textContent = 'Lade...';
   const md = await readMdFile('deleted', item.file);
   content.innerHTML = md ? renderMarkdown(md) : '(Datei nicht lesbar)';
+  updateCCButtonState();
 }
 
 async function restoreDeleted(filename) {
@@ -1910,6 +1930,7 @@ async function openPreview(item, col) {
   const content = document.getElementById('previewContent'); content.textContent = 'Lade...';
   const md = await readMdFile(col.folder, item.file);
   content.innerHTML = md ? renderMarkdown(md) : '(Datei nicht gefunden)';
+  updateCCButtonState();
 }
 async function changeItemType(newType) {
   if (!selectedItem) return;

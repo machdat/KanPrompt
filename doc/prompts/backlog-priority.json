@@ -19,6 +19,26 @@
   "inProgress": [],
   "done": [
     {
+      "id": "cc-launch-live-runner",
+      "file": "cc-launch-live-runner.md",
+      "title": "CC-Launch Live-Runner: stream-json + interaktiver Resume",
+      "num": 51,
+      "new": "2026-03-19T20:56:58",
+      "inProgress": "2026-03-19T23:15:00",
+      "done": "2026-03-19T23:30:00",
+      "type": "feature"
+    },
+    {
+      "id": "bugfix-cc-button-nur-backlog",
+      "file": "bugfix-cc-button-nur-backlog.md",
+      "title": "Bugfix: CC-Button nur für Backlog-Prompts aktiv",
+      "type": "bugfix",
+      "num": 49,
+      "new": "2026-03-19T22:15:00",
+      "inProgress": "2026-03-19T22:42:00",
+      "done": "2026-03-19T22:45:00"
+    },
+    {
       "id": "prompt-karten-eindeutige-nummer",
       "file": "prompt-karten-eindeutige-nummer.md",
       "title": "Prompt Karten Eindeutige Nummer",
@@ -311,5 +331,5 @@
       "done": "2026-03-19T12:23:12"
     }
   ],
-  "nextNum": 49
+  "nextNum": 53
 }

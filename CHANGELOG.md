@@ -2,6 +2,20 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [0.16.0] - 2026-03-19
+
+### Added
+- CC Live Runner: `cc-live-runner.js` zeigt Live-Output (stream-json) von Claude Code im Terminal
+- Phase 2 Resume: Nach Prompt-Abschluss öffnet sich automatisch ein interaktives Terminal mit `--resume`
+- Shift+Klick auf "⚡ CC" startet im Silent-Modus (kein Resume-Terminal)
+- Neuer Companion-Endpoint `/start-cc` mit `interactive`- und `allowedTools`-Parameter
+- Config-per-JSON: umgeht Windows-Quoting-Probleme komplett
+
+### Changed
+- Companion-Server auf v0.7.0
+- `/start-cc-worktree` ist jetzt Alias für `/start-cc` (backward compat)
+- Kein Clipboard-Hack mehr — CC bekommt den Prompt direkt via `-p`
+
 ## [0.14.0] - 2026-03-18
 
 ### Added
