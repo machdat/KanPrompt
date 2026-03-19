@@ -849,7 +849,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.19.0';
+const VERSION = '0.19.1';
 const SCHEMA_VERSION = '1.2.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
@@ -980,14 +980,14 @@ function updateCCButtonState() {
   }
 }
 
-async function companionPost(endpoint, body) {
+async function companionPost(endpoint, body, timeoutMs) {
   if (!companionAvailable) { toast('Companion Server nicht erreichbar'); return null; }
   try {
     const r = await fetch(COMPANION_URL + endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(timeoutMs || 5000),
     });
     return await r.json();
   } catch (e) {
@@ -1148,9 +1148,23 @@ async function fetchCCInstances() {
 function syncDispatchWithInstances() {
   let changed = false;
   for (const item of dispatchQueue) {
-    if (!item.instanceId) continue;
-    const inst = ccInstances.find(i => i.id === item.instanceId);
+    let inst = null;
+
+    if (item.instanceId) {
+      // Direkter Match über instanceId
+      inst = ccInstances.find(i => i.id === item.instanceId);
+    } else if (item.status === 'running') {
+      // Fallback: Match über Prompt-Datei im Prompt-Text (falls instanceId fehlt wg. Timeout)
+      const promptFile = item.prompt.file;
+      inst = ccInstances.find(i =>
+        i.status === 'running' && i.prompt && i.prompt.includes(promptFile)
+        && !dispatchQueue.some(other => other.instanceId === i.id)
+      );
+      if (inst) { item.instanceId = inst.id; changed = true; }
+    }
+
     if (!inst) continue;
+
     if (inst.status === 'done' && item.status !== 'done') {
       item.status = 'done';
       item.duration = inst.duration;
@@ -1262,6 +1276,11 @@ async function runDispatchItem(idx) {
   const branchName = itemType + '/' + item.prompt.id;
   const promptFilePath = item.project.path + '\\doc\\prompts\\new\\' + item.prompt.file;
 
+  // Optimistisch sofort auf running setzen (UI feedback)
+  item.status = 'running';
+  item.startedAt = new Date().toISOString();
+  saveDispatchQueue();
+  renderDispatch();
   toast('CC wird gestartet: ' + item.prompt.title + '...');
 
   const result = await companionPost('/start-cc', {
@@ -1270,17 +1289,22 @@ async function runDispatchItem(idx) {
     branchName,
     useWorktree,
     interactive: true,
-  });
+  }, 30000); // 30s Timeout (Worktree-Erstellung kann dauern)
 
   if (result && result.action === 'cc-started') {
-    item.status = 'running';
     item.instanceId = result.instanceId;
-    item.startedAt = new Date().toISOString();
     saveDispatchQueue();
     renderDispatch();
     toast('CC läuft: ' + (result.branch || item.prompt.title));
   } else if (result && result.error) {
+    item.status = 'error';
+    saveDispatchQueue();
+    renderDispatch();
     toast('Fehler: ' + result.error);
+  } else if (!result) {
+    // Timeout — CC hat vermutlich trotzdem gestartet, Status bleibt running
+    // syncDispatchWithInstances wird die instanceId per Prompt-Matching nachholen
+    toast('CC-Start: Antwort nicht erhalten — prüfe Companion');
   }
 }
 

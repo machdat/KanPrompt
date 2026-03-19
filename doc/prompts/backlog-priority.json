@@ -1,6 +1,14 @@
 {
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
-  "backlog": [],
+  "backlog": [
+    {
+      "id": "test-dispatch-ampel",
+      "file": "test-dispatch-ampel.md",
+      "title": "Test Dispatch Ampel",
+      "num": 60,
+      "new": "2026-03-19T22:52:57"
+    }
+  ],
   "inProgress": [],
   "done": [
     {
@@ -344,5 +352,5 @@
       "done": "2026-03-19T12:23:12"
     }
   ],
-  "nextNum": 58
+  "nextNum": 61
 }
