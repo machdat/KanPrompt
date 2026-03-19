@@ -7,11 +7,12 @@
  * Usage: node cc-live-runner.js [config.json]
  *
  * Config-Format:
- *   { prompt, cwd, allowedTools?, interactive? }
+ *   { prompt, cwd, allowedTools?, interactive?, instanceId?, companionUrl? }
  */
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
 
 // ── Config lesen ──
 const configPath = process.argv[2];
@@ -38,6 +39,27 @@ if (!prompt) {
 const cwd = config.cwd || process.cwd();
 const allowedTools = config.allowedTools || 'Read,Write,Edit';
 const interactive = config.interactive !== false; // default: true
+const instanceId = config.instanceId || null;
+const companionUrl = config.companionUrl || 'http://127.0.0.1:9177';
+
+// ── Companion Event Reporting (fire-and-forget) ──
+function reportEvent(data) {
+  if (!instanceId) return;
+  const payload = JSON.stringify({ instanceId, ...data });
+  try {
+    const url = new URL(companionUrl + '/cc-event');
+    const req = http.request({
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+      timeout: 2000,
+    });
+    req.on('error', () => {}); // fire-and-forget
+    req.end(payload);
+  } catch {}
+}
 
 console.log('');
 console.log('  \x1b[36m=== CC Live Runner ===\x1b[0m');
@@ -45,6 +67,7 @@ console.log('  Verzeichnis: ' + cwd);
 console.log('  Prompt:      ' + prompt.substring(0, 80) + (prompt.length > 80 ? '...' : ''));
 console.log('  Tools:       ' + allowedTools);
 console.log('  Interaktiv:  ' + (interactive ? 'ja (resume nach Abschluss)' : 'nein'));
+if (instanceId) console.log('  Instance:    ' + instanceId);
 console.log('');
 
 // ── Phase 1: claude -p mit stream-json + --verbose ──
@@ -65,7 +88,10 @@ cc.stdout.on('data', (chunk) => {
     try {
       const evt = JSON.parse(line);
 
-      if (evt.session_id) sessionId = evt.session_id;
+      if (evt.session_id && !sessionId) {
+        sessionId = evt.session_id;
+        reportEvent({ type: 'session_id', sessionId });
+      }
 
       if (evt.type === 'assistant' && evt.message?.content) {
         for (const block of evt.message.content) {
@@ -77,6 +103,7 @@ cc.stdout.on('data', (chunk) => {
               ? block.input.command.substring(0, 80)
               : block.input?.file_path || block.input?.pattern || '';
             console.log('\x1b[33m  >> ' + block.name + (info ? ': ' + info : '') + '\x1b[0m');
+            reportEvent({ type: 'tool_use', tool: block.name, file: info });
           }
         }
       }
@@ -89,6 +116,12 @@ cc.stdout.on('data', (chunk) => {
           (evt.total_cost_usd ? ' | Kosten: $' + evt.total_cost_usd.toFixed(4) : '') +
           '\x1b[0m');
         if (evt.session_id) sessionId = evt.session_id;
+        reportEvent({
+          type: 'result',
+          sessionId,
+          duration: parseFloat(elapsed),
+          cost: evt.total_cost_usd || null,
+        });
       }
     } catch (e) {
       // Kein JSON — verbose debug output, ignorieren
@@ -105,6 +138,11 @@ cc.stderr.on('data', (chunk) => {
 
 cc.on('close', (code) => {
   console.log('');
+
+  // Report error if CC exited with non-zero and no result was reported
+  if (code !== 0 && !sessionId) {
+    reportEvent({ type: 'error', message: 'CC exited with code ' + code });
+  }
 
   if (sessionId && interactive) {
     console.log('\x1b[36m  Session-ID: ' + sessionId + '\x1b[0m');
