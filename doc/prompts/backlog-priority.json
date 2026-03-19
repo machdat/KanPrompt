@@ -2,12 +2,18 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "anweisung-an-cc-dass-die-ausfuehrung-in-einem-eigenen-worktr",
-      "file": "anweisung-an-cc-dass-die-ausfuehrung-in-einem-eigenen-worktr.md",
-      "title": "Anweisung an CC dass die AusfÃ¼hrung in einem eigenen Worktree",
-      "new": "2026-03-16T08:13:57",
-      "type": "bugfix",
-      "num": 30
+      "id": "feat-cc-status-dashboard",
+      "file": "feat-cc-status-dashboard.md",
+      "title": "Feat Cc Status Dashboard",
+      "num": 44,
+      "new": "2026-03-18T22:20:36"
+    },
+    {
+      "id": "feat-multi-projekt-cc-dispatch",
+      "file": "feat-multi-projekt-cc-dispatch.md",
+      "title": "Feat Multi Projekt Cc Dispatch",
+      "num": 45,
+      "new": "2026-03-18T22:20:56"
     }
   ],
   "inProgress": [],
@@ -279,7 +285,31 @@
       "num": 38,
       "new": "2026-03-18T21:38:15",
       "done": "2026-03-18T21:38:15"
+    },
+    {
+      "id": "cc-aus-kanprompt-antriggern",
+      "file": "cc-aus-kanprompt-antriggern.md",
+      "title": "Cc Aus Kanprompt Antriggern",
+      "num": 40,
+      "new": "2026-03-18T21:46:36",
+      "done": "2026-03-18T21:46:36"
+    },
+    {
+      "id": "gui-cc-button-prominent",
+      "file": "gui-cc-button-prominent.md",
+      "title": "Gui Cc Button Prominent",
+      "num": 43,
+      "new": "2026-03-18T22:07:26",
+      "done": "2026-03-18T22:07:26"
+    },
+    {
+      "id": "cc-interaktiver-modus-terminal-sichtbar",
+      "file": "cc-interaktiver-modus-terminal-sichtbar.md",
+      "title": "Cc Interaktiver Modus Terminal Sichtbar",
+      "num": 48,
+      "new": "2026-03-19T12:23:12",
+      "done": "2026-03-19T12:23:12"
     }
   ],
-  "nextNum": 40
+  "nextNum": 49
 }

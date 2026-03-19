@@ -101,7 +101,7 @@ function launchCC(res, cwd, prompt, branchName, isWorktree) {
     'claude',
   ];
   fs.writeFileSync(tmpBat, lines.join('\r\n'));
-  exec('start "" "' + tmpBat + '"', (err) => {
+  exec('start "" cmd /k "' + tmpBat + '"', (err) => {
     if (err) return json(res, 500, { error: 'CC-Start fehlgeschlagen: ' + err.message });
     json(res, 200, {
       action: 'cc-started',
