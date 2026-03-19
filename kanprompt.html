@@ -657,14 +657,13 @@
       <button class="btn companion-only" onclick="toggleDispatch()" id="ccDispatchBtn" style="display:none;" title="CC Dispatch: Auftrags-Queue verwalten">📊<span class="cc-badge hidden" id="ccBadge">0</span></button>
       <button class="btn" onclick="launchClaudeCode()" id="claudeCodeBtn" style="display:none;" title="Claude Code im Projekt-Ordner starten">⚡ Claude Code</button>
       <button class="btn" onclick="openClaudeDesktop()" id="claudeDesktopBtn" title="Claude Desktop öffnen">✨ Claude</button>
-      <button class="btn" onclick="forceSync()" title="Ordner scannen → JSON abgleichen">🔄 Sync</button>
-      <button class="btn" onclick="refreshFromDisk()">↻ Refresh</button>
+      <button class="btn" onclick="refreshAll()" title="JSON neu laden + Ordner scannen">🔄 Aktualisieren</button>
       <button class="btn" onclick="togglePoll()" id="pollToggle">⏸ Pause</button>
       <button class="btn" onclick="openWorkflowDoc()" title="Workflow-Doku im Editor öffnen">📋 Workflow</button>
       <button class="btn btn-primary" onclick="openNewTaskModal()">+ Prompt</button>
     </div>
   </div>
-  <div class="sync-warning-banner" id="syncWarning" onclick="forceSync()" title="Klicken für Force-Sync">⚠ Sync-Problem — Ordner-Zugriff gestört. Klicken zum Reparieren.</div>
+  <div class="sync-warning-banner" id="syncWarning" onclick="refreshAll()" title="Klicken zum Reparieren">⚠ Sync-Problem — Ordner-Zugriff gestört. Klicken zum Reparieren.</div>
   <div class="main">
     <div class="board" id="board"></div>
     <div class="preview-panel" id="previewPanel">
@@ -850,7 +849,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.18.0';
+const VERSION = '0.19.0';
 const SCHEMA_VERSION = '1.2.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
@@ -1966,11 +1965,6 @@ function updateSyncWarning() {
   if (dot && show) dot.className = 'status-dot warn';
   else if (dot && !show && polling) dot.className = 'status-dot';
 }
-async function forceSync() {
-  syncFailCount = 0;
-  updateSyncWarning();
-  await syncFolderToJson(false);
-}
 
 // ══════════════════════════════════════
 //  POLLING
@@ -2000,15 +1994,19 @@ function togglePoll() {
   document.getElementById('pollDot').className = 'status-dot' + (polling ? '' : ' paused');
   document.getElementById('pollLabel').textContent = polling ? 'polling' : 'paused';
 }
-async function refreshFromDisk() {
+async function refreshAll() {
   if (!projectHandle) return;
   try {
+    // 1) JSON neu von Disk laden
     const pH = await safeDirHandle();
     const fH = await pH.getFileHandle('backlog-priority.json');
-    const f = await fH.getFile(); const t = await f.text(); const ch = t !== lastJsonText;
+    const f = await fH.getFile(); const t = await f.text();
     dirHandle = pH; jsonHandle = fH; jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {};
-    renderBoard(); updateInfoBar(); updateSchemaBadge(); toast(ch ? '↻ Änderungen geladen' : '✓ Aktuell');
-  } catch (e) { toast('Refresh: ' + e.message); }
+    // 2) Ordner-Sync (neue/gelöschte .md-Dateien erkennen)
+    syncFailCount = 0;
+    updateSyncWarning();
+    await syncFolderToJson(false);
+  } catch (e) { toast('Aktualisieren: ' + e.message); }
 }
 
 // ══════════════════════════════════════
@@ -2970,7 +2968,7 @@ document.addEventListener('keydown', e => {
   const tag = document.activeElement.tagName;
   if (['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
   if (e.key==='n') { e.preventDefault(); openNewTaskModal(); }
-  if (e.key==='r') { e.preventDefault(); refreshFromDisk(); }
+  if (e.key==='r') { e.preventDefault(); refreshAll(); }
   if (e.key==='d') { e.preventDefault(); toggleDeleted(); }
   if (e.key==='e' && selectedItem) { e.preventDefault(); toggleEditMode(); }
 });

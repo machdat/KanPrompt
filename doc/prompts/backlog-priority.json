@@ -1,23 +1,18 @@
 {
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
-  "backlog": [
-    {
-      "id": "feat-cc-status-dashboard",
-      "file": "feat-cc-status-dashboard.md",
-      "title": "Feat Cc Status Dashboard",
-      "num": 44,
-      "new": "2026-03-18T22:20:36"
-    },
-    {
-      "id": "feat-multi-projekt-cc-dispatch",
-      "file": "feat-multi-projekt-cc-dispatch.md",
-      "title": "Feat Multi Projekt Cc Dispatch",
-      "num": 45,
-      "new": "2026-03-18T22:20:56"
-    }
-  ],
+  "backlog": [],
   "inProgress": [],
   "done": [
+    {
+      "id": "vereinigung-von-sync-refresh-button",
+      "file": "vereinigung-von-sync-refresh-button.md",
+      "title": "Vereinigung von Sync- & Refresh-Button",
+      "type": "bugfix",
+      "num": 54,
+      "new": "2026-03-19T21:39:36",
+      "inProgress": "2026-03-19T22:38:22",
+      "done": "2026-03-19T22:42:00"
+    },
     {
       "id": "cc-launch-live-runner",
       "file": "cc-launch-live-runner.md",
@@ -291,12 +286,30 @@
       "done": "2026-03-18T21:22:00"
     },
     {
+      "id": "feat-cc-status-dashboard",
+      "file": "feat-cc-status-dashboard.md",
+      "title": "Feat Cc Status Dashboard",
+      "num": 53,
+      "new": "2026-03-19T21:32:25",
+      "inProgress": "2026-03-19T21:32:25",
+      "done": "2026-03-19T21:48:23"
+    },
+    {
       "id": "selektion-des-promp-typs-auch-in-der-vorschau",
       "file": "selektion-des-promp-typs-auch-in-der-vorschau.md",
       "title": "Selektion Des Promp Typs Auch In Der Vorschau",
       "num": 36,
       "new": "2026-03-18T21:26:29",
       "done": "2026-03-18T21:26:29"
+    },
+    {
+      "id": "feat-multi-projekt-cc-dispatch",
+      "file": "feat-multi-projekt-cc-dispatch.md",
+      "title": "Feat Multi Projekt Cc Dispatch",
+      "num": 55,
+      "new": "2026-03-19T22:17:57",
+      "inProgress": "2026-03-19T22:17:57",
+      "done": "2026-03-19T22:38:47"
     },
     {
       "id": "ui-improvements-sammlung",
@@ -331,5 +344,5 @@
       "done": "2026-03-19T12:23:12"
     }
   ],
-  "nextNum": 53
+  "nextNum": 58
 }
