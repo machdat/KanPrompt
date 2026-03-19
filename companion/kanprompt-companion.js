@@ -1,5 +1,5 @@
 /**
- * KanPrompt Companion Server v0.7.0
+ * KanPrompt Companion Server v0.8.0
  *
  * Tiny local HTTP server that bridges the browser sandbox gap.
  * KanPrompt (HTML) talks to this via fetch('http://localhost:9177/...').
@@ -14,6 +14,12 @@
  *   POST /start-cc            → live-runner: stream-json + optional resume
  *   POST /start-cc-worktree   → (alias for /start-cc, backward compat)
  *   POST /open-folder         → open folder in Windows Explorer
+ *   POST /cc-event            → receive events from cc-live-runner
+ *   GET  /cc-instances        → list all CC instances (running + recent)
+ *   GET  /cc-status-stream    → SSE stream for live dashboard updates
+ *   POST /worktree-list       → list git worktrees for a project
+ *   POST /worktree-remove     → remove a git worktree
+ *   POST /worktree-merge      → merge worktree branch + remove
  *
  * Start:  node kanprompt-companion.js
  */
@@ -58,6 +64,73 @@ function readBody(req) {
   });
 }
 
+// ══════════════════════════════════════
+//  CC INSTANCE REGISTRY
+// ══════════════════════════════════════
+const ccInstances = new Map(); // id → instance object
+const sseClients = new Set();  // active SSE connections
+const INSTANCE_MAX_AGE_MS = 60 * 60 * 1000; // 1h cleanup for finished instances
+const INSTANCE_EVENTS_MAX = 50; // keep last N events per instance
+
+function generateInstanceId() {
+  return 'cc-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+}
+
+function registerInstance(id, data) {
+  ccInstances.set(id, {
+    id,
+    prompt: data.prompt || '',
+    cwd: data.cwd || '',
+    branch: data.branch || null,
+    worktree: data.worktree || false,
+    startedAt: new Date().toISOString(),
+    status: 'running',
+    sessionId: null,
+    lastTool: null,
+    cost: null,
+    duration: null,
+    events: [],
+  });
+  broadcastSSE({ type: 'instance-started', instance: ccInstances.get(id) });
+}
+
+function updateInstance(id, update) {
+  const inst = ccInstances.get(id);
+  if (!inst) return;
+  Object.assign(inst, update);
+  if (update.events) {
+    // append, don't replace
+    delete update.events;
+  }
+}
+
+function addInstanceEvent(id, event) {
+  const inst = ccInstances.get(id);
+  if (!inst) return;
+  inst.events.push({ ...event, timestamp: new Date().toISOString() });
+  if (inst.events.length > INSTANCE_EVENTS_MAX) {
+    inst.events = inst.events.slice(-INSTANCE_EVENTS_MAX);
+  }
+}
+
+function broadcastSSE(data) {
+  const msg = 'data: ' + JSON.stringify(data) + '\n\n';
+  for (const client of sseClients) {
+    try { client.write(msg); } catch { sseClients.delete(client); }
+  }
+}
+
+// Cleanup finished instances older than INSTANCE_MAX_AGE_MS
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, inst] of ccInstances) {
+    if (inst.status !== 'running') {
+      const finishedAt = inst.finishedAt ? new Date(inst.finishedAt).getTime() : new Date(inst.startedAt).getTime();
+      if (now - finishedAt > INSTANCE_MAX_AGE_MS) ccInstances.delete(id);
+    }
+  }
+}, 5 * 60 * 1000);
+
 // Find a project folder by name across known search paths
 function findProjectPath(folderName) {
   const results = [];
@@ -81,6 +154,10 @@ function findProjectPath(folderName) {
 function launchCCLiveRunner(res, cwd, prompt, branchName, isWorktree, interactive, allowedTools) {
   const projectName = path.basename(isWorktree ? path.resolve(cwd, '..', '..') : cwd);
   const title = 'CC: ' + projectName + (branchName ? ' | ' + branchName : '');
+  const instanceId = generateInstanceId();
+
+  // Instanz in Registry eintragen
+  registerInstance(instanceId, { prompt, cwd, branch: branchName, worktree: isWorktree });
 
   // Config-JSON in Temp-Verzeichnis schreiben
   const configFile = path.join(os.tmpdir(), 'kanprompt-cc-' + Date.now() + '.json');
@@ -90,6 +167,8 @@ function launchCCLiveRunner(res, cwd, prompt, branchName, isWorktree, interactiv
     allowedTools: allowedTools || 'Read,Write,Edit,Bash(node *),Bash(git *)',
     interactive: interactive !== false,
     title,
+    instanceId,
+    companionUrl: `http://${HOST}:${PORT}`,
   };
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
 
@@ -107,13 +186,17 @@ function launchCCLiveRunner(res, cwd, prompt, branchName, isWorktree, interactiv
   }
 
   exec(launchCmd, (err) => {
-    if (err) return json(res, 500, { error: 'CC-Start fehlgeschlagen: ' + err.message });
+    if (err) {
+      ccInstances.delete(instanceId);
+      return json(res, 500, { error: 'CC-Start fehlgeschlagen: ' + err.message });
+    }
     json(res, 200, {
       action: 'cc-started',
       cwd,
       worktree: isWorktree,
       branch: branchName,
       configPath: configFile,
+      instanceId,
       mode: interactive !== false ? 'live+interactive' : 'live',
     });
   });
@@ -131,7 +214,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // ── PING ──
     if (route === '/ping' && req.method === 'GET') {
-      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '0.7.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
+      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '0.8.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
     }
 
     // ── FIND PROJECT (resolves folder name → full path) ──
@@ -225,6 +308,133 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // ── CC EVENT (from live-runner) ──
+    if (route === '/cc-event' && req.method === 'POST') {
+      const body = await readBody(req);
+      const { instanceId, type } = body;
+      if (!instanceId) return json(res, 400, { error: 'instanceId required' });
+      const inst = ccInstances.get(instanceId);
+      if (!inst) return json(res, 404, { error: 'Unknown instance: ' + instanceId });
+
+      addInstanceEvent(instanceId, body);
+
+      if (type === 'tool_use') {
+        const toolInfo = body.tool + (body.file ? ': ' + body.file : '');
+        updateInstance(instanceId, { lastTool: toolInfo });
+        broadcastSSE({ type: 'tool-use', instanceId, tool: toolInfo });
+      } else if (type === 'result') {
+        updateInstance(instanceId, {
+          status: 'done',
+          sessionId: body.sessionId || inst.sessionId,
+          cost: body.cost || null,
+          duration: body.duration || null,
+          finishedAt: new Date().toISOString(),
+        });
+        broadcastSSE({ type: 'instance-done', instance: ccInstances.get(instanceId) });
+      } else if (type === 'error') {
+        updateInstance(instanceId, {
+          status: 'error',
+          errorMessage: body.message || 'Unknown error',
+          finishedAt: new Date().toISOString(),
+        });
+        broadcastSSE({ type: 'instance-error', instanceId, message: body.message });
+      } else if (type === 'session_id') {
+        updateInstance(instanceId, { sessionId: body.sessionId });
+      }
+
+      return json(res, 200, { ok: true });
+    }
+
+    // ── CC INSTANCES (snapshot) ──
+    if (route === '/cc-instances' && req.method === 'GET') {
+      const instances = Array.from(ccInstances.values());
+      return json(res, 200, { instances });
+    }
+
+    // ── CC STATUS STREAM (SSE) ──
+    if (route === '/cc-status-stream' && req.method === 'GET') {
+      setCors(res);
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+      // Send initial snapshot
+      res.write('data: ' + JSON.stringify({ type: 'snapshot', instances: Array.from(ccInstances.values()) }) + '\n\n');
+      sseClients.add(res);
+      req.on('close', () => sseClients.delete(res));
+      return; // keep connection open
+    }
+
+    // ── WORKTREE LIST ──
+    if (route === '/worktree-list' && req.method === 'POST') {
+      const { projectPath } = await readBody(req);
+      if (!projectPath) return json(res, 400, { error: 'projectPath required' });
+      const resolved = path.resolve(projectPath);
+      exec(`git -C "${resolved}" worktree list --porcelain`, (err, stdout) => {
+        if (err) return json(res, 500, { error: err.message });
+        const worktrees = [];
+        let current = {};
+        for (const line of stdout.split('\n')) {
+          if (line.startsWith('worktree ')) {
+            if (current.path) worktrees.push(current);
+            current = { path: line.slice(9).trim() };
+          } else if (line.startsWith('HEAD ')) {
+            current.head = line.slice(5).trim();
+          } else if (line.startsWith('branch ')) {
+            current.branch = line.slice(7).trim().replace('refs/heads/', '');
+          } else if (line === 'bare') {
+            current.bare = true;
+          } else if (line === '') {
+            if (current.path) worktrees.push(current);
+            current = {};
+          }
+        }
+        if (current.path) worktrees.push(current);
+        // Filter out the main worktree (first one is always main)
+        const extra = worktrees.slice(1);
+        json(res, 200, { worktrees: extra, main: worktrees[0] || null });
+      });
+      return;
+    }
+
+    // ── WORKTREE REMOVE ──
+    if (route === '/worktree-remove' && req.method === 'POST') {
+      const { worktreePath, force } = await readBody(req);
+      if (!worktreePath) return json(res, 400, { error: 'worktreePath required' });
+      const forceFlag = force ? ' --force' : '';
+      exec(`git worktree remove "${path.resolve(worktreePath)}"${forceFlag}`, (err) => {
+        if (err) return json(res, 500, { error: err.message });
+        json(res, 200, { action: 'worktree-removed', path: worktreePath });
+      });
+      return;
+    }
+
+    // ── WORKTREE MERGE ──
+    if (route === '/worktree-merge' && req.method === 'POST') {
+      const { worktreePath, targetBranch } = await readBody(req);
+      if (!worktreePath) return json(res, 400, { error: 'worktreePath required' });
+      const resolved = path.resolve(worktreePath);
+      // Get branch name from worktree
+      exec(`git -C "${resolved}" rev-parse --abbrev-ref HEAD`, (err, branchOut) => {
+        if (err) return json(res, 500, { error: 'Branch nicht ermittelbar: ' + err.message });
+        const branch = branchOut.trim();
+        const target = targetBranch || 'master';
+        // Find the main repo (parent of worktree base dir)
+        exec(`git -C "${resolved}" rev-parse --git-common-dir`, (err2, commonDir) => {
+          if (err2) return json(res, 500, { error: err2.message });
+          const mainRepo = path.resolve(commonDir.trim(), '..');
+          // Merge branch into target in main repo
+          const mergeCmd = `git -C "${mainRepo}" checkout ${target} && git -C "${mainRepo}" merge ${branch} && git worktree remove "${resolved}"`;
+          exec(mergeCmd, (mergeErr, mergeOut) => {
+            if (mergeErr) return json(res, 500, { error: 'Merge fehlgeschlagen: ' + mergeErr.message });
+            json(res, 200, { action: 'worktree-merged', branch, target, output: mergeOut.trim() });
+          });
+        });
+      });
+      return;
+    }
+
     // ── OPEN FOLDER ──
     if (route === '/open-folder' && req.method === 'POST') {
       const { dirPath } = await readBody(req);
@@ -239,7 +449,7 @@ const server = http.createServer(async (req, res) => {
     // ── INFO ──
     if (route === '/info' && req.method === 'GET') {
       return json(res, 200, {
-        server: 'kanprompt-companion', version: '0.7.0',
+        server: 'kanprompt-companion', version: '0.8.0',
         searchPaths: PROJECT_SEARCH_PATHS,
         endpoints: [
           'GET  /ping', 'GET  /info',
@@ -250,6 +460,12 @@ const server = http.createServer(async (req, res) => {
           'POST /start-cc             {projectPath, promptFilePath, branchName?, useWorktree?, interactive?, allowedTools?}',
           'POST /start-cc-worktree    (alias for /start-cc)',
           'POST /open-folder          {dirPath}',
+          'POST /cc-event             {instanceId, type, ...}',
+          'GET  /cc-instances         → all instances',
+          'GET  /cc-status-stream     → SSE live stream',
+          'POST /worktree-list        {projectPath}',
+          'POST /worktree-remove      {worktreePath, force?}',
+          'POST /worktree-merge       {worktreePath, targetBranch?}',
         ],
       });
     }
@@ -263,7 +479,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`
   ┌──────────────────────────────────────┐
-  │  KanPrompt Companion  v0.7.0         │
+  │  KanPrompt Companion  v0.8.0         │
   │  http://${HOST}:${PORT}               │
   │                                      │
   │  Endpoints:                          │
@@ -275,6 +491,10 @@ server.listen(PORT, HOST, () => {
   │    POST /claude-code     Claude CC   │
   │    POST /start-cc        Live CC    │
   │    POST /open-folder     Explorer    │
+  │    POST /cc-event        Events     │
+  │    GET  /cc-instances    Status     │
+  │    GET  /cc-status-stream SSE       │
+  │    POST /worktree-*      Worktrees  │
   │                                      │
   │  Press Ctrl+C to stop               │
   └──────────────────────────────────────┘
