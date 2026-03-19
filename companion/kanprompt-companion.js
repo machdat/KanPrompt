@@ -1,5 +1,5 @@
 /**
- * KanPrompt Companion Server v0.8.0
+ * KanPrompt Companion Server v0.9.0
  *
  * Tiny local HTTP server that bridges the browser sandbox gap.
  * KanPrompt (HTML) talks to this via fetch('http://localhost:9177/...').
@@ -20,6 +20,11 @@
  *   POST /worktree-list       → list git worktrees for a project
  *   POST /worktree-remove     → remove a git worktree
  *   POST /worktree-merge      → merge worktree branch + remove
+ *   POST /project-backlog     → load backlog entries from any project
+ *   POST /git-status          → branch + dirty/clean for a project
+ *   POST /git-status-all      → batch git status for multiple projects
+ *   POST /cc-stop             → stop a running CC instance
+ *   POST /focus-window        → bring terminal window to front
  *
  * Start:  node kanprompt-companion.js
  */
@@ -89,6 +94,7 @@ function registerInstance(id, data) {
     lastTool: null,
     cost: null,
     duration: null,
+    pid: null,
     events: [],
   });
   broadcastSSE({ type: 'instance-started', instance: ccInstances.get(id) });
@@ -185,7 +191,7 @@ function launchCCLiveRunner(res, cwd, prompt, branchName, isWorktree, interactiv
     launchCmd = `start "${title}" cmd /k "cd /d "${cwd}" && ${nodeCmd}"`;
   }
 
-  exec(launchCmd, (err) => {
+  const child = exec(launchCmd, (err) => {
     if (err) {
       ccInstances.delete(instanceId);
       return json(res, 500, { error: 'CC-Start fehlgeschlagen: ' + err.message });
@@ -200,6 +206,44 @@ function launchCCLiveRunner(res, cwd, prompt, branchName, isWorktree, interactiv
       mode: interactive !== false ? 'live+interactive' : 'live',
     });
   });
+  // Store PID for stop capability
+  if (child.pid) updateInstance(instanceId, { pid: child.pid });
+}
+
+// ══════════════════════════════════════
+//  GIT STATUS PARSER
+// ══════════════════════════════════════
+function parseGitStatus(output) {
+  let branch = '', ahead = 0, behind = 0;
+  let modified = 0, staged = 0, untracked = 0;
+
+  for (const line of output.split('\n')) {
+    if (line.startsWith('# branch.head ')) {
+      branch = line.slice(14).trim();
+    } else if (line.startsWith('# branch.ab ')) {
+      const m = line.match(/\+(\d+)\s+-(\d+)/);
+      if (m) { ahead = parseInt(m[1]); behind = parseInt(m[2]); }
+    } else if (line.startsWith('1 ') || line.startsWith('2 ')) {
+      // Changed entry: XY format at position 2-3
+      const xy = line.slice(2, 4);
+      if (xy[0] !== '.') staged++;
+      if (xy[1] !== '.') modified++;
+    } else if (line.startsWith('? ')) {
+      untracked++;
+    }
+  }
+
+  const dirty = modified > 0 || untracked > 0 || staged > 0;
+  const parts = [branch];
+  if (dirty) parts[0] += ' ●'; else parts[0] += ' ✔';
+  if (modified > 0) parts.push(modified + 'M');
+  if (untracked > 0) parts.push(untracked + '?');
+  if (staged > 0) parts.push(staged + 'S');
+  if (ahead > 0) parts.push('↑' + ahead);
+  if (behind > 0) parts.push('↓' + behind);
+  const summary = parts.join(' ');
+
+  return { branch, dirty, modified, untracked, staged, ahead, behind, summary };
 }
 
 // ══════════════════════════════════════
@@ -214,7 +258,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // ── PING ──
     if (route === '/ping' && req.method === 'GET') {
-      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '0.8.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
+      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '0.9.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
     }
 
     // ── FIND PROJECT (resolves folder name → full path) ──
@@ -340,6 +384,8 @@ const server = http.createServer(async (req, res) => {
         broadcastSSE({ type: 'instance-error', instanceId, message: body.message });
       } else if (type === 'session_id') {
         updateInstance(instanceId, { sessionId: body.sessionId });
+      } else if (type === 'pid') {
+        updateInstance(instanceId, { pid: body.pid });
       }
 
       return json(res, 200, { ok: true });
@@ -435,6 +481,110 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // ── PROJECT BACKLOG (load backlog from any project) ──
+    if (route === '/project-backlog' && req.method === 'POST') {
+      const { projectPath } = await readBody(req);
+      if (!projectPath) return json(res, 400, { error: 'projectPath required' });
+      const resolved = path.resolve(projectPath);
+      const backlogFile = path.join(resolved, 'doc', 'prompts', 'backlog-priority.json');
+      try {
+        const raw = fs.readFileSync(backlogFile, 'utf-8');
+        const data = JSON.parse(raw);
+        return json(res, 200, {
+          project: path.basename(resolved),
+          projectPath: resolved,
+          backlog: data.backlog || [],
+          inProgress: data.inProgress || [],
+        });
+      } catch (e) {
+        return json(res, 404, { error: 'Backlog nicht gefunden: ' + e.message });
+      }
+    }
+
+    // ── GIT STATUS (single project) ──
+    if (route === '/git-status' && req.method === 'POST') {
+      const { projectPath } = await readBody(req);
+      if (!projectPath) return json(res, 400, { error: 'projectPath required' });
+      const resolved = path.resolve(projectPath);
+      exec(`git -C "${resolved}" status --porcelain=v2 --branch`, (err, stdout) => {
+        if (err) return json(res, 500, { error: err.message });
+        const status = parseGitStatus(stdout);
+        return json(res, 200, status);
+      });
+      return;
+    }
+
+    // ── GIT STATUS ALL (batch) ──
+    if (route === '/git-status-all' && req.method === 'POST') {
+      const { projectPaths } = await readBody(req);
+      if (!projectPaths || !Array.isArray(projectPaths)) return json(res, 400, { error: 'projectPaths[] required' });
+      const results = {};
+      let pending = projectPaths.length;
+      if (pending === 0) return json(res, 200, { results });
+      projectPaths.forEach(pp => {
+        const resolved = path.resolve(pp);
+        exec(`git -C "${resolved}" status --porcelain=v2 --branch`, (err, stdout) => {
+          if (err) {
+            results[resolved] = { error: err.message };
+          } else {
+            results[resolved] = parseGitStatus(stdout);
+          }
+          if (--pending === 0) return json(res, 200, { results });
+        });
+      });
+      return;
+    }
+
+    // ── CC STOP ──
+    if (route === '/cc-stop' && req.method === 'POST') {
+      const { instanceId } = await readBody(req);
+      if (!instanceId) return json(res, 400, { error: 'instanceId required' });
+      const inst = ccInstances.get(instanceId);
+      if (!inst) return json(res, 404, { error: 'Unknown instance: ' + instanceId });
+      if (inst.status !== 'running') return json(res, 400, { error: 'Instance not running' });
+
+      // Try to kill the process tree
+      const pid = inst.pid;
+      if (pid) {
+        try {
+          // On Windows, use taskkill to kill the entire process tree
+          exec(`taskkill /PID ${pid} /T /F`, () => {});
+        } catch {}
+      }
+
+      updateInstance(instanceId, {
+        status: 'error',
+        errorMessage: 'Manuell gestoppt',
+        finishedAt: new Date().toISOString(),
+      });
+      broadcastSSE({ type: 'instance-stopped', instanceId });
+      return json(res, 200, { action: 'cc-stopped', instanceId });
+    }
+
+    // ── FOCUS WINDOW ──
+    if (route === '/focus-window' && req.method === 'POST') {
+      const { instanceId } = await readBody(req);
+      if (!instanceId) return json(res, 400, { error: 'instanceId required' });
+      const inst = ccInstances.get(instanceId);
+      if (!inst) return json(res, 404, { error: 'Unknown instance: ' + instanceId });
+
+      // Try to focus terminal window by title containing instanceId
+      const psCmd = `powershell -NoProfile -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Win32 { [DllImport(\\\"user32.dll\\\")] public static extern bool SetForegroundWindow(IntPtr hWnd); }'; Get-Process | Where-Object { $_.MainWindowTitle -match '${instanceId.replace(/'/g, "''")}' } | ForEach-Object { [Win32]::SetForegroundWindow($_.MainWindowHandle) }"`;
+      exec(psCmd, (err) => {
+        if (err) {
+          // Fallback: return info for manual resume
+          return json(res, 200, {
+            action: 'focus-fallback',
+            instanceId,
+            sessionId: inst.sessionId,
+            cwd: inst.cwd,
+          });
+        }
+        return json(res, 200, { action: 'window-focused', instanceId });
+      });
+      return;
+    }
+
     // ── OPEN FOLDER ──
     if (route === '/open-folder' && req.method === 'POST') {
       const { dirPath } = await readBody(req);
@@ -449,7 +599,7 @@ const server = http.createServer(async (req, res) => {
     // ── INFO ──
     if (route === '/info' && req.method === 'GET') {
       return json(res, 200, {
-        server: 'kanprompt-companion', version: '0.8.0',
+        server: 'kanprompt-companion', version: '0.9.0',
         searchPaths: PROJECT_SEARCH_PATHS,
         endpoints: [
           'GET  /ping', 'GET  /info',
@@ -466,6 +616,11 @@ const server = http.createServer(async (req, res) => {
           'POST /worktree-list        {projectPath}',
           'POST /worktree-remove      {worktreePath, force?}',
           'POST /worktree-merge       {worktreePath, targetBranch?}',
+          'POST /project-backlog      {projectPath}',
+          'POST /git-status           {projectPath}',
+          'POST /git-status-all       {projectPaths[]}',
+          'POST /cc-stop              {instanceId}',
+          'POST /focus-window         {instanceId}',
         ],
       });
     }
@@ -479,7 +634,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`
   ┌──────────────────────────────────────┐
-  │  KanPrompt Companion  v0.8.0         │
+  │  KanPrompt Companion  v0.9.0         │
   │  http://${HOST}:${PORT}               │
   │                                      │
   │  Endpoints:                          │
@@ -495,6 +650,10 @@ server.listen(PORT, HOST, () => {
   │    GET  /cc-instances    Status     │
   │    GET  /cc-status-stream SSE       │
   │    POST /worktree-*      Worktrees  │
+  │    POST /project-backlog Backlog    │
+  │    POST /git-status      Git       │
+  │    POST /cc-stop         Stop CC   │
+  │    POST /focus-window    Focus     │
   │                                      │
   │  Press Ctrl+C to stop               │
   └──────────────────────────────────────┘

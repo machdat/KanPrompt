@@ -443,68 +443,110 @@
   .archive-item-title { font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .archive-item-meta { display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); }
 
-  /* ── CC DASHBOARD ── */
-  .cc-dashboard-overlay {
+  /* ── CC DISPATCH ── */
+  .cc-dispatch-overlay {
     position: fixed; top: 48px; left: 50%; transform: translateX(-50%);
     z-index: 90; pointer-events: none; opacity: 0; transition: opacity 200ms;
   }
-  .cc-dashboard-overlay.open { opacity: 1; pointer-events: all; }
-  .cc-dashboard-panel {
+  .cc-dispatch-overlay.open { opacity: 1; pointer-events: all; }
+  .cc-dispatch-panel {
     background: var(--bg-surface); border: 1px solid var(--border);
-    border-radius: var(--radius-lg); width: 680px; max-height: 80vh;
+    border-radius: var(--radius-lg); width: 780px; max-height: 85vh;
     display: flex; flex-direction: column;
     box-shadow: 0 8px 32px rgba(0,0,0,.5);
   }
-  .cc-dashboard-header {
+  .cc-dispatch-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 18px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
   }
-  .cc-dashboard-header h2 { font-size: 15px; font-weight: 600; }
+  .cc-dispatch-header h2 { font-size: 15px; font-weight: 600; }
   .cc-section-title {
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
     text-transform: uppercase; letter-spacing: 0.5px;
     color: var(--text-muted); padding: 10px 18px 4px;
   }
-  .cc-instance-list { padding: 4px 12px 8px; display: flex; flex-direction: column; gap: 4px; }
-  .cc-instance-row {
-    display: flex; align-items: center; gap: 10px;
+  .cc-dispatch-body { overflow-y: auto; flex: 1; }
+  .cc-dispatch-list { padding: 4px 12px 8px; display: flex; flex-direction: column; gap: 4px; }
+  .cc-dispatch-row {
+    display: grid; grid-template-columns: 18px 100px 1fr auto auto auto auto;
+    align-items: center; gap: 8px;
     padding: 8px 10px; border-radius: var(--radius-sm);
     background: var(--bg-card); border: 1px solid var(--border-subtle);
     font-size: 12px; transition: var(--transition);
   }
-  .cc-instance-row:hover { border-color: var(--border); background: var(--bg-card-hover); }
-  .cc-instance-icon { flex-shrink: 0; font-size: 14px; }
-  .cc-instance-name {
-    flex: 1; min-width: 0; font-weight: 500; color: var(--text-primary);
+  .cc-dispatch-row:hover { border-color: var(--border); background: var(--bg-card-hover); }
+  .cc-dispatch-icon { font-size: 14px; text-align: center; }
+  .cc-dispatch-project {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--accent-purple); font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cc-dispatch-title {
+    font-weight: 500; color: var(--text-primary);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
   }
-  .cc-instance-timer {
+  .cc-dispatch-timer {
     font-family: 'JetBrains Mono', monospace; font-size: 10px;
     color: var(--accent-blue); flex-shrink: 0; min-width: 40px; text-align: right;
   }
-  .cc-instance-tool {
+  .cc-dispatch-tool {
     font-family: 'JetBrains Mono', monospace; font-size: 10px;
-    color: var(--text-muted); max-width: 200px;
+    color: var(--text-muted); max-width: 150px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .cc-instance-cost {
+  .cc-dispatch-cost {
     font-family: 'JetBrains Mono', monospace; font-size: 10px;
     color: var(--accent-green); flex-shrink: 0;
   }
-  .cc-instance-actions { display: flex; gap: 4px; flex-shrink: 0; }
-  .cc-worktree-section {
+  .cc-dispatch-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .cc-dispatch-add {
+    display: flex; align-items: center; justify-content: center;
+    padding: 8px 14px; margin: 4px 12px 8px; border-radius: var(--radius-sm);
+    background: var(--bg-card); border: 1px dashed var(--border);
+    color: var(--text-muted); font-size: 12px; cursor: pointer;
+    transition: var(--transition); font-family: 'JetBrains Mono', monospace;
+  }
+  .cc-dispatch-add:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+  .cc-add-form {
+    padding: 12px 18px; border-top: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .cc-add-form select, .cc-add-form input {
+    background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm); padding: 6px 8px; font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .cc-add-form select:focus, .cc-add-form input:focus { border-color: var(--accent-blue); outline: none; }
+  .cc-add-row { display: flex; gap: 8px; align-items: center; }
+  .cc-add-row label { font-size: 11px; color: var(--text-muted); min-width: 60px; }
+  .cc-add-row select, .cc-add-row input { flex: 1; }
+  .cc-add-buttons { display: flex; gap: 6px; justify-content: flex-end; margin-top: 4px; }
+  .cc-git-section {
     border-top: 1px solid var(--border-subtle); overflow-y: auto; max-height: 200px;
   }
-  .cc-worktree-toggle {
+  .cc-git-toggle {
     display: flex; align-items: center; gap: 6px;
     padding: 8px 18px; cursor: pointer; font-size: 11px;
     color: var(--text-muted); font-family: 'JetBrains Mono', monospace;
     transition: var(--transition);
   }
-  .cc-worktree-toggle:hover { color: var(--text-secondary); }
-  .cc-worktree-arrow { transition: transform 150ms; font-size: 9px; }
-  .cc-worktree-toggle.expanded .cc-worktree-arrow { transform: rotate(90deg); }
+  .cc-git-toggle:hover { color: var(--text-secondary); }
+  .cc-git-arrow { transition: transform 150ms; font-size: 9px; }
+  .cc-git-toggle.expanded .cc-git-arrow { transform: rotate(90deg); }
+  .cc-git-list {
+    padding: 4px 12px 8px; display: flex; flex-direction: column; gap: 2px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  }
+  .cc-git-row {
+    display: flex; align-items: center; gap: 8px; padding: 4px 10px;
+    border-radius: var(--radius-sm);
+  }
+  .cc-git-row.sub { padding-left: 28px; }
+  .cc-git-project { color: var(--text-primary); font-weight: 500; min-width: 120px; }
+  .cc-git-summary { color: var(--text-muted); }
+  .cc-git-clean { color: var(--accent-green); }
+  .cc-git-dirty { color: var(--accent-orange); }
   .cc-empty-hint {
     padding: 12px 18px; text-align: center; color: var(--text-muted);
     font-size: 11px; font-family: 'JetBrains Mono', monospace;
@@ -612,7 +654,7 @@
         <div class="status-dot paused" id="companionDot"></div>
         <span class="status-label" id="companionLabel">companion</span>
       </div>
-      <button class="btn companion-only" onclick="toggleCCDashboard()" id="ccDashboardBtn" style="display:none;" title="CC-Dashboard: Laufende Instanzen anzeigen">📊<span class="cc-badge hidden" id="ccBadge">0</span></button>
+      <button class="btn companion-only" onclick="toggleDispatch()" id="ccDispatchBtn" style="display:none;" title="CC Dispatch: Auftrags-Queue verwalten">📊<span class="cc-badge hidden" id="ccBadge">0</span></button>
       <button class="btn" onclick="launchClaudeCode()" id="claudeCodeBtn" style="display:none;" title="Claude Code im Projekt-Ordner starten">⚡ Claude Code</button>
       <button class="btn" onclick="openClaudeDesktop()" id="claudeDesktopBtn" title="Claude Desktop öffnen">✨ Claude</button>
       <button class="btn" onclick="forceSync()" title="Ordner scannen → JSON abgleichen">🔄 Sync</button>
@@ -637,6 +679,7 @@
           <div style="flex:1;"></div>
           <label class="companion-only" style="display:none;font-size:10px;color:var(--text-muted);cursor:pointer;align-items:center;gap:3px;" title="In eigenem Git-Worktree ausführen"><input type="checkbox" id="worktreeToggle" checked style="margin:0;accent-color:var(--accent-blue);">Worktree</label>
           <button class="btn btn-cc companion-only" onclick="startCCWithPrompt(event)" title="CC mit Prompt starten (Shift+Klick = silent)" style="display:none;">⚡ CC</button>
+          <button class="btn btn-sm companion-only" onclick="addToDispatchFromPreview()" title="Zum Dispatch hinzufügen" style="display:none;">+ Dispatch</button>
           <button class="preview-close" onclick="closePreview()">✕</button>
         </div>
       </div>
@@ -721,26 +764,49 @@
 
 <div class="toast-container" id="toasts"></div>
 
-<!-- CC DASHBOARD OVERLAY -->
-<div class="cc-dashboard-overlay" id="ccDashboardOverlay">
-  <div class="cc-dashboard-panel">
-    <div class="cc-dashboard-header">
-      <h2>⚡ CC-Dashboard</h2>
+<!-- CC DISPATCH OVERLAY -->
+<div class="cc-dispatch-overlay" id="ccDispatchOverlay">
+  <div class="cc-dispatch-panel">
+    <div class="cc-dispatch-header">
+      <h2>⚡ CC Dispatch</h2>
       <div style="display:flex;align-items:center;gap:10px;">
-        <span class="count" id="ccDashboardCount">0</span>
-        <button class="preview-close" onclick="closeCCDashboard()">✕</button>
+        <span class="count" id="ccDispatchCount">0</span>
+        <button class="preview-close" onclick="closeDispatch()">✕</button>
       </div>
     </div>
-    <div class="cc-section-title">Laufende Instanzen</div>
-    <div class="cc-instance-list" id="ccRunningList"></div>
-    <div class="cc-section-title">Beendete Instanzen</div>
-    <div class="cc-instance-list" id="ccDoneList"></div>
-    <div class="cc-worktree-section">
-      <div class="cc-worktree-toggle" id="ccWorktreeToggle" onclick="toggleWorktreeSection()">
-        <span class="cc-worktree-arrow" id="ccWorktreeArrow">▶</span> Worktrees
-        <span class="count" id="ccWorktreeCount">0</span>
+    <div class="cc-dispatch-body">
+      <div class="cc-dispatch-list" id="ccDispatchList"></div>
+      <div class="cc-dispatch-add" onclick="toggleDispatchAddForm()">+ Auftrag hinzufügen</div>
+      <div class="cc-add-form" id="ccAddForm" style="display:none;">
+        <div class="cc-add-row">
+          <label>Projekt</label>
+          <select id="ccAddProject" onchange="onDispatchProjectChange()">
+            <option value="">— Projekt wählen —</option>
+          </select>
+        </div>
+        <div class="cc-add-row">
+          <label>Prompt</label>
+          <select id="ccAddPrompt" disabled>
+            <option value="">— zuerst Projekt wählen —</option>
+          </select>
+        </div>
+        <div class="cc-add-row">
+          <label>Optionen</label>
+          <label style="min-width:auto;font-size:10px;cursor:pointer;display:flex;align-items:center;gap:3px;">
+            <input type="checkbox" id="ccAddWorktree" checked style="margin:0;accent-color:var(--accent-blue);">Worktree
+          </label>
+        </div>
+        <div class="cc-add-buttons">
+          <button class="btn btn-sm" onclick="cancelDispatchAdd()">Abbrechen</button>
+          <button class="btn btn-sm btn-primary" onclick="addDispatchItem()">Hinzufügen</button>
+        </div>
       </div>
-      <div class="cc-instance-list" id="ccWorktreeList" style="display:none;"></div>
+    </div>
+    <div class="cc-git-section">
+      <div class="cc-git-toggle" id="ccGitToggle" onclick="toggleGitSection()">
+        <span class="cc-git-arrow" id="ccGitArrow">▶</span> Git-Status
+      </div>
+      <div class="cc-git-list" id="ccGitList" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -784,7 +850,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.17.0';
+const VERSION = '0.18.0';
 const SCHEMA_VERSION = '1.2.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
@@ -907,6 +973,12 @@ function updateCCButtonState() {
     wtLabel.style.opacity = isBacklog ? '' : '0.4';
     wtLabel.style.pointerEvents = isBacklog ? '' : 'none';
   }
+  // Dispatch button: nur für Backlog-Prompts
+  const dispBtn = ccBtn?.nextElementSibling;
+  if (dispBtn && dispBtn.textContent.includes('Dispatch')) {
+    dispBtn.style.opacity = isBacklog ? '' : '0.4';
+    dispBtn.style.pointerEvents = isBacklog ? '' : 'none';
+  }
 }
 
 async function companionPost(endpoint, body) {
@@ -992,56 +1064,72 @@ function openClaudeDesktop() {
 }
 
 // ══════════════════════════════════════
-//  CC DASHBOARD
+//  CC DISPATCH MANAGER
 // ══════════════════════════════════════
-let ccDashboardInstances = [];
-let ccDashboardSSE = null;
-let ccDashboardPollTimer = null;
-let ccWorktreeExpanded = false;
+const DISPATCH_LS_KEY = 'kanprompt_dispatch_queue';
+let dispatchQueue = [];
+let ccInstances = [];
+let ccSSE = null;
+let ccPollTimer = null;
+let gitSectionExpanded = false;
+let dispatchAddFormOpen = false;
 
-function toggleCCDashboard() {
-  const overlay = document.getElementById('ccDashboardOverlay');
+// Load dispatch queue from localStorage
+function loadDispatchQueue() {
+  try { dispatchQueue = JSON.parse(localStorage.getItem(DISPATCH_LS_KEY) || '[]'); } catch { dispatchQueue = []; }
+}
+function saveDispatchQueue() {
+  localStorage.setItem(DISPATCH_LS_KEY, JSON.stringify(dispatchQueue));
+}
+loadDispatchQueue();
+
+function generateDispatchId() {
+  return 'disp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+}
+
+function toggleDispatch() {
+  const overlay = document.getElementById('ccDispatchOverlay');
   if (overlay.classList.contains('open')) {
-    closeCCDashboard();
+    closeDispatch();
   } else {
-    openCCDashboard();
+    openDispatch();
   }
 }
 
-function openCCDashboard() {
+function openDispatch() {
   closeArchive(); closeDeleted();
-  document.getElementById('ccDashboardOverlay').classList.add('open');
+  document.getElementById('ccDispatchOverlay').classList.add('open');
   fetchCCInstances();
   connectCCSSE();
-  // Polling fallback: alle 2s
-  ccDashboardPollTimer = setInterval(fetchCCInstances, 2000);
+  ccPollTimer = setInterval(fetchCCInstances, 2000);
+  renderDispatch();
 }
 
-function closeCCDashboard() {
-  document.getElementById('ccDashboardOverlay').classList.remove('open');
-  if (ccDashboardPollTimer) { clearInterval(ccDashboardPollTimer); ccDashboardPollTimer = null; }
-  if (ccDashboardSSE) { ccDashboardSSE.close(); ccDashboardSSE = null; }
+function closeDispatch() {
+  document.getElementById('ccDispatchOverlay').classList.remove('open');
+  if (ccPollTimer) { clearInterval(ccPollTimer); ccPollTimer = null; }
+  if (ccSSE) { ccSSE.close(); ccSSE = null; }
+  cancelDispatchAdd();
 }
 
 function connectCCSSE() {
-  if (ccDashboardSSE) ccDashboardSSE.close();
+  if (ccSSE) ccSSE.close();
   try {
-    ccDashboardSSE = new EventSource(COMPANION_URL + '/cc-status-stream');
-    ccDashboardSSE.onmessage = (e) => {
+    ccSSE = new EventSource(COMPANION_URL + '/cc-status-stream');
+    ccSSE.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
         if (data.type === 'snapshot') {
-          ccDashboardInstances = data.instances || [];
-          renderCCDashboard();
+          ccInstances = data.instances || [];
+          syncDispatchWithInstances();
+          renderDispatch();
         } else {
-          // Incremental update — re-fetch for simplicity
           fetchCCInstances();
         }
       } catch {}
     };
-    ccDashboardSSE.onerror = () => {
-      // SSE failed — polling handles it
-      if (ccDashboardSSE) { ccDashboardSSE.close(); ccDashboardSSE = null; }
+    ccSSE.onerror = () => {
+      if (ccSSE) { ccSSE.close(); ccSSE = null; }
     };
   } catch {}
 }
@@ -1051,82 +1139,194 @@ async function fetchCCInstances() {
   try {
     const r = await fetch(COMPANION_URL + '/cc-instances', { signal: AbortSignal.timeout(2000) });
     const data = await r.json();
-    ccDashboardInstances = data.instances || [];
-    renderCCDashboard();
+    ccInstances = data.instances || [];
+    syncDispatchWithInstances();
+    renderDispatch();
     updateCCBadge();
   } catch {}
 }
 
+function syncDispatchWithInstances() {
+  let changed = false;
+  for (const item of dispatchQueue) {
+    if (!item.instanceId) continue;
+    const inst = ccInstances.find(i => i.id === item.instanceId);
+    if (!inst) continue;
+    if (inst.status === 'done' && item.status !== 'done') {
+      item.status = 'done';
+      item.duration = inst.duration;
+      item.cost = inst.cost;
+      item.sessionId = inst.sessionId;
+      changed = true;
+    } else if (inst.status === 'error' && item.status !== 'error') {
+      item.status = 'error';
+      changed = true;
+    } else if (inst.status === 'running') {
+      item.lastTool = inst.lastTool;
+      if (item.status !== 'running') { item.status = 'running'; changed = true; }
+    }
+    if (inst.sessionId && !item.sessionId) { item.sessionId = inst.sessionId; changed = true; }
+  }
+  if (changed) saveDispatchQueue();
+}
+
 function updateCCBadge() {
-  const running = ccDashboardInstances.filter(i => i.status === 'running').length;
+  const running = dispatchQueue.filter(i => i.status === 'running').length
+    + ccInstances.filter(i => i.status === 'running').length;
+  // Deduplicate: count unique running
+  const dispatchRunning = dispatchQueue.filter(i => i.status === 'running').length;
   const badge = document.getElementById('ccBadge');
   if (badge) {
-    badge.textContent = running;
-    badge.classList.toggle('hidden', running === 0);
+    badge.textContent = dispatchRunning;
+    badge.classList.toggle('hidden', dispatchRunning === 0);
   }
 }
 
 function formatDuration(seconds) {
+  if (seconds == null) return '';
   if (seconds < 60) return Math.round(seconds) + 's';
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
   return m + 'm ' + s + 's';
 }
 
-function getInstanceDisplayName(inst) {
-  if (inst.branch) return inst.branch;
-  if (inst.prompt) return inst.prompt.substring(0, 50);
-  return inst.id;
+function renderDispatch() {
+  const list = document.getElementById('ccDispatchList');
+  const countEl = document.getElementById('ccDispatchCount');
+  const running = dispatchQueue.filter(i => i.status === 'running').length;
+
+  if (countEl) countEl.textContent = running + ' aktiv / ' + dispatchQueue.length;
+
+  if (dispatchQueue.length === 0) {
+    list.innerHTML = '<div class="cc-empty-hint">Keine Aufträge — klicke "+ Auftrag hinzufügen"</div>';
+    return;
+  }
+
+  list.innerHTML = dispatchQueue.map((item, idx) => {
+    const icons = { ready: '\u26AA', running: '\uD83D\uDFE1', done: '\uD83D\uDFE2', error: '\uD83D\uDD34' };
+    const icon = icons[item.status] || '\u26AA';
+    const num = item.prompt.num ? '#' + item.prompt.num + ' ' : '';
+    const title = num + (item.prompt.title || item.prompt.file);
+
+    let timerHtml = '';
+    let toolHtml = '';
+    let costHtml = '';
+    let actionsHtml = '';
+
+    if (item.status === 'ready') {
+      actionsHtml = `<button class="btn btn-sm btn-primary" onclick="runDispatchItem(${idx})">Run</button>`;
+    } else if (item.status === 'running') {
+      // Find matching instance for live timer
+      const inst = item.instanceId ? ccInstances.find(i => i.id === item.instanceId) : null;
+      const startedAt = inst ? inst.startedAt : item.startedAt;
+      if (startedAt) {
+        const elapsed = (Date.now() - new Date(startedAt).getTime()) / 1000;
+        timerHtml = `<span class="cc-dispatch-timer" data-started="${startedAt}">${formatDuration(elapsed)}</span>`;
+      }
+      toolHtml = `<span class="cc-dispatch-tool" title="${esc(item.lastTool || '')}">${esc(item.lastTool || '')}</span>`;
+      actionsHtml = `<button class="btn btn-sm" onclick="stopDispatchItem(${idx})" style="color:var(--accent-red);">Stop</button>`
+        + `<button class="btn btn-sm" onclick="focusDispatchItem(${idx})">Fokus</button>`;
+    } else if (item.status === 'done') {
+      timerHtml = `<span class="cc-dispatch-timer">${formatDuration(item.duration)}</span>`;
+      costHtml = item.cost ? `<span class="cc-dispatch-cost">$${item.cost.toFixed(2)}</span>` : '';
+      if (item.sessionId) {
+        const sid = esc(item.sessionId).replace(/'/g, "\\'");
+        const cwd = esc(item.project.path).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        actionsHtml = `<button class="btn btn-sm" onclick="resumeCC('${sid}','${cwd}')">Resume</button>`;
+      }
+    } else if (item.status === 'error') {
+      actionsHtml = `<button class="btn btn-sm btn-primary" onclick="retryDispatchItem(${idx})">Retry</button>`;
+    }
+
+    actionsHtml += `<button class="btn btn-sm" onclick="removeDispatchItem(${idx})" title="Entfernen" style="color:var(--text-muted);">\u2715</button>`;
+
+    return `<div class="cc-dispatch-row">
+      <span class="cc-dispatch-icon">${icon}</span>
+      <span class="cc-dispatch-project">${esc(item.project.name)}</span>
+      <span class="cc-dispatch-title" title="${esc(title)}">${esc(title)}</span>
+      ${timerHtml}
+      ${toolHtml}
+      ${costHtml}
+      <span class="cc-dispatch-actions">${actionsHtml}</span>
+    </div>`;
+  }).join('');
 }
 
-function renderCCDashboard() {
-  const runningList = document.getElementById('ccRunningList');
-  const doneList = document.getElementById('ccDoneList');
-  const countEl = document.getElementById('ccDashboardCount');
+// ── Dispatch Actions ──
 
-  const running = ccDashboardInstances.filter(i => i.status === 'running');
-  const done = ccDashboardInstances.filter(i => i.status !== 'running').slice(-10).reverse();
-  const total = running.length + done.length;
+async function runDispatchItem(idx) {
+  const item = dispatchQueue[idx];
+  if (!item || item.status !== 'ready') return;
 
-  if (countEl) countEl.textContent = running.length + ' aktiv / ' + total;
+  const useWorktree = item.worktree;
+  const itemType = item.prompt.type || 'feature';
+  const branchName = itemType + '/' + item.prompt.id;
+  const promptFilePath = item.project.path + '\\doc\\prompts\\new\\' + item.prompt.file;
 
-  // Running instances
-  if (running.length === 0) {
-    runningList.innerHTML = '<div class="cc-empty-hint">Keine laufenden Instanzen</div>';
-  } else {
-    runningList.innerHTML = running.map(inst => {
-      const elapsed = (Date.now() - new Date(inst.startedAt).getTime()) / 1000;
-      return `<div class="cc-instance-row">
-        <span class="cc-instance-icon">⚡</span>
-        <span class="cc-instance-name" title="${esc(inst.prompt)}">${esc(getInstanceDisplayName(inst))}</span>
-        <span class="cc-instance-timer" data-started="${inst.startedAt}">${formatDuration(elapsed)}</span>
-        <span class="cc-instance-tool" title="${esc(inst.lastTool || '')}">${esc(inst.lastTool || '—')}</span>
-      </div>`;
-    }).join('');
+  toast('CC wird gestartet: ' + item.prompt.title + '...');
+
+  const result = await companionPost('/start-cc', {
+    projectPath: item.project.path,
+    promptFilePath,
+    branchName,
+    useWorktree,
+    interactive: true,
+  });
+
+  if (result && result.action === 'cc-started') {
+    item.status = 'running';
+    item.instanceId = result.instanceId;
+    item.startedAt = new Date().toISOString();
+    saveDispatchQueue();
+    renderDispatch();
+    toast('CC läuft: ' + (result.branch || item.prompt.title));
+  } else if (result && result.error) {
+    toast('Fehler: ' + result.error);
   }
+}
 
-  // Done instances
-  if (done.length === 0) {
-    doneList.innerHTML = '<div class="cc-empty-hint">Keine beendeten Instanzen</div>';
-  } else {
-    doneList.innerHTML = done.map(inst => {
-      const statusIcon = inst.status === 'done' ? '✅' : '❌';
-      const durationStr = inst.duration ? formatDuration(inst.duration) : '—';
-      const costStr = inst.cost ? '$' + inst.cost.toFixed(2) : '—';
-      const resumeBtn = inst.sessionId
-        ? `<button class="btn btn-sm" onclick="resumeCC('${esc(inst.sessionId)}','${esc(inst.cwd)}')" title="Resume">▶ Resume</button>`
-        : '';
-      return `<div class="cc-instance-row">
-        <span class="cc-instance-icon">${statusIcon}</span>
-        <span class="cc-instance-name" title="${esc(inst.prompt)}">${esc(getInstanceDisplayName(inst))}</span>
-        <span class="cc-instance-timer">${durationStr}</span>
-        <span class="cc-instance-cost">${costStr}</span>
-        <span class="cc-instance-actions">${resumeBtn}</span>
-      </div>`;
-    }).join('');
+async function stopDispatchItem(idx) {
+  const item = dispatchQueue[idx];
+  if (!item || !item.instanceId) return;
+  const result = await companionPost('/cc-stop', { instanceId: item.instanceId });
+  if (result && result.action) {
+    item.status = 'error';
+    saveDispatchQueue();
+    renderDispatch();
+    toast('CC gestoppt');
+  } else if (result && result.error) {
+    toast('Fehler: ' + result.error);
   }
+}
 
-  updateCCBadge();
+async function focusDispatchItem(idx) {
+  const item = dispatchQueue[idx];
+  if (!item || !item.instanceId) return;
+  const result = await companionPost('/focus-window', { instanceId: item.instanceId });
+  if (result && result.action === 'focus-fallback' && result.sessionId) {
+    // Fallback: open resume terminal
+    await resumeCC(result.sessionId, result.cwd);
+  }
+}
+
+function retryDispatchItem(idx) {
+  const item = dispatchQueue[idx];
+  if (!item) return;
+  item.status = 'ready';
+  item.instanceId = null;
+  item.sessionId = null;
+  item.duration = null;
+  item.cost = null;
+  item.lastTool = null;
+  item.startedAt = null;
+  saveDispatchQueue();
+  renderDispatch();
+}
+
+function removeDispatchItem(idx) {
+  dispatchQueue.splice(idx, 1);
+  saveDispatchQueue();
+  renderDispatch();
 }
 
 async function resumeCC(sessionId, cwd) {
@@ -1135,72 +1335,208 @@ async function resumeCC(sessionId, cwd) {
     dirPath: cwd,
     command: 'claude --resume ' + sessionId,
   });
-  if (result && result.action) toast('▶ Resume-Terminal geöffnet');
+  if (result && result.action) toast('Resume-Terminal geöffnet');
 }
 
-// Live-Ticker für laufende Instanzen
+// ── Add Form ──
+
+function toggleDispatchAddForm() {
+  dispatchAddFormOpen = !dispatchAddFormOpen;
+  document.getElementById('ccAddForm').style.display = dispatchAddFormOpen ? 'flex' : 'none';
+  if (dispatchAddFormOpen) populateProjectDropdown();
+}
+
+function cancelDispatchAdd() {
+  dispatchAddFormOpen = false;
+  const form = document.getElementById('ccAddForm');
+  if (form) form.style.display = 'none';
+}
+
+function populateProjectDropdown() {
+  const select = document.getElementById('ccAddProject');
+  const projects = getRecentProjects();
+  select.innerHTML = '<option value="">— Projekt wählen —</option>';
+  projects.forEach(p => {
+    if (!p.path) return;
+    const opt = document.createElement('option');
+    opt.value = p.path;
+    opt.textContent = p.name;
+    select.appendChild(opt);
+  });
+  // Also add current project if not in list
+  if (projectHandle) {
+    const currentPath = localStorage.getItem('kanprompt_path_' + projectHandle.name);
+    if (currentPath && !projects.some(p => p.path === currentPath)) {
+      const opt = document.createElement('option');
+      opt.value = currentPath;
+      opt.textContent = projectHandle.name + ' (aktuell)';
+      select.appendChild(opt);
+    }
+  }
+}
+
+async function onDispatchProjectChange() {
+  const projectPath = document.getElementById('ccAddProject').value;
+  const promptSelect = document.getElementById('ccAddPrompt');
+  if (!projectPath) {
+    promptSelect.innerHTML = '<option value="">— zuerst Projekt wählen —</option>';
+    promptSelect.disabled = true;
+    return;
+  }
+
+  promptSelect.innerHTML = '<option value="">Lade...</option>';
+  promptSelect.disabled = true;
+
+  const result = await companionPost('/project-backlog', { projectPath });
+  if (!result || result.error) {
+    promptSelect.innerHTML = '<option value="">Fehler: ' + (result?.error || 'nicht erreichbar') + '</option>';
+    return;
+  }
+
+  const items = result.backlog || [];
+  if (items.length === 0) {
+    promptSelect.innerHTML = '<option value="">Kein Backlog vorhanden</option>';
+    return;
+  }
+
+  promptSelect.innerHTML = '<option value="">— Prompt wählen —</option>';
+  items.forEach(item => {
+    const opt = document.createElement('option');
+    opt.value = JSON.stringify(item);
+    const num = item.num ? '#' + item.num + ' ' : '';
+    opt.textContent = num + item.title;
+    promptSelect.appendChild(opt);
+  });
+  promptSelect.disabled = false;
+}
+
+function addDispatchItem() {
+  const projectPath = document.getElementById('ccAddProject').value;
+  const promptJson = document.getElementById('ccAddPrompt').value;
+  const useWorktree = document.getElementById('ccAddWorktree').checked;
+
+  if (!projectPath || !promptJson) {
+    toast('Bitte Projekt und Prompt wählen');
+    return;
+  }
+
+  const projectName = document.getElementById('ccAddProject').selectedOptions[0].textContent.replace(' (aktuell)', '');
+  const prompt = JSON.parse(promptJson);
+
+  const item = {
+    id: generateDispatchId(),
+    project: { name: projectName, path: projectPath },
+    prompt: { num: prompt.num, title: prompt.title, file: prompt.file, id: prompt.id, type: prompt.type },
+    status: 'ready',
+    instanceId: null,
+    sessionId: null,
+    duration: null,
+    cost: null,
+    lastTool: null,
+    worktree: useWorktree,
+    addedAt: new Date().toISOString(),
+    startedAt: null,
+  };
+
+  dispatchQueue.push(item);
+  saveDispatchQueue();
+  cancelDispatchAdd();
+  renderDispatch();
+  toast('Auftrag hinzugefügt: ' + prompt.title);
+}
+
+// Also allow adding from preview
+function addToDispatchFromPreview() {
+  if (!selectedItem || !selectedCol || selectedCol.folder !== 'new') return;
+  const basePath = localStorage.getItem('kanprompt_path_' + projectHandle.name);
+  if (!basePath) { toast('Projektpfad unbekannt'); return; }
+
+  const item = {
+    id: generateDispatchId(),
+    project: { name: projectHandle.name, path: basePath },
+    prompt: { num: selectedItem.num, title: selectedItem.title, file: selectedItem.file, id: selectedItem.id, type: selectedItem.type },
+    status: 'ready',
+    instanceId: null,
+    sessionId: null,
+    duration: null,
+    cost: null,
+    lastTool: null,
+    worktree: document.getElementById('worktreeToggle')?.checked ?? true,
+    addedAt: new Date().toISOString(),
+    startedAt: null,
+  };
+
+  dispatchQueue.push(item);
+  saveDispatchQueue();
+  toast('Zum Dispatch hinzugefügt: ' + selectedItem.title);
+}
+
+// ── Git Status Section ──
+
+function toggleGitSection() {
+  gitSectionExpanded = !gitSectionExpanded;
+  const list = document.getElementById('ccGitList');
+  const toggle = document.getElementById('ccGitToggle');
+  const arrow = document.getElementById('ccGitArrow');
+  list.style.display = gitSectionExpanded ? 'flex' : 'none';
+  toggle.classList.toggle('expanded', gitSectionExpanded);
+  arrow.textContent = gitSectionExpanded ? '\u25BC' : '\u25B6';
+  if (gitSectionExpanded) loadGitStatus();
+}
+
+async function loadGitStatus() {
+  const projects = getRecentProjects().filter(p => p.path);
+  const list = document.getElementById('ccGitList');
+  if (projects.length === 0) {
+    list.innerHTML = '<div class="cc-empty-hint">Keine Projekte mit bekanntem Pfad</div>';
+    return;
+  }
+
+  list.innerHTML = '<div class="cc-empty-hint">Lade Git-Status...</div>';
+  const paths = projects.map(p => p.path);
+  const result = await companionPost('/git-status-all', { projectPaths: paths });
+  if (!result || !result.results) {
+    list.innerHTML = '<div class="cc-empty-hint">Git-Status nicht verfügbar</div>';
+    return;
+  }
+
+  let html = '';
+  for (const p of projects) {
+    const status = result.results[p.path];
+    if (!status || status.error) {
+      html += `<div class="cc-git-row"><span class="cc-git-project">${esc(p.name)}</span><span class="cc-git-summary" style="color:var(--text-muted);">nicht verfügbar</span></div>`;
+      continue;
+    }
+    const cls = status.dirty ? 'cc-git-dirty' : 'cc-git-clean';
+    html += `<div class="cc-git-row"><span class="cc-git-project">${esc(p.name)}</span><span class="${cls}">${esc(status.summary)}</span></div>`;
+
+    // Load worktrees for this project
+    const wtResult = await companionPost('/worktree-list', { projectPath: p.path });
+    if (wtResult && wtResult.worktrees && wtResult.worktrees.length > 0) {
+      for (const wt of wtResult.worktrees) {
+        const wtName = wt.branch || wt.path.split(/[\\/]/).pop();
+        // Get status for worktree
+        const wtStatus = result.results[wt.path];
+        const wtSummary = wtStatus ? (wtStatus.dirty ? wtStatus.summary : wtStatus.summary) : wtName;
+        const wtCls = wtStatus ? (wtStatus.dirty ? 'cc-git-dirty' : 'cc-git-clean') : '';
+        html += `<div class="cc-git-row sub"><span class="cc-git-project">\u2514 ${esc(wtName)}</span><span class="${wtCls}">${esc(wtStatus ? wtStatus.summary : '')}</span></div>`;
+      }
+    }
+  }
+
+  list.innerHTML = html || '<div class="cc-empty-hint">Keine Projekte gefunden</div>';
+}
+
+// Live-Ticker für laufende Dispatch-Zeilen
 setInterval(() => {
-  document.querySelectorAll('.cc-instance-timer[data-started]').forEach(el => {
+  document.querySelectorAll('.cc-dispatch-timer[data-started]').forEach(el => {
     const started = new Date(el.dataset.started).getTime();
     const elapsed = (Date.now() - started) / 1000;
     el.textContent = formatDuration(elapsed);
   });
 }, 1000);
 
-// Worktree section
-function toggleWorktreeSection() {
-  ccWorktreeExpanded = !ccWorktreeExpanded;
-  const list = document.getElementById('ccWorktreeList');
-  const toggle = document.getElementById('ccWorktreeToggle');
-  const arrow = document.getElementById('ccWorktreeArrow');
-  list.style.display = ccWorktreeExpanded ? 'flex' : 'none';
-  toggle.classList.toggle('expanded', ccWorktreeExpanded);
-  arrow.textContent = ccWorktreeExpanded ? '▼' : '▶';
-  if (ccWorktreeExpanded) loadWorktrees();
-}
-
-async function loadWorktrees() {
-  const basePath = await getProjectPath();
-  if (!basePath) return;
-  const result = await companionPost('/worktree-list', { projectPath: basePath });
-  if (!result) return;
-  const list = document.getElementById('ccWorktreeList');
-  const wtCount = document.getElementById('ccWorktreeCount');
-  const worktrees = result.worktrees || [];
-  if (wtCount) wtCount.textContent = worktrees.length;
-  if (worktrees.length === 0) {
-    list.innerHTML = '<div class="cc-empty-hint">Keine zusätzlichen Worktrees</div>';
-    return;
-  }
-  list.innerHTML = worktrees.map(wt => {
-    const name = wt.branch || wt.path.split(/[\\/]/).pop();
-    const wtPathEsc = esc(wt.path).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    return `<div class="cc-instance-row">
-      <span class="cc-instance-icon">📂</span>
-      <span class="cc-instance-name">${esc(name)}</span>
-      <span class="cc-instance-actions">
-        <button class="btn btn-sm" onclick="mergeWorktree('${wtPathEsc}')" title="Merge + Entfernen">Merge</button>
-        <button class="btn btn-sm" onclick="removeWorktree('${wtPathEsc}')" title="Worktree entfernen" style="color:var(--accent-red);">Löschen</button>
-      </span>
-    </div>`;
-  }).join('');
-}
-
-async function removeWorktree(wtPath) {
-  if (!confirm('Worktree wirklich entfernen?')) return;
-  const result = await companionPost('/worktree-remove', { worktreePath: wtPath, force: true });
-  if (result && result.action) { toast('🗑 Worktree entfernt'); loadWorktrees(); }
-  else if (result && result.error) toast('Fehler: ' + result.error);
-}
-
-async function mergeWorktree(wtPath) {
-  if (!confirm('Branch mergen und Worktree entfernen?')) return;
-  const result = await companionPost('/worktree-merge', { worktreePath: wtPath });
-  if (result && result.action) { toast('✅ Branch gemerged + Worktree entfernt'); loadWorktrees(); }
-  else if (result && result.error) toast('Fehler: ' + result.error);
-}
-
-// Periodisch Badge aktualisieren (auch wenn Dashboard geschlossen)
+// Periodisch Badge aktualisieren (auch wenn Dispatch geschlossen)
 setInterval(() => { if (companionAvailable) fetchCCInstances(); }, 10000);
 
 // ══════════════════════════════════════
@@ -2629,7 +2965,7 @@ document.addEventListener('keydown', e => {
     if (e.key==='Escape') { e.preventDefault(); closeProjectDropdown(); return; }
   }
   if (e.key==='Escape') {
-    closeModal(); closeBlockedModal(); closeArchive(); closeDeleted(); closeCCDashboard(); if(editMode)cancelEdit(); else closePreview();
+    closeModal(); closeBlockedModal(); closeArchive(); closeDeleted(); closeDispatch(); if(editMode)cancelEdit(); else closePreview();
   }
   const tag = document.activeElement.tagName;
   if (['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
