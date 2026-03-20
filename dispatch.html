@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KanPrompt Dispatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-root: #0e1117;
+    --bg-surface: #161b22;
+    --bg-card: #1c2129;
+    --bg-card-hover: #222830;
+    --border: #2d333b;
+    --border-subtle: #21262d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #585e68;
+    --accent-blue: #58a6ff;
+    --accent-green: #3fb950;
+    --accent-orange: #d29922;
+    --accent-red: #f85149;
+    --accent-purple: #bc8cff;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --transition: 150ms ease;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--bg-root); color: var(--text-primary);
+    height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px; height: 48px; min-height: 48px;
+    background: var(--bg-surface); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-left h1 {
+    font-size: 15px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .version-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    color: var(--text-muted); background: var(--bg-card);
+    padding: 2px 6px; border-radius: var(--radius-sm);
+  }
+  .companion-status {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--text-muted);
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent-green);
+  }
+  .status-dot.disconnected { background: var(--accent-red); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500;
+    padding: 5px 10px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle); background: var(--bg-card);
+    color: var(--text-secondary); cursor: pointer; white-space: nowrap;
+    transition: var(--transition); display: inline-flex; align-items: center; gap: 4px;
+  }
+  .btn:hover { background: var(--bg-card-hover); color: var(--text-primary); border-color: var(--border); }
+  .btn-sm { font-size: 10px; padding: 3px 8px; }
+  .btn-primary {
+    background: var(--accent-blue); color: #000; border-color: var(--accent-blue); font-weight: 600;
+  }
+  .btn-primary:hover { background: #79b8ff; border-color: #79b8ff; }
+
+  /* ── MAIN CONTENT ── */
+  .main-content {
+    flex: 1; overflow-y: auto; padding: 16px 24px;
+    display: flex; flex-direction: column; gap: 0;
+  }
+
+  /* ── DISPATCH QUEUE ── */
+  .dispatch-section-title {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-muted); padding: 8px 0 6px;
+  }
+  .dispatch-count {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--text-muted);
+  }
+  .dispatch-list {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .dispatch-row {
+    display: grid; grid-template-columns: 18px 120px 1fr auto auto auto auto;
+    align-items: center; gap: 8px;
+    padding: 10px 12px; border-radius: var(--radius-sm);
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    font-size: 12px; transition: var(--transition);
+  }
+  .dispatch-row:hover { border-color: var(--border); background: var(--bg-card-hover); }
+  .dispatch-icon { font-size: 14px; text-align: center; }
+  .dispatch-project {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--accent-purple); font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dispatch-title {
+    font-weight: 500; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  }
+  .dispatch-timer {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--accent-blue); flex-shrink: 0; min-width: 40px; text-align: right;
+  }
+  .dispatch-tool {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--text-muted); max-width: 180px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dispatch-cost {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--accent-green); flex-shrink: 0;
+  }
+  .dispatch-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .dispatch-add-btn {
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px 14px; margin-top: 4px; border-radius: var(--radius-sm);
+    background: var(--bg-card); border: 1px dashed var(--border);
+    color: var(--text-muted); font-size: 12px; cursor: pointer;
+    transition: var(--transition); font-family: 'JetBrains Mono', monospace;
+  }
+  .dispatch-add-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+  .empty-hint {
+    padding: 16px; text-align: center; color: var(--text-muted);
+    font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── ADD FORM ── */
+  .add-form {
+    padding: 14px 16px; margin-top: 4px;
+    background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .add-form select, .add-form input {
+    background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm); padding: 6px 8px; font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .add-form select:focus, .add-form input:focus { border-color: var(--accent-blue); outline: none; }
+  .add-row { display: flex; gap: 8px; align-items: center; }
+  .add-row label { font-size: 11px; color: var(--text-muted); min-width: 60px; }
+  .add-row select, .add-row input { flex: 1; }
+  .add-buttons { display: flex; gap: 6px; justify-content: flex-end; margin-top: 4px; }
+
+  /* ── GIT STATUS SECTION ── */
+  .git-section {
+    border-top: 1px solid var(--border-subtle); margin-top: 16px;
+  }
+  .git-toggle {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 0; cursor: pointer; font-size: 11px;
+    color: var(--text-muted); font-family: 'JetBrains Mono', monospace;
+    transition: var(--transition);
+  }
+  .git-toggle:hover { color: var(--text-secondary); }
+  .git-arrow { transition: transform 150ms; font-size: 9px; }
+  .git-toggle.expanded .git-arrow { transform: rotate(90deg); }
+  .git-list {
+    padding: 4px 0 8px; display: flex; flex-direction: column; gap: 2px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  }
+  .git-row {
+    display: flex; align-items: center; gap: 8px; padding: 4px 10px;
+    border-radius: var(--radius-sm);
+  }
+  .git-row.sub { padding-left: 28px; }
+  .git-project { color: var(--text-primary); font-weight: 500; min-width: 120px; }
+  .git-summary { color: var(--text-muted); }
+  .git-clean { color: var(--accent-green); }
+  .git-dirty { color: var(--accent-orange); }
+
+  /* ── TOAST ── */
+  .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 5px; }
+  .toast {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    padding: 7px 12px; border-radius: var(--radius-sm);
+    background: var(--bg-card); color: var(--text-secondary);
+    border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,.5);
+    animation: toast-in 200ms ease;
+  }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>⚡ CC Dispatch</h1>
+    <span class="dispatch-count" id="dispatchCount">0 aktiv / 0</span>
+    <span class="version-tag" id="versionTag"></span>
+  </div>
+  <div class="header-right">
+    <div class="companion-status">
+      <div class="status-dot" id="companionDot"></div>
+      <span id="companionLabel">verbunden</span>
+    </div>
+    <button class="btn" onclick="refreshAll()">🔄 Aktualisieren</button>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="dispatch-list" id="dispatchList"></div>
+  <div class="dispatch-add-btn" onclick="toggleAddForm()">+ Auftrag hinzufügen</div>
+  <div class="add-form" id="addForm" style="display:none;">
+    <div class="add-row">
+      <label>Projekt</label>
+      <select id="addProject" onchange="onProjectChange()">
+        <option value="">— Projekt wählen —</option>
+      </select>
+    </div>
+    <div class="add-row">
+      <label>Prompt</label>
+      <select id="addPrompt" disabled>
+        <option value="">— zuerst Projekt wählen —</option>
+      </select>
+    </div>
+    <div class="add-row">
+      <label>Optionen</label>
+      <label style="min-width:auto;font-size:10px;cursor:pointer;display:flex;align-items:center;gap:3px;">
+        <input type="checkbox" id="addWorktree" checked style="margin:0;accent-color:var(--accent-blue);">Worktree
+      </label>
+    </div>
+    <div class="add-buttons">
+      <button class="btn btn-sm" onclick="cancelAdd()">Abbrechen</button>
+      <button class="btn btn-sm btn-primary" onclick="addItem()">Hinzufügen</button>
+    </div>
+  </div>
+
+  <div class="git-section">
+    <div class="git-toggle" id="gitToggle" onclick="toggleGitSection()">
+      <span class="git-arrow" id="gitArrow">▶</span> Git-Status
+    </div>
+    <div class="git-list" id="gitList" style="display:none;"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+const VERSION = '0.1.0';
+const COMPANION_URL = 'http://127.0.0.1:9177';
+const DISPATCH_LS_KEY = 'kanprompt_dispatch_queue';
+
+let companionAvailable = false;
+let dispatchQueue = [];
+let ccInstances = [];
+let ccSSE = null;
+let ccPollTimer = null;
+let gitSectionExpanded = false;
+let addFormOpen = false;
+let knownProjects = [];
+
+document.getElementById('versionTag').textContent = 'v' + VERSION;
+
+// ══════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function toast(m) { const e = document.createElement('div'); e.className = 'toast'; e.textContent = m; document.getElementById('toasts').appendChild(e); setTimeout(() => e.remove(), 5000); }
+
+function formatDuration(seconds) {
+  if (seconds == null) return '';
+  if (seconds < 60) return Math.round(seconds) + 's';
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return m + 'm ' + s + 's';
+}
+
+// ══════════════════════════════════════
+//  COMPANION COMMUNICATION
+// ══════════════════════════════════════
+async function companionPost(endpoint, body, timeoutMs) {
+  if (!companionAvailable) { toast('Companion Server nicht erreichbar'); return null; }
+  try {
+    const r = await fetch(COMPANION_URL + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs || 5000),
+    });
+    return await r.json();
+  } catch (e) {
+    toast('Companion: ' + e.message);
+    return null;
+  }
+}
+
+async function checkCompanion() {
+  try {
+    const r = await fetch(COMPANION_URL + '/ping', { signal: AbortSignal.timeout(1500) });
+    const data = await r.json();
+    companionAvailable = data.status === 'ok';
+  } catch {
+    companionAvailable = false;
+  }
+  const dot = document.getElementById('companionDot');
+  const label = document.getElementById('companionLabel');
+  if (dot) dot.className = 'status-dot' + (companionAvailable ? '' : ' disconnected');
+  if (label) label.textContent = companionAvailable ? 'verbunden' : 'getrennt';
+}
+
+// ══════════════════════════════════════
+//  DISPATCH QUEUE (localStorage)
+// ══════════════════════════════════════
+function loadDispatchQueue() {
+  try { dispatchQueue = JSON.parse(localStorage.getItem(DISPATCH_LS_KEY) || '[]'); } catch { dispatchQueue = []; }
+}
+function saveDispatchQueue() {
+  localStorage.setItem(DISPATCH_LS_KEY, JSON.stringify(dispatchQueue));
+}
+
+function generateDispatchId() {
+  return 'disp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+}
+
+// ══════════════════════════════════════
+//  SSE + POLLING
+// ══════════════════════════════════════
+function connectSSE() {
+  if (ccSSE) ccSSE.close();
+  try {
+    ccSSE = new EventSource(COMPANION_URL + '/cc-status-stream');
+    ccSSE.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'snapshot') {
+          ccInstances = data.instances || [];
+          syncWithInstances();
+          renderDispatch();
+        } else {
+          fetchInstances();
+        }
+      } catch {}
+    };
+    ccSSE.onerror = () => {
+      if (ccSSE) { ccSSE.close(); ccSSE = null; }
+    };
+  } catch {}
+}
+
+async function fetchInstances() {
+  if (!companionAvailable) return;
+  try {
+    const r = await fetch(COMPANION_URL + '/cc-instances', { signal: AbortSignal.timeout(2000) });
+    const data = await r.json();
+    ccInstances = data.instances || [];
+    syncWithInstances();
+    renderDispatch();
+  } catch {}
+}
+
+function syncWithInstances() {
+  let changed = false;
+  for (const item of dispatchQueue) {
+    let inst = null;
+
+    if (item.instanceId) {
+      inst = ccInstances.find(i => i.id === item.instanceId);
+    } else if (item.status === 'running') {
+      const promptFile = item.prompt.file;
+      inst = ccInstances.find(i =>
+        i.status === 'running' && i.prompt && i.prompt.includes(promptFile)
+        && !dispatchQueue.some(other => other.instanceId === i.id)
+      );
+      if (inst) { item.instanceId = inst.id; changed = true; }
+    }
+
+    if (!inst) continue;
+
+    if (inst.status === 'done' && item.status !== 'done') {
+      item.status = 'done';
+      item.duration = inst.duration;
+      item.cost = inst.cost;
+      item.sessionId = inst.sessionId;
+      changed = true;
+    } else if (inst.status === 'error' && item.status !== 'error') {
+      item.status = 'error';
+      changed = true;
+    } else if (inst.status === 'running') {
+      item.lastTool = inst.lastTool;
+      if (item.status !== 'running') { item.status = 'running'; changed = true; }
+    }
+    if (inst.sessionId && !item.sessionId) { item.sessionId = inst.sessionId; changed = true; }
+  }
+  if (changed) saveDispatchQueue();
+}
+
+// ══════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════
+function renderDispatch() {
+  const list = document.getElementById('dispatchList');
+  const countEl = document.getElementById('dispatchCount');
+  const running = dispatchQueue.filter(i => i.status === 'running').length;
+
+  if (countEl) countEl.textContent = running + ' aktiv / ' + dispatchQueue.length;
+
+  if (dispatchQueue.length === 0) {
+    list.innerHTML = '<div class="empty-hint">Keine Aufträge — klicke "+ Auftrag hinzufügen"</div>';
+    return;
+  }
+
+  list.innerHTML = dispatchQueue.map((item, idx) => {
+    const icons = { ready: '\u26AA', running: '\uD83D\uDFE1', done: '\uD83D\uDFE2', error: '\uD83D\uDD34' };
+    const icon = icons[item.status] || '\u26AA';
+    const num = item.prompt.num ? '#' + item.prompt.num + ' ' : '';
+    const title = num + (item.prompt.title || item.prompt.file);
+
+    let timerHtml = '';
+    let toolHtml = '';
+    let costHtml = '';
+    let actionsHtml = '';
+
+    if (item.status === 'ready') {
+      actionsHtml = `<button class="btn btn-sm btn-primary" onclick="runItem(${idx})">Run</button>`;
+    } else if (item.status === 'running') {
+      const inst = item.instanceId ? ccInstances.find(i => i.id === item.instanceId) : null;
+      const startedAt = inst ? inst.startedAt : item.startedAt;
+      if (startedAt) {
+        const elapsed = (Date.now() - new Date(startedAt).getTime()) / 1000;
+        timerHtml = `<span class="dispatch-timer" data-started="${startedAt}">${formatDuration(elapsed)}</span>`;
+      }
+      toolHtml = `<span class="dispatch-tool" title="${esc(item.lastTool || '')}">${esc(item.lastTool || '')}</span>`;
+      actionsHtml = `<button class="btn btn-sm" onclick="stopItem(${idx})" style="color:var(--accent-red);">Stop</button>`
+        + `<button class="btn btn-sm" onclick="focusItem(${idx})">Fokus</button>`;
+    } else if (item.status === 'done') {
+      timerHtml = `<span class="dispatch-timer">${formatDuration(item.duration)}</span>`;
+      costHtml = item.cost ? `<span class="dispatch-cost">$${item.cost.toFixed(2)}</span>` : '';
+      if (item.sessionId) {
+        const sid = esc(item.sessionId).replace(/'/g, "\\'");
+        const cwd = esc(item.project.path).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        actionsHtml = `<button class="btn btn-sm" onclick="resumeCC('${sid}','${cwd}')">Resume</button>`;
+      }
+    } else if (item.status === 'error') {
+      actionsHtml = `<button class="btn btn-sm btn-primary" onclick="retryItem(${idx})">Retry</button>`;
+    }
+
+    actionsHtml += `<button class="btn btn-sm" onclick="removeItem(${idx})" title="Entfernen" style="color:var(--text-muted);">\u2715</button>`;
+
+    return `<div class="dispatch-row">
+      <span class="dispatch-icon">${icon}</span>
+      <span class="dispatch-project">${esc(item.project.name)}</span>
+      <span class="dispatch-title" title="${esc(title)}">${esc(title)}</span>
+      ${timerHtml}
+      ${toolHtml}
+      ${costHtml}
+      <span class="dispatch-actions">${actionsHtml}</span>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+//  DISPATCH ACTIONS
+// ══════════════════════════════════════
+async function runItem(idx) {
+  const item = dispatchQueue[idx];
+  if (!item || item.status !== 'ready') return;
+
+  const useWorktree = item.worktree;
+  const itemType = item.prompt.type || 'feature';
+  const branchName = itemType + '/' + item.prompt.id;
+  const promptFilePath = item.project.path + '\\doc\\prompts\\new\\' + item.prompt.file;
+
+  item.status = 'running';
+  item.startedAt = new Date().toISOString();
+  saveDispatchQueue();
+  renderDispatch();
+  toast('CC wird gestartet: ' + item.prompt.title + '...');
+
+  const result = await companionPost('/start-cc', {
+    projectPath: item.project.path,
+    promptFilePath,
+    branchName,
+    useWorktree,
+    interactive: true,
+  }, 30000);
+
+  if (result && result.action === 'cc-started') {
+    item.instanceId = result.instanceId;
+    saveDispatchQueue();
+    renderDispatch();
+    toast('CC läuft: ' + (result.branch || item.prompt.title));
+  } else if (result && result.error) {
+    item.status = 'error';
+    saveDispatchQueue();
+    renderDispatch();
+    toast('Fehler: ' + result.error);
+  } else if (!result) {
+    toast('CC-Start: Antwort nicht erhalten — prüfe Companion');
+  }
+}
+
+async function stopItem(idx) {
+  const item = dispatchQueue[idx];
+  if (!item || !item.instanceId) return;
+  const result = await companionPost('/cc-stop', { instanceId: item.instanceId });
+  if (result && result.action) {
+    item.status = 'error';
+    saveDispatchQueue();
+    renderDispatch();
+    toast('CC gestoppt');
+  } else if (result && result.error) {
+    toast('Fehler: ' + result.error);
+  }
+}
+
+async function focusItem(idx) {
+  const item = dispatchQueue[idx];
+  if (!item || !item.instanceId) return;
+  const result = await companionPost('/focus-window', { instanceId: item.instanceId });
+  if (result && result.action === 'focus-fallback' && result.sessionId) {
+    await resumeCC(result.sessionId, result.cwd);
+  }
+}
+
+function retryItem(idx) {
+  const item = dispatchQueue[idx];
+  if (!item) return;
+  item.status = 'ready';
+  item.instanceId = null;
+  item.sessionId = null;
+  item.duration = null;
+  item.cost = null;
+  item.lastTool = null;
+  item.startedAt = null;
+  saveDispatchQueue();
+  renderDispatch();
+}
+
+function removeItem(idx) {
+  dispatchQueue.splice(idx, 1);
+  saveDispatchQueue();
+  renderDispatch();
+}
+
+async function resumeCC(sessionId, cwd) {
+  if (!companionAvailable) { toast('Companion nicht erreichbar'); return; }
+  const result = await companionPost('/open-terminal', {
+    dirPath: cwd,
+    command: 'claude --resume ' + sessionId,
+  });
+  if (result && result.action) toast('Resume-Terminal geöffnet');
+}
+
+// ══════════════════════════════════════
+//  ADD FORM
+// ══════════════════════════════════════
+function toggleAddForm() {
+  addFormOpen = !addFormOpen;
+  document.getElementById('addForm').style.display = addFormOpen ? 'flex' : 'none';
+  if (addFormOpen) populateProjectDropdown();
+}
+
+function cancelAdd() {
+  addFormOpen = false;
+  document.getElementById('addForm').style.display = 'none';
+}
+
+async function populateProjectDropdown() {
+  const select = document.getElementById('addProject');
+  select.innerHTML = '<option value="">Lade Projekte...</option>';
+
+  try {
+    const r = await fetch(COMPANION_URL + '/projects', { signal: AbortSignal.timeout(3000) });
+    const data = await r.json();
+    knownProjects = data.projects || [];
+  } catch {
+    knownProjects = [];
+  }
+
+  select.innerHTML = '<option value="">— Projekt wählen —</option>';
+  knownProjects.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.path;
+    opt.textContent = p.name;
+    select.appendChild(opt);
+  });
+}
+
+async function onProjectChange() {
+  const projectPath = document.getElementById('addProject').value;
+  const promptSelect = document.getElementById('addPrompt');
+  if (!projectPath) {
+    promptSelect.innerHTML = '<option value="">— zuerst Projekt wählen —</option>';
+    promptSelect.disabled = true;
+    return;
+  }
+
+  promptSelect.innerHTML = '<option value="">Lade...</option>';
+  promptSelect.disabled = true;
+
+  const result = await companionPost('/project-backlog', { projectPath });
+  if (!result || result.error) {
+    promptSelect.innerHTML = '<option value="">Fehler: ' + (result?.error || 'nicht erreichbar') + '</option>';
+    return;
+  }
+
+  const items = result.backlog || [];
+  if (items.length === 0) {
+    promptSelect.innerHTML = '<option value="">Kein Backlog vorhanden</option>';
+    return;
+  }
+
+  promptSelect.innerHTML = '<option value="">— Prompt wählen —</option>';
+  items.forEach(item => {
+    const opt = document.createElement('option');
+    opt.value = JSON.stringify(item);
+    const num = item.num ? '#' + item.num + ' ' : '';
+    opt.textContent = num + item.title;
+    promptSelect.appendChild(opt);
+  });
+  promptSelect.disabled = false;
+}
+
+function addItem() {
+  const projectPath = document.getElementById('addProject').value;
+  const promptJson = document.getElementById('addPrompt').value;
+  const useWorktree = document.getElementById('addWorktree').checked;
+
+  if (!projectPath || !promptJson) {
+    toast('Bitte Projekt und Prompt wählen');
+    return;
+  }
+
+  const projectName = document.getElementById('addProject').selectedOptions[0].textContent;
+  const prompt = JSON.parse(promptJson);
+
+  const item = {
+    id: generateDispatchId(),
+    project: { name: projectName, path: projectPath },
+    prompt: { num: prompt.num, title: prompt.title, file: prompt.file, id: prompt.id, type: prompt.type },
+    status: 'ready',
+    instanceId: null,
+    sessionId: null,
+    duration: null,
+    cost: null,
+    lastTool: null,
+    worktree: useWorktree,
+    addedAt: new Date().toISOString(),
+    startedAt: null,
+  };
+
+  dispatchQueue.push(item);
+  saveDispatchQueue();
+  cancelAdd();
+  renderDispatch();
+  toast('Auftrag hinzugefügt: ' + prompt.title);
+}
+
+// ══════════════════════════════════════
+//  GIT STATUS SECTION
+// ══════════════════════════════════════
+function toggleGitSection() {
+  gitSectionExpanded = !gitSectionExpanded;
+  const list = document.getElementById('gitList');
+  const toggle = document.getElementById('gitToggle');
+  const arrow = document.getElementById('gitArrow');
+  list.style.display = gitSectionExpanded ? 'flex' : 'none';
+  toggle.classList.toggle('expanded', gitSectionExpanded);
+  arrow.textContent = gitSectionExpanded ? '\u25BC' : '\u25B6';
+  if (gitSectionExpanded) loadGitStatus();
+}
+
+async function loadGitStatus() {
+  const list = document.getElementById('gitList');
+  if (knownProjects.length === 0) {
+    // Fetch projects first
+    try {
+      const r = await fetch(COMPANION_URL + '/projects', { signal: AbortSignal.timeout(3000) });
+      const data = await r.json();
+      knownProjects = data.projects || [];
+    } catch {
+      knownProjects = [];
+    }
+  }
+
+  if (knownProjects.length === 0) {
+    list.innerHTML = '<div class="empty-hint">Keine Projekte mit bekanntem Pfad</div>';
+    return;
+  }
+
+  list.innerHTML = '<div class="empty-hint">Lade Git-Status...</div>';
+  const paths = knownProjects.map(p => p.path);
+  const result = await companionPost('/git-status-all', { projectPaths: paths });
+  if (!result || !result.results) {
+    list.innerHTML = '<div class="empty-hint">Git-Status nicht verfügbar</div>';
+    return;
+  }
+
+  let html = '';
+  for (const p of knownProjects) {
+    const status = result.results[p.path];
+    if (!status || status.error) {
+      html += `<div class="git-row"><span class="git-project">${esc(p.name)}</span><span class="git-summary" style="color:var(--text-muted);">nicht verfügbar</span></div>`;
+      continue;
+    }
+    const cls = status.dirty ? 'git-dirty' : 'git-clean';
+    html += `<div class="git-row"><span class="git-project">${esc(p.name)}</span><span class="${cls}">${esc(status.summary)}</span></div>`;
+
+    // Load worktrees for this project
+    const wtResult = await companionPost('/worktree-list', { projectPath: p.path });
+    if (wtResult && wtResult.worktrees && wtResult.worktrees.length > 0) {
+      for (const wt of wtResult.worktrees) {
+        const wtName = wt.branch || wt.path.split(/[\\/]/).pop();
+        const wtStatus = result.results[wt.path];
+        const wtCls = wtStatus ? (wtStatus.dirty ? 'git-dirty' : 'git-clean') : '';
+        html += `<div class="git-row sub"><span class="git-project">\u2514 ${esc(wtName)}</span><span class="${wtCls}">${esc(wtStatus ? wtStatus.summary : '')}</span></div>`;
+      }
+    }
+  }
+
+  list.innerHTML = html || '<div class="empty-hint">Keine Projekte gefunden</div>';
+}
+
+// ══════════════════════════════════════
+//  REFRESH ALL
+// ══════════════════════════════════════
+async function refreshAll() {
+  await checkCompanion();
+  if (companionAvailable) {
+    await fetchInstances();
+  }
+  renderDispatch();
+  toast('Aktualisiert');
+}
+
+// ══════════════════════════════════════
+//  LIVE TIMER TICKER
+// ══════════════════════════════════════
+setInterval(() => {
+  document.querySelectorAll('.dispatch-timer[data-started]').forEach(el => {
+    const started = new Date(el.dataset.started).getTime();
+    const elapsed = (Date.now() - started) / 1000;
+    el.textContent = formatDuration(elapsed);
+  });
+}, 1000);
+
+// Periodisch Instanzen abfragen
+setInterval(() => { if (companionAvailable) fetchInstances(); }, 5000);
+
+// Companion-Verbindung prüfen
+setInterval(checkCompanion, 15000);
+
+// ══════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ══════════════════════════════════════
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (addFormOpen) cancelAdd();
+  }
+  const tag = document.activeElement.tagName;
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+  if (e.key === 'r') { e.preventDefault(); refreshAll(); }
+});
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+(async function init() {
+  loadDispatchQueue();
+  await checkCompanion();
+  if (companionAvailable) {
+    connectSSE();
+    ccPollTimer = setInterval(fetchInstances, 2000);
+    await fetchInstances();
+  }
+  renderDispatch();
+})();
+</script>
+</body>
+</html>

@@ -7,6 +7,8 @@
  * Endpoints:
  *   GET  /ping                → health check
  *   GET  /info                → list endpoints
+ *   GET  /dispatch            → serve dispatch.html page
+ *   GET  /projects            → list KanPrompt projects
  *   POST /find-project        → resolve folder name to full path
  *   POST /open-editor         → open file in system default editor
  *   POST /open-terminal       → open terminal at directory
@@ -596,6 +598,44 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // ── DISPATCH PAGE ──
+    if (route === '/dispatch' && req.method === 'GET') {
+      const dispatchPath = path.resolve(__dirname, '..', 'dispatch.html');
+      try {
+        const html = fs.readFileSync(dispatchPath, 'utf-8');
+        setCors(res);
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(html);
+      } catch (e) {
+        json(res, 500, { error: 'dispatch.html nicht gefunden: ' + e.message });
+      }
+      return;
+    }
+
+    // ── PROJECTS LIST (scan search paths for git repos with doc/prompts/) ──
+    if (route === '/projects' && req.method === 'GET') {
+      const projects = [];
+      for (const searchDir of PROJECT_SEARCH_PATHS) {
+        try {
+          if (!fs.existsSync(searchDir)) continue;
+          const entries = fs.readdirSync(searchDir, { withFileTypes: true });
+          for (const entry of entries) {
+            if (!entry.isDirectory()) continue;
+            const fullPath = path.join(searchDir, entry.name);
+            // Check if it has a doc/prompts/ folder (KanPrompt project)
+            const promptsDir = path.join(fullPath, 'doc', 'prompts');
+            if (fs.existsSync(promptsDir)) {
+              projects.push({ name: entry.name, path: fullPath });
+            }
+          }
+        } catch {}
+      }
+      // Deduplicate by path
+      const seen = new Set();
+      const unique = projects.filter(p => { if (seen.has(p.path)) return false; seen.add(p.path); return true; });
+      return json(res, 200, { projects: unique });
+    }
+
     // ── INFO ──
     if (route === '/info' && req.method === 'GET') {
       return json(res, 200, {
@@ -603,6 +643,8 @@ const server = http.createServer(async (req, res) => {
         searchPaths: PROJECT_SEARCH_PATHS,
         endpoints: [
           'GET  /ping', 'GET  /info',
+          'GET  /dispatch              → dispatch.html Seite',
+          'GET  /projects              → KanPrompt-Projekte auflisten',
           'POST /find-project         {name}',
           'POST /open-editor          {filePath, line?}',
           'POST /open-terminal        {dirPath, command?}',
@@ -654,6 +696,8 @@ server.listen(PORT, HOST, () => {
   │    POST /git-status      Git       │
   │    POST /cc-stop         Stop CC   │
   │    POST /focus-window    Focus     │
+  │    GET  /dispatch        Dispatch   │
+  │    GET  /projects        Projekte   │
   │                                      │
   │  Press Ctrl+C to stop               │
   └──────────────────────────────────────┘
