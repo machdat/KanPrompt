@@ -22,6 +22,25 @@ All notable changes to KanPrompt will be documented in this file.
 - Companion-Server auf v1.0.0
 - CORS erlaubt jetzt PUT, PATCH, DELETE Methoden
 
+## [0.20.0] - 2026-03-20
+
+### Added
+- `dispatch.html` — Eigenständige Dispatch-Manager-Seite (Single-File-App wie kanprompt.html)
+- Companion `GET /dispatch` — Liefert dispatch.html unter `http://127.0.0.1:9177/dispatch` aus
+- Companion `GET /projects` — Listet KanPrompt-Projekte aus den Search-Paths auf
+- Vollseiten-Layout: Auftrags-Queue, Add-Dialog, Git-Status-Sektion in eigenem Fenster
+- 📊-Button in kanprompt.html öffnet Dispatch in eigenem Tab/Fenster (kein Duplikat dank `window.open` Name)
+- Mini-Badge am 📊-Button zeigt Anzahl laufender CC-Instanzen
+
+### Changed
+- Companion-Server auf v0.9.0 (mit HTML-Serving)
+- Dispatch-Overlay komplett aus kanprompt.html entfernt (~500 Zeilen CSS+JS+HTML)
+- Dispatch-Queue-State lebt jetzt ausschließlich in dispatch.html (Variante B: Single Source of Truth)
+
+### Removed
+- Dispatch-Overlay in kanprompt.html (HTML, CSS, JS)
+- "+ Dispatch"-Button im Preview-Panel
+
 ## [0.16.0] - 2026-03-19
 
 ### Added
