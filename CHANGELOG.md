@@ -2,6 +2,26 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [1.0.0] - 2026-03-20
+
+### Added
+- **Projects Registry**: Zentrale JSON-Datenbank im Companion als Single Source of Truth für Projekt- und Kartendaten
+- Neue Datei `companion/projects-registry.json` — die Registry-Datenbank
+- REST-API für Projekte: `GET/PUT/DELETE /api/projects/:id`
+- REST-API für Karten: `GET/PUT/DELETE /api/projects/:id/cards/:cardId`
+- Status-Transitions via `PATCH /api/projects/:id/cards/:cardId/status` mit automatischen Timestamps
+- Rückwärtsbewegungen (z.B. done → in-progress) löschen nachfolgende Timestamps
+- Denormalisierter Status wird in die Markdown-Datei geschrieben
+- Kartensortierung via `PUT /api/projects/:id/card-priority`
+- Worktree-Verwaltung via `GET/PUT/DELETE /api/projects/:id/worktrees/:branch`
+- Snapshot-Mechanismus: `POST /api/projects/:id/snapshot` erzeugt `.registry-snapshot.json` im Projekt
+- Recovery: Bei fehlendem `projects-registry.json` wird aus Snapshots wiederhergestellt
+- Atomares Speichern (temp-file + rename) für Datenbank-Integrität
+
+### Changed
+- Companion-Server auf v1.0.0
+- CORS erlaubt jetzt PUT, PATCH, DELETE Methoden
+
 ## [0.16.0] - 2026-03-19
 
 ### Added
