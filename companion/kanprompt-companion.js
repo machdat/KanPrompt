@@ -1,5 +1,5 @@
 /**
- * KanPrompt Companion Server v0.9.0
+ * KanPrompt Companion Server v1.0.0
  *
  * Tiny local HTTP server that bridges the browser sandbox gap.
  * KanPrompt (HTML) talks to this via fetch('http://localhost:9177/...').
@@ -51,7 +51,7 @@ const PROJECT_SEARCH_PATHS = [
 
 function setCors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
@@ -136,6 +136,180 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000);
+
+// ══════════════════════════════════════
+//  PROJECTS REGISTRY
+// ══════════════════════════════════════
+const REGISTRY_FILE = path.join(__dirname, 'projects-registry.json');
+let registry = { version: 1, lastUpdated: null, projects: {} };
+
+function nowISO() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function loadRegistry() {
+  try {
+    if (fs.existsSync(REGISTRY_FILE)) {
+      const raw = fs.readFileSync(REGISTRY_FILE, 'utf-8');
+      registry = JSON.parse(raw);
+      return true;
+    }
+  } catch (e) {
+    console.error('Registry laden fehlgeschlagen:', e.message);
+  }
+  return false;
+}
+
+function saveRegistry() {
+  registry.lastUpdated = nowISO();
+  const tmp = REGISTRY_FILE + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(registry, null, 2), 'utf-8');
+  try {
+    fs.renameSync(tmp, REGISTRY_FILE);
+  } catch {
+    // Fallback for Windows: delete target, then rename
+    try { fs.unlinkSync(REGISTRY_FILE); } catch {}
+    fs.renameSync(tmp, REGISTRY_FILE);
+  }
+}
+
+function recoverFromSnapshots() {
+  const recovered = {};
+  for (const searchDir of PROJECT_SEARCH_PATHS) {
+    try {
+      if (!fs.existsSync(searchDir)) continue;
+      const entries = fs.readdirSync(searchDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const projectPath = path.join(searchDir, entry.name);
+        for (const promptsDir of ['doc/prompts', 'prompts', '.prompts']) {
+          const snapshotFile = path.join(projectPath, promptsDir, '.registry-snapshot.json');
+          try {
+            if (fs.existsSync(snapshotFile)) {
+              const snap = JSON.parse(fs.readFileSync(snapshotFile, 'utf-8'));
+              if (snap.id && !recovered[snap.id]) {
+                recovered[snap.id] = snap;
+                delete recovered[snap.id].id; // id is the key, not a field
+                console.log(`  Recovery: Projekt "${snap.id}" aus ${snapshotFile}`);
+              }
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+  if (Object.keys(recovered).length > 0) {
+    registry.projects = recovered;
+    saveRegistry();
+    console.log(`  ${Object.keys(recovered).length} Projekt(e) aus Snapshots wiederhergestellt.`);
+    return true;
+  }
+  return false;
+}
+
+// Initialize registry
+if (!loadRegistry()) {
+  console.log('Keine Registry gefunden, versuche Recovery aus Snapshots...');
+  if (!recoverFromSnapshots()) {
+    saveRegistry();
+    console.log('Leere Registry erstellt.');
+  }
+} else {
+  console.log(`Registry geladen: ${Object.keys(registry.projects).length} Projekt(e).`);
+}
+
+// Simple route matcher for REST-style paths with :params
+function matchRoute(pathname, pattern) {
+  const pp = pattern.split('/');
+  const up = pathname.split('/');
+  if (pp.length !== up.length) return null;
+  const params = {};
+  for (let i = 0; i < pp.length; i++) {
+    if (pp[i].startsWith(':')) {
+      params[pp[i].slice(1)] = decodeURIComponent(up[i]);
+    } else if (pp[i] !== up[i]) {
+      return null;
+    }
+  }
+  return params;
+}
+
+// Status transition logic
+const STATUS_ORDER = ['new', 'in-progress', 'done', 'deleted'];
+const STATUS_FOLDERS = { 'new': 'new', 'in-progress': 'in-progress', 'done': 'done', 'deleted': 'deleted' };
+
+function transitionCardStatus(card, newStatus) {
+  const oldIdx = STATUS_ORDER.indexOf(card.status);
+  const newIdx = STATUS_ORDER.indexOf(newStatus);
+  if (newIdx === -1) return { error: 'Ungültiger Status: ' + newStatus };
+
+  const oldStatus = card.status;
+  card.status = newStatus;
+
+  if (!card.timestamps) card.timestamps = {};
+  card.timestamps[newStatus] = nowISO();
+
+  // Backward movement: clear timestamps for states after the new one
+  if (newIdx < oldIdx) {
+    for (let i = newIdx + 1; i < STATUS_ORDER.length; i++) {
+      card.timestamps[STATUS_ORDER[i]] = null;
+    }
+  }
+
+  return { ok: true, oldStatus };
+}
+
+// Write denormalized status into markdown file (best-effort)
+function writeDenormalizedStatus(project, card) {
+  if (!project.projectPath || !project.promptsDir || !card.file) return;
+  // Try each possible folder (file may not have moved yet)
+  let filePath = null;
+  for (const folder of Object.values(STATUS_FOLDERS)) {
+    const candidate = path.join(project.projectPath, project.promptsDir, folder, card.file);
+    if (fs.existsSync(candidate)) { filePath = candidate; break; }
+  }
+  if (!filePath) return;
+  try {
+    let content = fs.readFileSync(filePath, 'utf-8');
+    const statusLine = `<!-- status: ${card.status} -->`;
+    if (content.match(/^<!-- status: .* -->$/m)) {
+      content = content.replace(/^<!-- status: .* -->$/m, statusLine);
+    } else {
+      // Insert after first # heading
+      const headingMatch = content.match(/^(# .*\n)/m);
+      if (headingMatch) {
+        const idx = content.indexOf(headingMatch[0]) + headingMatch[0].length;
+        content = content.slice(0, idx) + statusLine + '\n' + content.slice(idx);
+      } else {
+        content = statusLine + '\n' + content;
+      }
+    }
+    fs.writeFileSync(filePath, content, 'utf-8');
+  } catch {}
+}
+
+// Create snapshot for a project
+function createSnapshot(projectId) {
+  const project = registry.projects[projectId];
+  if (!project) return { error: 'Projekt nicht gefunden: ' + projectId };
+  if (!project.projectPath || !project.promptsDir) return { error: 'projectPath/promptsDir nicht konfiguriert' };
+
+  const snapshotData = { id: projectId, ...project };
+  const snapshotDir = path.join(project.projectPath, project.promptsDir);
+  const snapshotPath = path.join(snapshotDir, '.registry-snapshot.json');
+
+  try {
+    if (!fs.existsSync(snapshotDir)) return { error: 'Prompts-Verzeichnis existiert nicht: ' + snapshotDir };
+    fs.writeFileSync(snapshotPath, JSON.stringify(snapshotData, null, 2), 'utf-8');
+    project.lastSnapshotAt = nowISO();
+    saveRegistry();
+    return { ok: true, path: snapshotPath };
+  } catch (e) {
+    return { error: 'Snapshot fehlgeschlagen: ' + e.message };
+  }
+}
 
 // Find a project folder by name across known search paths
 function findProjectPath(folderName) {
@@ -258,7 +432,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // ── PING ──
     if (route === '/ping' && req.method === 'GET') {
-      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '0.9.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
+      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '1.0.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
     }
 
     // ── FIND PROJECT (resolves folder name → full path) ──
@@ -411,6 +585,214 @@ const server = http.createServer(async (req, res) => {
       req.on('close', () => sseClients.delete(res));
       return; // keep connection open
     }
+
+    // ══════════════════════════════════════
+    //  PROJECTS REGISTRY API
+    // ══════════════════════════════════════
+    let params;
+
+    // ── GET /api/projects — Liste aller Projekte (Kurzform) ──
+    if (route === '/api/projects' && req.method === 'GET') {
+      const summary = {};
+      for (const [id, proj] of Object.entries(registry.projects)) {
+        summary[id] = { projectPath: proj.projectPath, mainBranch: proj.mainBranch };
+      }
+      return json(res, 200, { projects: summary });
+    }
+
+    // ── GET /api/projects/:id — Kompletter Projektdatensatz ──
+    if ((params = matchRoute(route, '/api/projects/:id')) && req.method === 'GET') {
+      const project = registry.projects[params.id];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
+      return json(res, 200, { id: params.id, ...project });
+    }
+
+    // ── PUT /api/projects/:id — Projekt anlegen oder aktualisieren ──
+    if ((params = matchRoute(route, '/api/projects/:id')) && req.method === 'PUT') {
+      const body = await readBody(req);
+      const id = params.id;
+      const existing = registry.projects[id] || {};
+      // Merge: body fields overwrite existing, but preserve cards/worktrees if not sent
+      registry.projects[id] = {
+        projectPath: body.projectPath || existing.projectPath || null,
+        gitRemote: body.gitRemote || existing.gitRemote || null,
+        worktreeBase: body.worktreeBase || existing.worktreeBase || null,
+        mainBranch: body.mainBranch || existing.mainBranch || 'master',
+        worktreeBaseDir: body.worktreeBaseDir || existing.worktreeBaseDir || null,
+        promptsDir: body.promptsDir || existing.promptsDir || 'doc/prompts',
+        versionFiles: body.versionFiles || existing.versionFiles || [],
+        changelogFile: body.changelogFile || existing.changelogFile || 'CHANGELOG.md',
+        branchPattern: body.branchPattern || existing.branchPattern || 'feature/{slug}',
+        nextNum: body.nextNum != null ? body.nextNum : (existing.nextNum || 1),
+        cards: existing.cards || [],
+        cardPriority: existing.cardPriority || [],
+        worktrees: existing.worktrees || [],
+        lastSnapshotAt: existing.lastSnapshotAt || null,
+      };
+      saveRegistry();
+      return json(res, 200, { action: existing.projectPath ? 'updated' : 'created', id });
+    }
+
+    // ── DELETE /api/projects/:id — Projekt entfernen ──
+    if ((params = matchRoute(route, '/api/projects/:id')) && req.method === 'DELETE') {
+      if (!registry.projects[params.id]) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
+      delete registry.projects[params.id];
+      saveRegistry();
+      return json(res, 200, { action: 'deleted', id: params.id });
+    }
+
+    // ── GET /api/projects/:id/cards — Alle Karten, optional ?status=new,in-progress ──
+    if ((params = matchRoute(route, '/api/projects/:id/cards')) && req.method === 'GET') {
+      const project = registry.projects[params.id];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
+      let cards = project.cards || [];
+      const qs = url.parse(req.url, true).query;
+      if (qs.status) {
+        const allowed = qs.status.split(',').map(s => s.trim());
+        cards = cards.filter(c => allowed.includes(c.status));
+      }
+      return json(res, 200, { id: params.id, cards });
+    }
+
+    // ── GET /api/projects/:id/cards/:cardId — Einzelne Karte ──
+    if ((params = matchRoute(route, '/api/projects/:id/cards/:cardId')) && req.method === 'GET') {
+      const project = registry.projects[params.id];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
+      const card = (project.cards || []).find(c => c.id === params.cardId);
+      if (!card) return json(res, 404, { error: 'Karte nicht gefunden: ' + params.cardId });
+      return json(res, 200, card);
+    }
+
+    // ── PUT /api/projects/:id/cards/:cardId — Karte anlegen oder aktualisieren ──
+    if ((params = matchRoute(route, '/api/projects/:id/cards/:cardId')) && req.method === 'PUT') {
+      const project = registry.projects[params.id];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
+      if (!project.cards) project.cards = [];
+      const body = await readBody(req);
+      const idx = project.cards.findIndex(c => c.id === params.cardId);
+      const cardData = {
+        id: params.cardId,
+        file: body.file || params.cardId + '.md',
+        title: body.title || params.cardId,
+        type: body.type || 'feature',
+        num: body.num != null ? body.num : (idx >= 0 ? project.cards[idx].num : project.nextNum++),
+        status: body.status || (idx >= 0 ? project.cards[idx].status : 'new'),
+        timestamps: body.timestamps || (idx >= 0 ? project.cards[idx].timestamps : { new: nowISO(), 'in-progress': null, done: null, deleted: null }),
+      };
+      if (idx >= 0) {
+        project.cards[idx] = cardData;
+      } else {
+        project.cards.push(cardData);
+        if (!project.cardPriority) project.cardPriority = [];
+        project.cardPriority.push(params.cardId);
+      }
+      saveRegistry();
+      return json(res, 200, { action: idx >= 0 ? 'updated' : 'created', card: cardData });
+    }
+
+    // ── PATCH /api/projects/:id/cards/:cardId/status — Status-Transition ──
+    if ((params = matchRoute(route, '/api/projects/:id/cards/:cardId/status')) && req.method === 'PATCH') {
+      const project = registry.projects[params.id];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
+      const card = (project.cards || []).find(c => c.id === params.cardId);
+      if (!card) return json(res, 404, { error: 'Karte nicht gefunden: ' + params.cardId });
+      const body = await readBody(req);
+      if (!body.status) return json(res, 400, { error: 'status required' });
+
+      const result = transitionCardStatus(card, body.status);
+      if (result.error) return json(res, 400, result);
+
+      writeDenormalizedStatus(project, card);
+      saveRegistry();
+      return json(res, 200, { action: 'transitioned', from: result.oldStatus, to: card.status, card });
+    }
+
+    // ── DELETE /api/projects/:id/cards/:cardId — Karte auf deleted setzen ──
+    if ((params = matchRoute(route, '/api/projects/:id/cards/:cardId')) && req.method === 'DELETE') {
+      const project = registry.projects[params.id];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
+      const card = (project.cards || []).find(c => c.id === params.cardId);
+      if (!card) return json(res, 404, { error: 'Karte nicht gefunden: ' + params.cardId });
+      transitionCardStatus(card, 'deleted');
+      writeDenormalizedStatus(project, card);
+      saveRegistry();
+      return json(res, 200, { action: 'deleted', card });
+    }
+
+    // ── PUT /api/projects/:id/card-priority — Reihenfolge neu setzen ──
+    if ((params = matchRoute(route, '/api/projects/:id/card-priority')) && req.method === 'PUT') {
+      const project = registry.projects[params.id];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
+      const body = await readBody(req);
+      if (!Array.isArray(body.cardPriority)) return json(res, 400, { error: 'cardPriority[] required' });
+      project.cardPriority = body.cardPriority;
+      saveRegistry();
+      return json(res, 200, { action: 'priority-updated', cardPriority: project.cardPriority });
+    }
+
+    // ── GET /api/projects/:id/worktrees — Worktrees des Projekts ──
+    if ((params = matchRoute(route, '/api/projects/:id/worktrees')) && req.method === 'GET') {
+      const project = registry.projects[params.id];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
+      return json(res, 200, { id: params.id, worktrees: project.worktrees || [] });
+    }
+
+    // ── PUT /api/projects/:id/worktrees/:branch — Worktree registrieren ──
+    // Branch may contain slashes, so use regex match
+    if (route.match(/^\/api\/projects\/[^/]+\/worktrees\/.+$/) && req.method === 'PUT') {
+      const m = route.match(/^\/api\/projects\/([^/]+)\/worktrees\/(.+)$/);
+      const projectId = decodeURIComponent(m[1]);
+      const branch = decodeURIComponent(m[2]);
+      const project = registry.projects[projectId];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + projectId });
+      if (!project.worktrees) project.worktrees = [];
+      const body = await readBody(req);
+      const idx = project.worktrees.findIndex(w => w.branch === branch);
+      const wtData = {
+        branch,
+        path: body.path || null,
+        cardId: body.cardId || null,
+        status: body.status || 'pending',
+        resumeChatId: body.resumeChatId || null,
+        startedAt: body.startedAt || null,
+        lastActivityAt: body.lastActivityAt || null,
+        runtime: body.runtime || 0,
+        cost: body.cost || 0.0,
+        error: body.error || null,
+      };
+      if (idx >= 0) {
+        Object.assign(project.worktrees[idx], wtData);
+      } else {
+        project.worktrees.push(wtData);
+      }
+      saveRegistry();
+      return json(res, 200, { action: idx >= 0 ? 'updated' : 'registered', worktree: wtData });
+    }
+
+    // ── DELETE /api/projects/:id/worktrees/:branch — Worktree entfernen ──
+    if (route.match(/^\/api\/projects\/[^/]+\/worktrees\/.+$/) && req.method === 'DELETE') {
+      const m = route.match(/^\/api\/projects\/([^/]+)\/worktrees\/(.+)$/);
+      const projectId = decodeURIComponent(m[1]);
+      const branch = decodeURIComponent(m[2]);
+      const project = registry.projects[projectId];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + projectId });
+      const idx = (project.worktrees || []).findIndex(w => w.branch === branch);
+      if (idx < 0) return json(res, 404, { error: 'Worktree nicht gefunden: ' + branch });
+      project.worktrees.splice(idx, 1);
+      saveRegistry();
+      return json(res, 200, { action: 'removed', branch });
+    }
+
+    // ── POST /api/projects/:id/snapshot — Snapshot erzeugen ──
+    if ((params = matchRoute(route, '/api/projects/:id/snapshot')) && req.method === 'POST') {
+      const result = createSnapshot(params.id);
+      if (result.error) return json(res, 400, result);
+      return json(res, 200, { action: 'snapshot-created', path: result.path });
+    }
+
+    // ── Doppelstart-Schutz (Helper, wird von /start-cc genutzt) ──
+    // Check: GET /api/projects/:id/worktrees already handles listing;
+    // double-start check is done inline in the response
 
     // ── WORKTREE LIST ──
     if (route === '/worktree-list' && req.method === 'POST') {
@@ -599,7 +981,7 @@ const server = http.createServer(async (req, res) => {
     // ── INFO ──
     if (route === '/info' && req.method === 'GET') {
       return json(res, 200, {
-        server: 'kanprompt-companion', version: '0.9.0',
+        server: 'kanprompt-companion', version: '1.0.0',
         searchPaths: PROJECT_SEARCH_PATHS,
         endpoints: [
           'GET  /ping', 'GET  /info',
@@ -621,6 +1003,21 @@ const server = http.createServer(async (req, res) => {
           'POST /git-status-all       {projectPaths[]}',
           'POST /cc-stop              {instanceId}',
           'POST /focus-window         {instanceId}',
+          '── Projects Registry API ──',
+          'GET    /api/projects                           → alle Projekte',
+          'GET    /api/projects/:id                       → Projektdetails',
+          'PUT    /api/projects/:id                       → Projekt anlegen/aktualisieren',
+          'DELETE /api/projects/:id                       → Projekt entfernen',
+          'GET    /api/projects/:id/cards                 → Karten (?status=new,in-progress)',
+          'GET    /api/projects/:id/cards/:cardId         → einzelne Karte',
+          'PUT    /api/projects/:id/cards/:cardId         → Karte anlegen/aktualisieren',
+          'PATCH  /api/projects/:id/cards/:cardId/status  → Status-Transition',
+          'DELETE /api/projects/:id/cards/:cardId         → Karte löschen (soft)',
+          'PUT    /api/projects/:id/card-priority         → Sortierung setzen',
+          'GET    /api/projects/:id/worktrees             → Worktrees',
+          'PUT    /api/projects/:id/worktrees/:branch     → Worktree registrieren',
+          'DELETE /api/projects/:id/worktrees/:branch     → Worktree entfernen',
+          'POST   /api/projects/:id/snapshot              → Snapshot erzeugen',
         ],
       });
     }
@@ -634,7 +1031,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`
   ┌──────────────────────────────────────┐
-  │  KanPrompt Companion  v0.9.0         │
+  │  KanPrompt Companion  v1.0.0         │
   │  http://${HOST}:${PORT}               │
   │                                      │
   │  Endpoints:                          │
