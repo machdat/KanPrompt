@@ -485,6 +485,14 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '1.1.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
     }
 
+    // ── SHUTDOWN ──
+    if (route === '/shutdown' && req.method === 'POST') {
+      json(res, 200, { status: 'shutting down' });
+      console.log('\n  Shutdown angefordert — Server wird beendet...');
+      setTimeout(() => process.exit(0), 500);
+      return;
+    }
+
     // ── FIND PROJECT (resolves folder name → full path) ──
     if (route === '/find-project' && req.method === 'POST') {
       const { name } = await readBody(req);

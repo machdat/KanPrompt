@@ -546,6 +546,7 @@
       <div style="display:flex;align-items:center;gap:6px;margin-right:6px;" id="companionStatus" title="Companion Server">
         <div class="status-dot paused" id="companionDot"></div>
         <span class="status-label" id="companionLabel">companion</span>
+        <button class="btn" id="companionToggleBtn" onclick="toggleCompanion()" style="font-size:11px;padding:2px 6px;margin-left:2px;display:none;"></button>
       </div>
       <button class="btn companion-only" onclick="openDispatchPage()" id="ccDispatchBtn" style="display:none;" title="CC Dispatch öffnen (eigenes Fenster)">📊<span class="cc-badge hidden" id="ccBadge">0</span></button>
       <button class="btn" onclick="launchClaudeCode()" id="claudeCodeBtn" style="display:none;" title="Claude Code im Projekt-Ordner starten">⚡ Claude Code</button>
@@ -801,9 +802,15 @@ function updateCompanionUI() {
   const dot = document.getElementById('companionDot');
   const label = document.getElementById('companionLabel');
   const ccBtn = document.getElementById('claudeCodeBtn');
+  const toggleBtn = document.getElementById('companionToggleBtn');
   if (dot) dot.className = 'status-dot' + (companionAvailable ? '' : ' paused');
   if (label) label.textContent = companionAvailable ? 'companion' : 'no companion';
   if (ccBtn) ccBtn.style.display = companionAvailable ? 'flex' : 'none';
+  if (toggleBtn) {
+    toggleBtn.style.display = 'inline-block';
+    toggleBtn.textContent = companionAvailable ? 'Stop' : 'Start';
+    toggleBtn.title = companionAvailable ? 'Companion Server beenden' : 'Companion Server starten (Pfad kopieren)';
+  }
   // Show/hide companion-only buttons in preview
   document.querySelectorAll('.companion-only').forEach(el => {
     el.style.display = companionAvailable ? 'flex' : 'none';
@@ -823,6 +830,28 @@ function updateCCButtonState() {
   if (wtLabel && wtLabel.classList.contains('companion-only')) {
     wtLabel.style.opacity = isBacklog ? '' : '0.4';
     wtLabel.style.pointerEvents = isBacklog ? '' : 'none';
+  }
+}
+
+async function toggleCompanion() {
+  if (companionAvailable) {
+    // Stop
+    if (!confirm('Companion Server wirklich beenden?')) return;
+    try {
+      await fetch(COMPANION_URL + '/shutdown', { method: 'POST', signal: AbortSignal.timeout(3000) });
+    } catch {}
+    companionAvailable = false;
+    updateCompanionUI();
+    toast('Companion Server beendet');
+  } else {
+    // Start — Browser kann keine lokalen Prozesse starten, also Pfad kopieren
+    const batPath = 'restart-companion.bat';
+    try {
+      await navigator.clipboard.writeText(batPath);
+      toast('Kopiert! Starte "' + batPath + '" per Doppelklick aus dem companion/ Ordner');
+    } catch {
+      toast('Starte companion/restart-companion.bat per Doppelklick');
+    }
   }
 }
 
