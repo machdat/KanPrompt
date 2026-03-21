@@ -1036,11 +1036,49 @@ const server = http.createServer(async (req, res) => {
     if (route === '/worktree-remove' && req.method === 'POST') {
       const { worktreePath, force } = await readBody(req);
       if (!worktreePath) return json(res, 400, { error: 'worktreePath required' });
+      const wtResolved = path.resolve(worktreePath);
       const forceFlag = force ? ' --force' : '';
-      exec(`git worktree remove "${path.resolve(worktreePath)}"${forceFlag}`, (err) => {
-        if (err) return json(res, 500, { error: err.message });
+
+      try {
+        await execPromise(`git worktree remove "${wtResolved}"${forceFlag}`);
         json(res, 200, { action: 'worktree-removed', path: worktreePath });
-      });
+      } catch (err) {
+        // Fallback cleanup for inconsistent worktree state
+        let mainRepo = null;
+        try {
+          const commonDir = (await execPromise(`git -C "${wtResolved}" rev-parse --git-common-dir`)).trim();
+          mainRepo = path.resolve(commonDir, '..');
+        } catch {
+          // Heuristic: parent of worktree dir (e.g. /repo-worktrees/branch → /repo-worktrees/..)
+          const parent = path.dirname(wtResolved);
+          if (parent.endsWith('-worktrees')) {
+            mainRepo = path.resolve(parent, '..');
+          }
+        }
+
+        let pruned = false;
+        let dirRemoved = false;
+        const pruneRepo = mainRepo || wtResolved;
+
+        try {
+          await execPromise(`git -C "${pruneRepo}" worktree prune`);
+          pruned = true;
+        } catch {}
+
+        if (fs.existsSync(wtResolved)) {
+          const wtNorm = wtResolved.replace(/\\/g, '/');
+          if (!wtNorm.includes('-worktrees/')) {
+            return json(res, 500, {
+              error: 'Sicherheitscheck: Pfad enthält kein -worktrees/ — Verzeichnis wird nicht gelöscht',
+              path: wtResolved,
+            });
+          }
+          fs.rmSync(wtResolved, { recursive: true, force: true });
+          dirRemoved = true;
+        }
+
+        json(res, 200, { action: 'worktree-removed', path: worktreePath, pruned, dirRemoved });
+      }
       return;
     }
 
@@ -1122,7 +1160,33 @@ const server = http.createServer(async (req, res) => {
         // Remove worktree (via main repo for reliability)
         const forceFlag = (isDirty && force) ? ' --force' : '';
         const removeRepo = mainRepo || wtResolved;
-        await execPromise(`git -C "${removeRepo}" worktree remove "${wtResolved}"${forceFlag}`);
+        let pruned = false;
+        let dirRemoved = false;
+
+        try {
+          await execPromise(`git -C "${removeRepo}" worktree remove "${wtResolved}"${forceFlag}`);
+        } catch (removeErr) {
+          // Fallback cleanup for inconsistent worktree state
+          try {
+            await execPromise(`git -C "${removeRepo}" worktree prune`);
+            pruned = true;
+          } catch {}
+
+          if (fs.existsSync(wtResolved)) {
+            // Safety: only delete directories inside a *-worktrees/ folder
+            const wtNorm = wtResolved.replace(/\\/g, '/');
+            if (!wtNorm.includes('-worktrees/')) {
+              return json(res, 500, {
+                success: false,
+                error: 'Sicherheitscheck: Pfad enthält kein -worktrees/ — Verzeichnis wird nicht gelöscht',
+                path: wtResolved,
+              });
+            }
+            fs.rmSync(wtResolved, { recursive: true, force: true });
+            dirRemoved = true;
+          }
+        }
+
         let deletedBranch = null;
 
         // Optionally delete branch
@@ -1140,7 +1204,7 @@ const server = http.createServer(async (req, res) => {
           }
         }
 
-        json(res, 200, { success: true, removedWorktree: true, deletedBranch, branch });
+        json(res, 200, { success: true, removedWorktree: true, pruned, dirRemoved, deletedBranch, branch });
       } catch (e) {
         json(res, 500, { success: false, error: e.message });
       }
