@@ -594,7 +594,13 @@ async function populateProjectDropdown() {
   knownProjects.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.path;
-    opt.textContent = p.name;
+    if (p.error) {
+      opt.textContent = p.name + ' — ' + p.error;
+      opt.disabled = true;
+      opt.style.color = '#888';
+    } else {
+      opt.textContent = p.name;
+    }
     select.appendChild(opt);
   });
 }

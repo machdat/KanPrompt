@@ -1,5 +1,5 @@
 /**
- * KanPrompt Companion Server v1.0.0
+ * KanPrompt Companion Server v1.1.0
  *
  * Tiny local HTTP server that bridges the browser sandbox gap.
  * KanPrompt (HTML) talks to this via fetch('http://localhost:9177/...').
@@ -37,8 +37,9 @@ const path = require('path');
 const fs = require('fs');
 const url = require('url');
 const os = require('os');
+const { getProjectsFromRegistry } = require('./project-utils');
 
-const PORT = 9177;
+const PORT = parseInt(process.env.COMPANION_PORT, 10) || 9177;
 const HOST = '127.0.0.1';
 
 // Directories to search for projects (add your own)
@@ -211,6 +212,34 @@ function recoverFromSnapshots() {
   return false;
 }
 
+// One-time migration: scan PROJECT_SEARCH_PATHS and auto-register found KanPrompt projects
+function migrateFromSearchPaths() {
+  let count = 0;
+  for (const searchDir of PROJECT_SEARCH_PATHS) {
+    try {
+      if (!fs.existsSync(searchDir)) continue;
+      const entries = fs.readdirSync(searchDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const projectPath = path.join(searchDir, entry.name);
+        if (fs.existsSync(path.join(projectPath, 'doc', 'prompts'))) {
+          const id = entry.name;
+          if (!registry.projects[id]) {
+            registry.projects[id] = { projectPath, promptsDir: 'doc/prompts', mainBranch: 'master' };
+            console.log(`  Migration: Projekt "${id}" registriert (${projectPath})`);
+            count++;
+          }
+        }
+      }
+    } catch {}
+  }
+  if (count > 0) {
+    saveRegistry();
+    console.log(`  ${count} Projekt(e) aus Disk-Scan migriert.`);
+  }
+  return count > 0;
+}
+
 // Initialize registry
 if (!loadRegistry()) {
   console.log('Keine Registry gefunden, versuche Recovery aus Snapshots...');
@@ -220,6 +249,24 @@ if (!loadRegistry()) {
   }
 } else {
   console.log(`Registry geladen: ${Object.keys(registry.projects).length} Projekt(e).`);
+}
+
+// If registry is empty, try migration from disk scan (one-time bootstrap)
+if (Object.keys(registry.projects).length === 0) {
+  console.log('Registry leer, starte einmalige Migration aus Disk-Scan...');
+  migrateFromSearchPaths();
+}
+
+// Auto-register the companion's own project (handles deep paths like C:\git\local\KanPrompt)
+const ownProjectPath = path.resolve(__dirname, '..');
+const ownPromptsDir = path.join(ownProjectPath, 'doc', 'prompts');
+if (fs.existsSync(ownPromptsDir)) {
+  const ownId = path.basename(ownProjectPath);
+  if (!registry.projects[ownId]) {
+    registry.projects[ownId] = { projectPath: ownProjectPath, promptsDir: 'doc/prompts', mainBranch: 'master' };
+    saveRegistry();
+    console.log(`  Auto-Register: Eigenes Projekt "${ownId}" (${ownProjectPath})`);
+  }
 }
 
 // Simple route matcher for REST-style paths with :params
@@ -313,20 +360,21 @@ function createSnapshot(projectId) {
   }
 }
 
-// Find a project folder by name across known search paths
+// Find a project folder by name — looks up the registry first, falls back to absolute path
 function findProjectPath(folderName) {
   const results = [];
-  for (const searchDir of PROJECT_SEARCH_PATHS) {
-    const candidate = path.join(searchDir, folderName);
+  // Check registry by project id
+  const proj = registry.projects[folderName];
+  if (proj && proj.projectPath) {
     try {
-      if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
-        results.push(candidate);
+      if (fs.existsSync(proj.projectPath) && fs.statSync(proj.projectPath).isDirectory()) {
+        results.push(proj.projectPath);
       }
     } catch {}
   }
   // Also check if folderName itself is an absolute path
   try {
-    if (path.isAbsolute(folderName) && fs.existsSync(folderName)) {
+    if (path.isAbsolute(folderName) && fs.existsSync(folderName) && !results.includes(folderName)) {
       results.push(folderName);
     }
   } catch {}
@@ -434,7 +482,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // ── PING ──
     if (route === '/ping' && req.method === 'GET') {
-      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '1.0.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
+      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '1.1.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
     }
 
     // ── FIND PROJECT (resolves folder name → full path) ──
@@ -443,7 +491,7 @@ const server = http.createServer(async (req, res) => {
       if (!name) return json(res, 400, { error: 'name required' });
       const results = findProjectPath(name);
       if (results.length === 0) {
-        return json(res, 200, { found: false, name, searchPaths: PROJECT_SEARCH_PATHS });
+        return json(res, 200, { found: false, name });
       }
       return json(res, 200, { found: true, path: results[0], all: results });
     }
@@ -994,35 +1042,16 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // ── PROJECTS LIST (scan search paths for git repos with doc/prompts/) ──
+    // ── PROJECTS LIST (from registry) ──
     if (route === '/projects' && req.method === 'GET') {
-      const projects = [];
-      for (const searchDir of PROJECT_SEARCH_PATHS) {
-        try {
-          if (!fs.existsSync(searchDir)) continue;
-          const entries = fs.readdirSync(searchDir, { withFileTypes: true });
-          for (const entry of entries) {
-            if (!entry.isDirectory()) continue;
-            const fullPath = path.join(searchDir, entry.name);
-            // Check if it has a doc/prompts/ folder (KanPrompt project)
-            const promptsDir = path.join(fullPath, 'doc', 'prompts');
-            if (fs.existsSync(promptsDir)) {
-              projects.push({ name: entry.name, path: fullPath });
-            }
-          }
-        } catch {}
-      }
-      // Deduplicate by path
-      const seen = new Set();
-      const unique = projects.filter(p => { if (seen.has(p.path)) return false; seen.add(p.path); return true; });
-      return json(res, 200, { projects: unique });
+      const projects = getProjectsFromRegistry(registry, fs);
+      return json(res, 200, { projects });
     }
 
     // ── INFO ──
     if (route === '/info' && req.method === 'GET') {
       return json(res, 200, {
-        server: 'kanprompt-companion', version: '1.0.0',
-        searchPaths: PROJECT_SEARCH_PATHS,
+        server: 'kanprompt-companion', version: '1.1.0',
         endpoints: [
           'GET  /ping', 'GET  /info',
           'GET  /dispatch              → dispatch.html Seite',
@@ -1070,10 +1099,24 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+let listenRetries = 0;
+const MAX_LISTEN_RETRIES = 5;
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE' && listenRetries < MAX_LISTEN_RETRIES) {
+    listenRetries++;
+    console.log(`  Port ${PORT} belegt, Retry ${listenRetries}/${MAX_LISTEN_RETRIES} in 2s...`);
+    setTimeout(() => server.listen(PORT, HOST), 2000);
+  } else {
+    console.error('Server-Fehler:', err.message);
+    process.exit(1);
+  }
+});
+
 server.listen(PORT, HOST, () => {
   console.log(`
   ┌──────────────────────────────────────┐
-  │  KanPrompt Companion  v1.0.0         │
+  │  KanPrompt Companion  v1.1.0         │
   │  http://${HOST}:${PORT}               │
   │                                      │
   │  Endpoints:                          │
