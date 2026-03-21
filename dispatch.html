@@ -188,6 +188,66 @@
   .git-clean { color: var(--accent-green); }
   .git-dirty { color: var(--accent-orange); }
 
+  /* ── WORKTREE BADGE ── */
+  .wt-badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--accent-green); white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 2px;
+  }
+  .btn-merge { color: var(--accent-blue) !important; }
+  .btn-delete { color: var(--accent-orange) !important; }
+
+  /* ── MODAL DIALOG ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.65);
+    z-index: 300; display: flex; align-items: center; justify-content: center;
+    animation: fade-in 150ms ease;
+  }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 20px 24px; min-width: 380px; max-width: 520px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+  }
+  .modal h3 {
+    font-size: 14px; font-weight: 600; margin-bottom: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .modal-body {
+    font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;
+    font-family: 'JetBrains Mono', monospace; line-height: 1.6;
+  }
+  .modal-stat {
+    display: flex; gap: 16px; margin: 10px 0;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  }
+  .modal-stat span { display: flex; align-items: center; gap: 4px; }
+  .modal-stat .ins { color: var(--accent-green); }
+  .modal-stat .del { color: var(--accent-red); }
+  .modal-stat .files { color: var(--accent-blue); }
+  .modal-warning {
+    background: rgba(210,153,34,.12); border: 1px solid var(--accent-orange);
+    border-radius: var(--radius-sm); padding: 8px 10px; margin: 8px 0;
+    font-size: 11px; color: var(--accent-orange);
+  }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .modal-actions .btn { font-size: 11px; }
+  .modal-select {
+    background: var(--bg-card); color: var(--text-primary);
+    border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
+    padding: 4px 6px; font-size: 11px; font-family: 'JetBrains Mono', monospace;
+    margin-left: 6px;
+  }
+  .modal-checkbox {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text-secondary); margin: 8px 0;
+    font-family: 'JetBrains Mono', monospace; cursor: pointer;
+  }
+  .modal-checkbox input { accent-color: var(--accent-blue); }
+
+  /* ── GIT ORPHAN ── */
+  .git-orphan { color: var(--accent-orange); }
+
   /* ── TOAST ── */
   .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 5px; }
   .toast {
@@ -253,13 +313,14 @@
   </div>
 </div>
 
+<div id="modalContainer"></div>
 <div class="toast-container" id="toasts"></div>
 
 <script>
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 const DISPATCH_LS_KEY = 'kanprompt_dispatch_queue';
 
@@ -427,6 +488,8 @@ function renderDispatch() {
     const icon = icons[item.status] || '\u26AA';
     const num = item.prompt.num ? '#' + item.prompt.num + ' ' : '';
     const title = num + (item.prompt.title || item.prompt.file);
+    const hasWorktree = item.worktree && item.worktreePath;
+    const wtBadge = hasWorktree ? `<span class="wt-badge" title="${esc(item.worktreeBranch || '')}">🌿 ${esc(item.worktreeBranch || '')}</span>` : '';
 
     let timerHtml = '';
     let toolHtml = '';
@@ -448,10 +511,14 @@ function renderDispatch() {
     } else if (item.status === 'done') {
       timerHtml = `<span class="dispatch-timer">${formatDuration(item.duration)}</span>`;
       costHtml = item.cost ? `<span class="dispatch-cost">$${item.cost.toFixed(2)}</span>` : '';
+      if (hasWorktree) {
+        actionsHtml += `<button class="btn btn-sm btn-merge" onclick="showMergeDialog(${idx})">Merge</button>`;
+        actionsHtml += `<button class="btn btn-sm btn-delete" onclick="showDeleteDialog(${idx})">Delete</button>`;
+      }
       if (item.sessionId) {
         const sid = esc(item.sessionId).replace(/'/g, "\\'");
-        const cwd = esc(item.project.path).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        actionsHtml = `<button class="btn btn-sm" onclick="resumeCC('${sid}','${cwd}')">Resume</button>`;
+        const cwd = esc(hasWorktree ? item.worktreePath : item.project.path).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        actionsHtml += `<button class="btn btn-sm" onclick="resumeCC('${sid}','${cwd}')">Resume</button>`;
       }
     } else if (item.status === 'error') {
       actionsHtml = `<button class="btn btn-sm btn-primary" onclick="retryItem(${idx})">Retry</button>`;
@@ -462,7 +529,7 @@ function renderDispatch() {
     return `<div class="dispatch-row">
       <span class="dispatch-icon">${icon}</span>
       <span class="dispatch-project">${esc(item.project.name)}</span>
-      <span class="dispatch-title" title="${esc(title)}">${esc(title)}</span>
+      <span class="dispatch-title" title="${esc(title)}">${esc(title)} ${wtBadge}</span>
       ${timerHtml}
       ${toolHtml}
       ${costHtml}
@@ -499,6 +566,10 @@ async function runItem(idx) {
 
   if (result && result.action === 'cc-started') {
     item.instanceId = result.instanceId;
+    if (result.worktree && result.cwd) {
+      item.worktreePath = result.cwd;
+      item.worktreeBranch = result.branch || branchName;
+    }
     saveDispatchQueue();
     renderDispatch();
     toast('CC läuft: ' + (result.branch || item.prompt.title));
@@ -562,6 +633,196 @@ async function resumeCC(sessionId, cwd) {
     command: 'claude --resume ' + sessionId,
   });
   if (result && result.action) toast('Resume-Terminal geöffnet');
+}
+
+// ══════════════════════════════════════
+//  WORKTREE MERGE / DELETE DIALOGS
+// ══════════════════════════════════════
+function closeModal() {
+  document.getElementById('modalContainer').innerHTML = '';
+}
+
+async function showMergeDialog(idx) {
+  const item = dispatchQueue[idx];
+  if (!item || !item.worktreePath) return;
+  const container = document.getElementById('modalContainer');
+
+  container.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>🌿 Merge: ${esc(item.worktreeBranch || '')}</h3>
+      <div class="modal-body" id="mergeDialogBody">Lade Diff-Statistik...</div>
+      <div class="modal-actions">
+        <button class="btn btn-sm" onclick="closeModal()">Abbrechen</button>
+        <button class="btn btn-sm btn-primary" id="mergeConfirmBtn" disabled onclick="executeMerge(${idx})">Merge & Aufräumen</button>
+      </div>
+    </div>
+  </div>`;
+
+  // Fetch diff stats
+  const stat = await companionPost('/worktree-diff-stat', {
+    projectPath: item.project.path,
+    worktreePath: item.worktreePath,
+  });
+
+  const body = document.getElementById('mergeDialogBody');
+  const btn = document.getElementById('mergeConfirmBtn');
+  if (!body) return; // dialog was closed
+
+  if (!stat || stat.error) {
+    body.innerHTML = `<div class="modal-warning">⚠️ Diff-Statistik nicht verfügbar: ${esc(stat?.error || 'Companion nicht erreichbar')}</div>
+      <div>Branch: <strong>${esc(item.worktreeBranch || '')}</strong></div>
+      <div style="margin-top:8px;">Strategie: <select class="modal-select" id="mergeStrategy">
+        <option value="ff-only">Fast-Forward</option><option value="squash">Squash</option>
+      </select></div>`;
+    if (btn) btn.disabled = false;
+    return;
+  }
+
+  let warnings = '';
+  if (stat.dirty) {
+    warnings += '<div class="modal-warning">⚠️ Worktree hat uncommitted Changes — Merge nicht möglich bis alle Änderungen committet sind.</div>';
+  }
+  if (stat.isMerged) {
+    warnings += '<div class="modal-warning">Branch ist bereits in ' + esc(stat.defaultBranch) + ' gemergt.</div>';
+  }
+
+  body.innerHTML = `
+    <div>Branch: <strong>${esc(stat.branch)}</strong> → <strong>${esc(stat.defaultBranch)}</strong></div>
+    <div class="modal-stat">
+      <span class="files">📄 ${stat.filesChanged} Dateien</span>
+      <span class="ins">+${stat.insertions}</span>
+      <span class="del">-${stat.deletions}</span>
+      <span>📝 ${stat.commitCount} Commits</span>
+    </div>
+    ${warnings}
+    <div style="margin-top:8px;">Strategie: <select class="modal-select" id="mergeStrategy">
+      <option value="ff-only">Fast-Forward</option><option value="squash">Squash</option>
+    </select></div>`;
+
+  if (btn) btn.disabled = stat.dirty;
+}
+
+async function executeMerge(idx) {
+  const item = dispatchQueue[idx];
+  if (!item || !item.worktreePath) return;
+  const strategyEl = document.getElementById('mergeStrategy');
+  const strategy = strategyEl ? strategyEl.value : 'ff-only';
+  const btn = document.getElementById('mergeConfirmBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Merge läuft...'; }
+
+  const result = await companionPost('/worktree-merge', {
+    projectPath: item.project.path,
+    worktreePath: item.worktreePath,
+    strategy,
+  }, 30000);
+
+  closeModal();
+
+  if (result && result.success) {
+    item.worktreePath = null;
+    item.worktreeBranch = null;
+    saveDispatchQueue();
+    renderDispatch();
+    toast(`Merge erfolgreich: ${result.mergedCommits} Commits (${result.strategy})`);
+  } else {
+    toast('Merge fehlgeschlagen: ' + (result?.error || 'Unbekannter Fehler'));
+  }
+}
+
+async function showDeleteDialog(idx) {
+  const item = dispatchQueue[idx];
+  if (!item || !item.worktreePath) return;
+  const container = document.getElementById('modalContainer');
+
+  container.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>🗑️ Worktree löschen</h3>
+      <div class="modal-body" id="deleteDialogBody">Prüfe Worktree-Status...</div>
+      <div class="modal-actions">
+        <button class="btn btn-sm" onclick="closeModal()">Abbrechen</button>
+        <button class="btn btn-sm" style="color:var(--accent-red);" id="deleteConfirmBtn" disabled onclick="executeDelete(${idx})">Löschen</button>
+      </div>
+    </div>
+  </div>`;
+
+  // Check status
+  const stat = await companionPost('/worktree-diff-stat', {
+    projectPath: item.project.path,
+    worktreePath: item.worktreePath,
+  });
+
+  const body = document.getElementById('deleteDialogBody');
+  const btn = document.getElementById('deleteConfirmBtn');
+  if (!body) return;
+
+  let warnings = '';
+  let isMerged = stat?.isMerged || false;
+
+  if (stat && stat.dirty) {
+    warnings += '<div class="modal-warning">⚠️ Worktree hat uncommitted Changes! Änderungen gehen verloren.</div>';
+  }
+  if (stat && !stat.isMerged && stat.commitCount > 0) {
+    warnings += `<div class="modal-warning">⚠️ Branch <strong>${esc(stat.branch)}</strong> wurde NICHT in ${esc(stat.defaultBranch)} gemergt. ${stat.commitCount} Commits gehen verloren!</div>`;
+  }
+
+  const branchLabel = esc(item.worktreeBranch || stat?.branch || '');
+  body.innerHTML = `
+    <div>Worktree <strong>${branchLabel}</strong> löschen?</div>
+    ${warnings}
+    <label class="modal-checkbox">
+      <input type="checkbox" id="deleteKeepBranch"> Branch beibehalten
+    </label>`;
+
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = (stat?.dirty || (!isMerged && stat?.commitCount > 0)) ? '⚠️ Trotzdem löschen' : 'Löschen';
+  }
+}
+
+async function executeDelete(idx) {
+  const item = dispatchQueue[idx];
+  if (!item || !item.worktreePath) return;
+  const keepBranch = document.getElementById('deleteKeepBranch')?.checked || false;
+  const btn = document.getElementById('deleteConfirmBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Lösche...'; }
+
+  const result = await companionPost('/worktree-delete', {
+    projectPath: item.project.path,
+    worktreePath: item.worktreePath,
+    deleteBranch: !keepBranch,
+    force: true,
+  });
+
+  closeModal();
+
+  if (result && result.success) {
+    item.worktreePath = null;
+    item.worktreeBranch = null;
+    saveDispatchQueue();
+    renderDispatch();
+    toast('Worktree gelöscht' + (result.deletedBranch ? ' + Branch ' + result.deletedBranch : ''));
+  } else {
+    toast('Löschen fehlgeschlagen: ' + (result?.error || 'Unbekannter Fehler'));
+  }
+}
+
+// Orphan worktree delete (from git status section)
+async function deleteOrphanWorktree(projectPath, worktreePath) {
+  const confirmed = confirm('Verwaisten Worktree löschen?\n' + worktreePath);
+  if (!confirmed) return;
+
+  const result = await companionPost('/worktree-delete', {
+    projectPath,
+    worktreePath,
+    deleteBranch: true,
+  });
+
+  if (result && result.success) {
+    toast('Verwaister Worktree gelöscht');
+    if (gitSectionExpanded) loadGitStatus();
+  } else {
+    toast('Fehler: ' + (result?.error || 'Unbekannt'));
+  }
 }
 
 // ══════════════════════════════════════
@@ -728,11 +989,24 @@ async function loadGitStatus() {
     // Load worktrees for this project
     const wtResult = await companionPost('/worktree-list', { projectPath: p.path });
     if (wtResult && wtResult.worktrees && wtResult.worktrees.length > 0) {
+      // Build set of worktree paths claimed by dispatch queue items
+      const claimedPaths = new Set(
+        dispatchQueue
+          .filter(di => di.worktreePath)
+          .map(di => di.worktreePath.replace(/\\/g, '/').toLowerCase())
+      );
+
       for (const wt of wtResult.worktrees) {
         const wtName = wt.branch || wt.path.split(/[\\/]/).pop();
         const wtStatus = result.results[wt.path];
         const wtCls = wtStatus ? (wtStatus.dirty ? 'git-dirty' : 'git-clean') : '';
-        html += `<div class="git-row sub"><span class="git-project">\u2514 ${esc(wtName)}</span><span class="${wtCls}">${esc(wtStatus ? wtStatus.summary : '')}</span></div>`;
+        const wtPathNorm = (wt.path || '').replace(/\\/g, '/').toLowerCase();
+        const isOrphan = !claimedPaths.has(wtPathNorm);
+        const orphanBadge = isOrphan ? ' <span class="git-orphan">⚠️ verwaist</span>' : '';
+        const escapedProjectPath = esc(p.path).replace(/'/g, "\\'").replace(/\\/g, '\\\\');
+        const escapedWtPath = esc(wt.path).replace(/'/g, "\\'").replace(/\\/g, '\\\\');
+        const deleteBtn = isOrphan ? ` <button class="btn btn-sm btn-delete" onclick="deleteOrphanWorktree('${escapedProjectPath}','${escapedWtPath}')" style="font-size:9px;padding:1px 5px;">Delete</button>` : '';
+        html += `<div class="git-row sub"><span class="git-project">\u2514 ${esc(wtName)}${orphanBadge}</span><span class="${wtCls}">${esc(wtStatus ? wtStatus.summary : '')}${deleteBtn}</span></div>`;
       }
     }
   }
@@ -774,6 +1048,7 @@ setInterval(checkCompanion, 15000);
 // ══════════════════════════════════════
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
+    if (document.getElementById('modalContainer').innerHTML) { closeModal(); return; }
     if (addFormOpen) cancelAdd();
   }
   const tag = document.activeElement.tagName;

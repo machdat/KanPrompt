@@ -1,5 +1,5 @@
 /**
- * KanPrompt Companion Server v1.1.0
+ * KanPrompt Companion Server v1.2.0
  *
  * Tiny local HTTP server that bridges the browser sandbox gap.
  * KanPrompt (HTML) talks to this via fetch('http://localhost:9177/...').
@@ -20,8 +20,10 @@
  *   GET  /cc-instances        → list all CC instances (running + recent)
  *   GET  /cc-status-stream    → SSE stream for live dashboard updates
  *   POST /worktree-list       → list git worktrees for a project
- *   POST /worktree-remove     → remove a git worktree
- *   POST /worktree-merge      → merge worktree branch + remove
+ *   POST /worktree-remove     → remove a git worktree (legacy)
+ *   POST /worktree-delete     → delete worktree + branch with dirty-check
+ *   POST /worktree-merge      → merge worktree branch (ff-only/squash) + cleanup
+ *   POST /worktree-diff-stat  → pre-merge info (commits, diff stats)
  *   POST /project-backlog     → load backlog entries from any project
  *   POST /git-status          → branch + dirty/clean for a project
  *   POST /git-status-all      → batch git status for multiple projects
@@ -41,6 +43,31 @@ const { getProjectsFromRegistry } = require('./project-utils');
 
 const PORT = parseInt(process.env.COMPANION_PORT, 10) || 9177;
 const HOST = '127.0.0.1';
+
+// Promisified exec for async/await usage
+function execPromise(cmd) {
+  return new Promise((resolve, reject) => {
+    exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (err) reject(new Error(stderr || err.message));
+      else resolve(stdout);
+    });
+  });
+}
+
+// Determine the default branch of a repo (master/main)
+async function getDefaultBranch(repoPath) {
+  // Try git config first (works if origin/HEAD is set)
+  try {
+    const ref = await execPromise(`git -C "${repoPath}" symbolic-ref refs/remotes/origin/HEAD`);
+    return ref.trim().replace('refs/remotes/origin/', '');
+  } catch {}
+  // Fallback: check if 'main' exists, otherwise 'master'
+  try {
+    await execPromise(`git -C "${repoPath}" rev-parse --verify main`);
+    return 'main';
+  } catch {}
+  return 'master';
+}
 
 // Directories to search for projects (add your own)
 const PROJECT_SEARCH_PATHS = [
@@ -884,7 +911,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // ── WORKTREE REMOVE ──
+    // ── WORKTREE REMOVE (legacy, backward compat) ──
     if (route === '/worktree-remove' && req.method === 'POST') {
       const { worktreePath, force } = await readBody(req);
       if (!worktreePath) return json(res, 400, { error: 'worktreePath required' });
@@ -896,28 +923,187 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // ── WORKTREE MERGE ──
-    if (route === '/worktree-merge' && req.method === 'POST') {
-      const { worktreePath, targetBranch } = await readBody(req);
+    // ── WORKTREE DELETE (enhanced: dirty-check + branch cleanup) ──
+    if (route === '/worktree-delete' && req.method === 'POST') {
+      const { projectPath, worktreePath, deleteBranch, force } = await readBody(req);
       if (!worktreePath) return json(res, 400, { error: 'worktreePath required' });
-      const resolved = path.resolve(worktreePath);
-      // Get branch name from worktree
-      exec(`git -C "${resolved}" rev-parse --abbrev-ref HEAD`, (err, branchOut) => {
-        if (err) return json(res, 500, { error: 'Branch nicht ermittelbar: ' + err.message });
-        const branch = branchOut.trim();
-        const target = targetBranch || 'master';
-        // Find the main repo (parent of worktree base dir)
-        exec(`git -C "${resolved}" rev-parse --git-common-dir`, (err2, commonDir) => {
-          if (err2) return json(res, 500, { error: err2.message });
-          const mainRepo = path.resolve(commonDir.trim(), '..');
-          // Merge branch into target in main repo
-          const mergeCmd = `git -C "${mainRepo}" checkout ${target} && git -C "${mainRepo}" merge ${branch} && git worktree remove "${resolved}"`;
-          exec(mergeCmd, (mergeErr, mergeOut) => {
-            if (mergeErr) return json(res, 500, { error: 'Merge fehlgeschlagen: ' + mergeErr.message });
-            json(res, 200, { action: 'worktree-merged', branch, target, output: mergeOut.trim() });
+      const wtResolved = path.resolve(worktreePath);
+      const projResolved = projectPath ? path.resolve(projectPath) : null;
+
+      try {
+        // 1. Check for uncommitted changes
+        const statusOut = await execPromise(`git -C "${wtResolved}" status --porcelain`);
+        const isDirty = statusOut.trim().length > 0;
+        if (isDirty && !force) {
+          return json(res, 409, {
+            success: false,
+            dirty: true,
+            error: 'Worktree hat uncommitted Changes',
+            changes: statusOut.trim().split('\n').length,
           });
+        }
+
+        // 2. Get branch name before removing
+        const branchOut = await execPromise(`git -C "${wtResolved}" rev-parse --abbrev-ref HEAD`);
+        const branch = branchOut.trim();
+
+        // 3. Find main repo
+        const mainRepo = projResolved || path.resolve(
+          (await execPromise(`git -C "${wtResolved}" rev-parse --git-common-dir`)).trim(), '..'
+        );
+
+        // 4. Remove worktree
+        const forceFlag = (isDirty && force) ? ' --force' : '';
+        await execPromise(`git worktree remove "${wtResolved}"${forceFlag}`);
+        let deletedBranch = null;
+
+        // 5. Optionally delete branch
+        if (deleteBranch !== false && branch) {
+          try {
+            await execPromise(`git -C "${mainRepo}" branch -d "${branch}"`);
+            deletedBranch = branch;
+          } catch (branchErr) {
+            // Branch not fully merged — only force-delete if explicitly forced
+            if (force) {
+              try {
+                await execPromise(`git -C "${mainRepo}" branch -D "${branch}"`);
+                deletedBranch = branch;
+              } catch {}
+            }
+            // If not forced and not merged, branch stays — that's OK
+          }
+        }
+
+        json(res, 200, { success: true, removedWorktree: true, deletedBranch, branch });
+      } catch (e) {
+        json(res, 500, { success: false, error: e.message });
+      }
+      return;
+    }
+
+    // ── WORKTREE DIFF-STAT (pre-merge info) ──
+    if (route === '/worktree-diff-stat' && req.method === 'POST') {
+      const { projectPath, worktreePath } = await readBody(req);
+      if (!worktreePath) return json(res, 400, { error: 'worktreePath required' });
+      const wtResolved = path.resolve(worktreePath);
+
+      try {
+        // Get branch name
+        const branchOut = await execPromise(`git -C "${wtResolved}" rev-parse --abbrev-ref HEAD`);
+        const branch = branchOut.trim();
+
+        // Find main repo
+        const mainRepo = projectPath ? path.resolve(projectPath) : path.resolve(
+          (await execPromise(`git -C "${wtResolved}" rev-parse --git-common-dir`)).trim(), '..'
+        );
+
+        // Determine default branch
+        const defaultBranch = await getDefaultBranch(mainRepo);
+
+        // Commit count
+        const logOut = await execPromise(`git -C "${mainRepo}" rev-list --count "${defaultBranch}..${branch}"`);
+        const commitCount = parseInt(logOut.trim(), 10) || 0;
+
+        // Diff stat
+        const diffOut = await execPromise(`git -C "${mainRepo}" diff --stat "${defaultBranch}...${branch}"`);
+        const shortstatOut = await execPromise(`git -C "${mainRepo}" diff --shortstat "${defaultBranch}...${branch}"`);
+
+        // Parse shortstat: " 5 files changed, 120 insertions(+), 30 deletions(-)"
+        let filesChanged = 0, insertions = 0, deletions = 0;
+        const sm = shortstatOut.match(/(\d+) files? changed/);
+        const si = shortstatOut.match(/(\d+) insertions?/);
+        const sd = shortstatOut.match(/(\d+) deletions?/);
+        if (sm) filesChanged = parseInt(sm[1]);
+        if (si) insertions = parseInt(si[1]);
+        if (sd) deletions = parseInt(sd[1]);
+
+        // Check for uncommitted changes in worktree
+        const statusOut = await execPromise(`git -C "${wtResolved}" status --porcelain`);
+        const isDirty = statusOut.trim().length > 0;
+
+        // Check if branch is merged
+        let isMerged = false;
+        try {
+          const mergedBranches = await execPromise(`git -C "${mainRepo}" branch --merged "${defaultBranch}"`);
+          isMerged = mergedBranches.split('\n').some(b => b.trim() === branch);
+        } catch {}
+
+        json(res, 200, {
+          branch,
+          defaultBranch,
+          commitCount,
+          filesChanged,
+          insertions,
+          deletions,
+          diffStat: diffOut.trim(),
+          dirty: isDirty,
+          isMerged,
         });
-      });
+      } catch (e) {
+        json(res, 500, { error: e.message });
+      }
+      return;
+    }
+
+    // ── WORKTREE MERGE (enhanced: ff-only/squash + auto-cleanup) ──
+    if (route === '/worktree-merge' && req.method === 'POST') {
+      const { projectPath, worktreePath, strategy } = await readBody(req);
+      if (!worktreePath) return json(res, 400, { error: 'worktreePath required' });
+      const wtResolved = path.resolve(worktreePath);
+
+      try {
+        // 1. Get branch name from worktree
+        const branchOut = await execPromise(`git -C "${wtResolved}" rev-parse --abbrev-ref HEAD`);
+        const branch = branchOut.trim();
+
+        // 2. Find main repo
+        const mainRepo = projectPath ? path.resolve(projectPath) : path.resolve(
+          (await execPromise(`git -C "${wtResolved}" rev-parse --git-common-dir`)).trim(), '..'
+        );
+
+        // 3. Determine default branch dynamically
+        const defaultBranch = await getDefaultBranch(mainRepo);
+
+        // 4. Check for uncommitted changes
+        const statusOut = await execPromise(`git -C "${wtResolved}" status --porcelain`);
+        if (statusOut.trim().length > 0) {
+          return json(res, 409, { success: false, error: 'Worktree hat uncommitted Changes — bitte zuerst committen' });
+        }
+
+        // 5. Count commits before merge
+        const logOut = await execPromise(`git -C "${mainRepo}" rev-list --count "${defaultBranch}..${branch}"`);
+        const mergedCommits = parseInt(logOut.trim(), 10) || 0;
+
+        // 6. Checkout default branch in main repo
+        await execPromise(`git -C "${mainRepo}" checkout "${defaultBranch}"`);
+
+        // 7. Merge based on strategy
+        const mergeStrategy = strategy || 'ff-only';
+        let mergeCmd;
+        if (mergeStrategy === 'squash') {
+          mergeCmd = `git -C "${mainRepo}" merge --squash "${branch}" && git -C "${mainRepo}" commit -m "squash: ${branch}"`;
+        } else {
+          mergeCmd = `git -C "${mainRepo}" merge --ff-only "${branch}"`;
+        }
+
+        await execPromise(mergeCmd);
+
+        // 8. Remove worktree
+        try { await execPromise(`git worktree remove "${wtResolved}"`); } catch {}
+
+        // 9. Delete branch
+        try { await execPromise(`git -C "${mainRepo}" branch -d "${branch}"`); } catch {}
+
+        json(res, 200, {
+          success: true,
+          mergedCommits,
+          branch,
+          strategy: mergeStrategy,
+          defaultBranch,
+        });
+      } catch (e) {
+        json(res, 500, { success: false, error: 'Merge fehlgeschlagen: ' + e.message });
+      }
       return;
     }
 
@@ -1075,8 +1261,10 @@ const server = http.createServer(async (req, res) => {
           'GET  /cc-instances         → all instances',
           'GET  /cc-status-stream     → SSE live stream',
           'POST /worktree-list        {projectPath}',
-          'POST /worktree-remove      {worktreePath, force?}',
-          'POST /worktree-merge       {worktreePath, targetBranch?}',
+          'POST /worktree-remove      {worktreePath, force?}  (legacy)',
+          'POST /worktree-delete      {projectPath?, worktreePath, deleteBranch?, force?}',
+          'POST /worktree-diff-stat   {projectPath?, worktreePath}',
+          'POST /worktree-merge       {projectPath?, worktreePath, strategy?}',
           'POST /project-backlog      {projectPath}',
           'POST /git-status           {projectPath}',
           'POST /git-status-all       {projectPaths[]}',

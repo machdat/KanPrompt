@@ -127,4 +127,24 @@ Beim Laden der Git-Status-Sektion prüft der Companion:
 
 ---
 
-# Session-Log — Pflichtaufgabe nach Abschluss
+# Session-Log
+
+- **Datum:** 2026-03-21T12:45:00
+- **Branch:** feature/dispatch-git-worktree-handling
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+Kompletter Worktree-Lebenszyklus (Create/Merge/Delete) im Dispatch Manager implementiert. Drei neue Companion-Endpoints (worktree-merge, worktree-delete, worktree-diff-stat) mit dynamischer Default-Branch-Erkennung. Dispatch-UI zeigt Worktree-Status, Merge/Delete-Dialoge mit Diff-Statistik und erkennt verwaiste Worktrees.
+
+## Geänderte Dateien
+- `companion/kanprompt-companion.js` — Neue Endpoints + Helper-Funktionen (execPromise, getDefaultBranch)
+- `dispatch.html` — Worktree-Tracking, Merge/Delete-Dialoge, 🌿-Badge, verwaiste Worktree-Erkennung
+- `CHANGELOG.md` — Eintrag für v1.2.0
+- `doc/prompts/backlog-priority.json` — Prompt-Status aktualisiert
+
+## Abweichungen vom Prompt
+- `/worktree-remove` als Legacy-Endpoint beibehalten statt entfernt (Abwärtskompatibilität)
+- `worktree-diff-stat` als separater Endpoint statt inline im Merge-Dialog (saubere Trennung)
+
+## Offene Punkte
+- Worktree-Tracking in der Projects Registry (Punkt 5 im Prompt) wurde nicht separat implementiert, da die Dispatch-Queue bereits worktreePath/worktreeBranch speichert

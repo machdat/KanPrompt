@@ -15,16 +15,18 @@
       "num": 62,
       "new": "2026-03-21T10:04:07"
     },
+  ],
+  "inProgress": [],
+  "done": [
     {
       "id": "dispatch-git-worktree-handling",
       "file": "dispatch-git-worktree-handling.md",
       "title": "Dispatch Git Worktree Handling",
       "num": 63,
-      "new": "2026-03-21T10:04:07"
-    }
-  ],
-  "inProgress": [],
-  "done": [
+      "new": "2026-03-21T10:04:07",
+      "inProgress": "2026-03-21T12:00:00",
+      "done": "2026-03-21T12:45:00"
+    },
     {
       "id": "vereinigung-von-sync-refresh-button",
       "file": "vereinigung-von-sync-refresh-button.md",

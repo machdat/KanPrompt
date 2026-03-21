@@ -2,6 +2,25 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [1.2.0] - 2026-03-21
+
+### Added
+- **Worktree-Lebenszyklus im Dispatch**: Erstellen, Merge und Löschen als First-Class-Aktionen
+- `POST /worktree-merge` — Merge mit ff-only/squash-Strategie, automatischer Default-Branch-Erkennung und Cleanup
+- `POST /worktree-delete` — Löschen mit Dirty-Check, Branch-Cleanup und Force-Option
+- `POST /worktree-diff-stat` — Pre-Merge-Info: Commit-Anzahl, Diff-Statistik, Merge-Status
+- 🌿-Badge in der Auftrags-Zeile zeigt aktiven Worktree-Branch
+- [Merge]-Button öffnet Dialog mit Diff-Statistik (Dateien, Insertions, Deletions, Commits)
+- [Delete]-Button öffnet Dialog mit Dirty-Warning und Branch-Beibehaltungs-Option
+- Merge-Strategie-Auswahl: Fast-Forward (Default) oder Squash
+- Verwaiste Worktrees werden in der Git-Status-Sektion mit ⚠️ markiert + [Delete]-Aktion
+- `execPromise` und `getDefaultBranch` Helper-Funktionen im Companion
+- Worktree-Pfad und Branch werden im Dispatch-Item gespeichert
+
+### Changed
+- Companion-Server auf v1.2.0
+- `/worktree-remove` bleibt als Legacy-Endpoint erhalten
+
 ## [1.0.0] - 2026-03-20
 
 ### Added
