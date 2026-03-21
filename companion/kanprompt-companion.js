@@ -1288,6 +1288,24 @@ const server = http.createServer(async (req, res) => {
       const { projectPath } = await readBody(req);
       if (!projectPath) return json(res, 400, { error: 'projectPath required' });
       const resolved = path.resolve(projectPath);
+
+      // Registry-first: find project by projectPath
+      const registryProject = Object.entries(registry.projects).find(
+        ([, proj]) => proj.projectPath && path.resolve(proj.projectPath) === resolved
+      );
+      if (registryProject) {
+        const [projId, proj] = registryProject;
+        const cards = proj.cards || [];
+        const priority = proj.cardPriority || [];
+        const prioIndex = {};
+        priority.forEach((id, i) => prioIndex[id] = i);
+        const toItem = (c) => ({ id: c.id, file: c.file, title: c.title, num: c.num, type: c.type || 'bugfix' });
+        const backlog = cards.filter(c => c.status === 'new').sort((a, b) => (prioIndex[a.id] ?? 9999) - (prioIndex[b.id] ?? 9999)).map(toItem);
+        const inProgress = cards.filter(c => c.status === 'in-progress').sort((a, b) => (prioIndex[a.id] ?? 9999) - (prioIndex[b.id] ?? 9999)).map(toItem);
+        return json(res, 200, { project: projId, projectPath: resolved, backlog, inProgress });
+      }
+
+      // Legacy fallback: backlog-priority.json
       const backlogFile = path.join(resolved, 'doc', 'prompts', 'backlog-priority.json');
       try {
         const raw = fs.readFileSync(backlogFile, 'utf-8');
