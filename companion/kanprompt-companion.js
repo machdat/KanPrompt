@@ -931,46 +931,83 @@ const server = http.createServer(async (req, res) => {
       const projResolved = projectPath ? path.resolve(projectPath) : null;
 
       try {
-        // 1. Check for uncommitted changes
-        const statusOut = await execPromise(`git -C "${wtResolved}" status --porcelain`);
-        const isDirty = statusOut.trim().length > 0;
-        if (isDirty && !force) {
-          return json(res, 409, {
-            success: false,
-            dirty: true,
-            error: 'Worktree hat uncommitted Changes',
-            changes: statusOut.trim().split('\n').length,
-          });
+        // Determine main repo — prefer projectPath, fallback to git-common-dir
+        let mainRepo = projResolved;
+        let branch = null;
+        let isDirty = false;
+
+        // Check if worktree directory is a valid git repo
+        let wtAccessible = false;
+        try {
+          await execPromise(`git -C "${wtResolved}" rev-parse --git-dir`);
+          wtAccessible = true;
+        } catch {}
+
+        if (wtAccessible) {
+          // Worktree is accessible — full dirty-check + branch detection
+          const statusOut = await execPromise(`git -C "${wtResolved}" status --porcelain`);
+          isDirty = statusOut.trim().length > 0;
+          if (isDirty && !force) {
+            return json(res, 409, {
+              success: false,
+              dirty: true,
+              error: 'Worktree hat uncommitted Changes',
+              changes: statusOut.trim().split('\n').length,
+            });
+          }
+          const branchOut = await execPromise(`git -C "${wtResolved}" rev-parse --abbrev-ref HEAD`);
+          branch = branchOut.trim();
+          if (!mainRepo) {
+            mainRepo = path.resolve(
+              (await execPromise(`git -C "${wtResolved}" rev-parse --git-common-dir`)).trim(), '..'
+            );
+          }
+        } else if (mainRepo) {
+          // Worktree not directly accessible — get branch from worktree list via main repo
+          try {
+            const wtListOut = await execPromise(`git -C "${mainRepo}" worktree list --porcelain`);
+            const wtNorm = wtResolved.replace(/\\/g, '/').toLowerCase();
+            let currentPath = null, currentBranch = null;
+            for (const line of wtListOut.split('\n')) {
+              if (line.startsWith('worktree ')) {
+                currentPath = line.slice(9).trim();
+                currentBranch = null;
+              } else if (line.startsWith('branch ')) {
+                currentBranch = line.slice(7).trim().replace('refs/heads/', '');
+              } else if (line === '' || line === '\r') {
+                if (currentPath && currentPath.replace(/\\/g, '/').toLowerCase() === wtNorm) {
+                  branch = currentBranch;
+                }
+                currentPath = null; currentBranch = null;
+              }
+            }
+            // Check last entry
+            if (currentPath && currentPath.replace(/\\/g, '/').toLowerCase() === wtNorm) {
+              branch = currentBranch;
+            }
+          } catch {}
+        } else {
+          return json(res, 400, { success: false, error: 'projectPath required — Worktree nicht direkt zugänglich' });
         }
 
-        // 2. Get branch name before removing
-        const branchOut = await execPromise(`git -C "${wtResolved}" rev-parse --abbrev-ref HEAD`);
-        const branch = branchOut.trim();
-
-        // 3. Find main repo
-        const mainRepo = projResolved || path.resolve(
-          (await execPromise(`git -C "${wtResolved}" rev-parse --git-common-dir`)).trim(), '..'
-        );
-
-        // 4. Remove worktree
+        // Remove worktree (via main repo for reliability)
         const forceFlag = (isDirty && force) ? ' --force' : '';
-        await execPromise(`git worktree remove "${wtResolved}"${forceFlag}`);
+        const removeRepo = mainRepo || wtResolved;
+        await execPromise(`git -C "${removeRepo}" worktree remove "${wtResolved}"${forceFlag}`);
         let deletedBranch = null;
 
-        // 5. Optionally delete branch
-        if (deleteBranch !== false && branch) {
+        // Optionally delete branch
+        if (deleteBranch !== false && branch && mainRepo) {
           try {
             await execPromise(`git -C "${mainRepo}" branch -d "${branch}"`);
             deletedBranch = branch;
           } catch (branchErr) {
-            // Branch not fully merged — only force-delete if explicitly forced
             if (force) {
               try {
                 await execPromise(`git -C "${mainRepo}" branch -D "${branch}"`);
                 deletedBranch = branch;
               } catch {}
             }
-            // If not forced and not merged, branch stays — that's OK
           }
         }
 
