@@ -1,5 +1,5 @@
 /**
- * KanPrompt Companion Server v1.3.0
+ * KanPrompt Companion Server (version: see COMPANION_VERSION constant)
  *
  * Tiny local HTTP server that bridges the browser sandbox gap.
  * KanPrompt (HTML) talks to this via fetch('http://localhost:9177/...').
@@ -41,6 +41,7 @@ const url = require('url');
 const os = require('os');
 const { getProjectsFromRegistry } = require('./project-utils');
 
+const COMPANION_VERSION = '1.3.0';
 const PORT = parseInt(process.env.COMPANION_PORT, 10) || 9177;
 const HOST = '127.0.0.1';
 
@@ -509,7 +510,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // ── PING ──
     if (route === '/ping' && req.method === 'GET') {
-      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '1.3.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
+      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: COMPANION_VERSION, pid: process.pid, uptime: Math.floor(process.uptime()) });
     }
 
     // ── SHUTDOWN ──
@@ -1420,7 +1421,7 @@ const server = http.createServer(async (req, res) => {
     // ── INFO ──
     if (route === '/info' && req.method === 'GET') {
       return json(res, 200, {
-        server: 'kanprompt-companion', version: '1.3.0',
+        server: 'kanprompt-companion', version: COMPANION_VERSION,
         endpoints: [
           'GET  /ping', 'GET  /info',
           'GET  /dispatch              → dispatch.html Seite',
@@ -1488,7 +1489,7 @@ server.on('error', (err) => {
 server.listen(PORT, HOST, () => {
   console.log(`
   ┌──────────────────────────────────────┐
-  │  KanPrompt Companion  v1.1.0         │
+  │  KanPrompt Companion  v${COMPANION_VERSION}         │
   │  http://${HOST}:${PORT}               │
   │                                      │
   │  Endpoints:                          │
