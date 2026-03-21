@@ -855,7 +855,7 @@ async function deleteOrphanWorktree(projectPath, worktreePath) {
         </div>
         <div class="modal-actions">
           <button class="btn btn-sm" onclick="closeModal()">Abbrechen</button>
-          <button class="btn btn-sm" style="color:var(--accent-red);" onclick="forceDeleteOrphan('${esc(projectPath).replace(/'/g,"\\'")}','${esc(worktreePath).replace(/'/g,"\\'")}')">Trotzdem löschen</button>
+          <button class="btn btn-sm" style="color:var(--accent-red);" onclick="forceDeleteOrphan('${esc(projectPath).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}','${esc(worktreePath).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">Trotzdem löschen</button>
         </div>
       </div>
     </div>`;
