@@ -2,11 +2,25 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
-      "id": "test-dispatch-ampel",
-      "file": "test-dispatch-ampel.md",
-      "title": "Test Dispatch Ampel",
-      "num": 60,
-      "new": "2026-03-19T22:52:57"
+      "id": "kanprompt-ui-migration-registry",
+      "file": "kanprompt-ui-migration-registry.md",
+      "title": "Kanprompt Ui Migration Registry",
+      "num": 61,
+      "new": "2026-03-21T10:04:07"
+    },
+    {
+      "id": "prompt-lifecycle-skill",
+      "file": "prompt-lifecycle-skill.md",
+      "title": "Prompt Lifecycle Skill",
+      "num": 62,
+      "new": "2026-03-21T10:04:07"
+    },
+    {
+      "id": "dispatch-git-worktree-handling",
+      "file": "dispatch-git-worktree-handling.md",
+      "title": "Dispatch Git Worktree Handling",
+      "num": 63,
+      "new": "2026-03-21T10:04:07"
     }
   ],
   "inProgress": [],
@@ -350,7 +364,39 @@
       "num": 48,
       "new": "2026-03-19T12:23:12",
       "done": "2026-03-19T12:23:12"
+    },
+    {
+      "id": "bugfix-dispatch-projekt-nicht-gefunden",
+      "file": "bugfix-dispatch-projekt-nicht-gefunden.md",
+      "title": "Bugfix Dispatch Projekt Nicht Gefunden",
+      "num": 64,
+      "new": "2026-03-21T10:04:07",
+      "done": "2026-03-21T10:04:07"
+    },
+    {
+      "id": "bugfix-restart-companion-eaddrinuse",
+      "file": "bugfix-restart-companion-eaddrinuse.md",
+      "title": "Bugfix Restart Companion Eaddrinuse",
+      "num": 65,
+      "new": "2026-03-21T10:04:07",
+      "done": "2026-03-21T10:04:07"
+    },
+    {
+      "id": "dispatch-als-eigene-seite",
+      "file": "dispatch-als-eigene-seite.md",
+      "title": "Dispatch Als Eigene Seite",
+      "num": 66,
+      "new": "2026-03-21T10:04:07",
+      "done": "2026-03-21T10:04:07"
+    },
+    {
+      "id": "projects-registry-datenbank",
+      "file": "projects-registry-datenbank.md",
+      "title": "Projects Registry Datenbank",
+      "num": 67,
+      "new": "2026-03-21T10:04:07",
+      "done": "2026-03-21T10:04:07"
     }
   ],
-  "nextNum": 61
+  "nextNum": 68
 }

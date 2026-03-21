@@ -1,5 +1,16 @@
 {
   "version": 1,
-  "lastUpdated": null,
-  "projects": {}
+  "lastUpdated": "2026-03-21T10:04:20",
+  "projects": {
+    "erju_wp27": {
+      "projectPath": "C:\\Users\\christian.mangold\\IdeaProjects\\erju_wp27",
+      "promptsDir": "doc/prompts",
+      "mainBranch": "master"
+    },
+    "KanPrompt": {
+      "projectPath": "C:\\git\\local\\KanPrompt",
+      "promptsDir": "doc/prompts",
+      "mainBranch": "master"
+    }
+  }
 }
