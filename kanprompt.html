@@ -521,6 +521,11 @@
     <h3>Zuletzt geöffnet</h3>
     <div class="recent-list" id="recentList"></div>
   </div>
+  <div id="welcomeCompanion" style="margin-top:18px;display:flex;align-items:center;gap:8px;justify-content:center;">
+    <div class="status-dot paused" id="welcomeCompanionDot"></div>
+    <span style="font-size:12px;color:var(--text-muted);" id="welcomeCompanionLabel">Companion: prüfe...</span>
+    <button class="btn" id="welcomeCompanionBtn" onclick="toggleCompanion()" style="font-size:11px;padding:3px 10px;display:none;"></button>
+  </div>
   <p style="font-size:11px;color:var(--text-muted);margin-top:12px;">Benötigt Chrome oder Edge · File System Access API</p>
 </div>
 
@@ -809,7 +814,17 @@ function updateCompanionUI() {
   if (toggleBtn) {
     toggleBtn.style.display = 'inline-block';
     toggleBtn.textContent = companionAvailable ? 'Stop' : 'Start';
-    toggleBtn.title = companionAvailable ? 'Companion Server beenden' : 'Companion Server starten (Pfad kopieren)';
+    toggleBtn.title = companionAvailable ? 'Companion Server beenden' : 'Companion Server starten';
+  }
+  // Welcome screen companion status
+  const wDot = document.getElementById('welcomeCompanionDot');
+  const wLabel = document.getElementById('welcomeCompanionLabel');
+  const wBtn = document.getElementById('welcomeCompanionBtn');
+  if (wDot) wDot.className = 'status-dot' + (companionAvailable ? '' : ' paused');
+  if (wLabel) wLabel.textContent = companionAvailable ? 'Companion läuft' : 'Companion nicht erreichbar';
+  if (wBtn) {
+    wBtn.style.display = 'inline-block';
+    wBtn.textContent = companionAvailable ? 'Stop' : 'Start';
   }
   // Show/hide companion-only buttons in preview
   document.querySelectorAll('.companion-only').forEach(el => {
