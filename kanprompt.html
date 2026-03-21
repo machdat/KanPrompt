@@ -844,13 +844,16 @@ async function toggleCompanion() {
     updateCompanionUI();
     toast('Companion Server beendet');
   } else {
-    // Start — Browser kann keine lokalen Prozesse starten, also Pfad kopieren
-    const batPath = 'restart-companion.bat';
+    // Start — Browser kann keine lokalen Prozesse starten
+    // Versuche den vollen Pfad aus der Seiten-URL abzuleiten
+    let batPath = 'companion\\restart-companion.bat';
     try {
-      await navigator.clipboard.writeText(batPath);
-      toast('Kopiert! Starte "' + batPath + '" per Doppelklick aus dem companion/ Ordner');
-    } catch {
-      toast('Starte companion/restart-companion.bat per Doppelklick');
+      const pageDir = decodeURIComponent(location.pathname).replace(/\/[^/]*$/, '').replace(/^\//, '');
+      batPath = pageDir.replace(/\//g, '\\') + '\\companion\\restart-companion.bat';
+    } catch {}
+    const cmd = prompt('Companion starten — diesen Befehl ausführen (Ctrl+C zum Kopieren):', batPath);
+    if (cmd) {
+      try { await navigator.clipboard.writeText(cmd); toast('Pfad kopiert!'); } catch {}
     }
   }
 }
