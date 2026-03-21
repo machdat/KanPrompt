@@ -1,5 +1,5 @@
 /**
- * KanPrompt Companion Server v1.2.0
+ * KanPrompt Companion Server v1.3.0
  *
  * Tiny local HTTP server that bridges the browser sandbox gap.
  * KanPrompt (HTML) talks to this via fetch('http://localhost:9177/...').
@@ -509,7 +509,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // ── PING ──
     if (route === '/ping' && req.method === 'GET') {
-      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '1.2.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
+      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '1.3.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
     }
 
     // ── SHUTDOWN ──
@@ -755,14 +755,17 @@ const server = http.createServer(async (req, res) => {
       if (!project.cards) project.cards = [];
       const body = await readBody(req);
       const idx = project.cards.findIndex(c => c.id === params.cardId);
+      const existing = idx >= 0 ? project.cards[idx] : null;
       const cardData = {
         id: params.cardId,
-        file: body.file || params.cardId + '.md',
-        title: body.title || params.cardId,
-        type: body.type || 'feature',
-        num: body.num != null ? body.num : (idx >= 0 ? project.cards[idx].num : project.nextNum++),
-        status: body.status || (idx >= 0 ? project.cards[idx].status : 'new'),
-        timestamps: body.timestamps || (idx >= 0 ? project.cards[idx].timestamps : { new: nowISO(), 'in-progress': null, done: null, deleted: null }),
+        file: body.file || (existing ? existing.file : params.cardId + '.md'),
+        title: body.title || (existing ? existing.title : params.cardId),
+        type: body.type || (existing ? existing.type : 'feature'),
+        num: body.num != null ? body.num : (existing ? existing.num : project.nextNum++),
+        status: body.status || (existing ? existing.status : 'new'),
+        timestamps: body.timestamps || (existing ? existing.timestamps : { new: nowISO(), 'in-progress': null, done: null, deleted: null }),
+        blocked: body.blocked != null ? body.blocked : (existing ? existing.blocked : false),
+        blockedBy: body.blockedBy != null ? body.blockedBy : (existing ? existing.blockedBy : null),
       };
       if (idx >= 0) {
         project.cards[idx] = cardData;
@@ -792,12 +795,27 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { action: 'transitioned', from: result.oldStatus, to: card.status, card });
     }
 
-    // ── DELETE /api/projects/:id/cards/:cardId — Karte auf deleted setzen ──
+    // ── DELETE /api/projects/:id/cards/:cardId — Karte auf deleted setzen (oder permanent entfernen) ──
     if ((params = matchRoute(route, '/api/projects/:id/cards/:cardId')) && req.method === 'DELETE') {
       const project = registry.projects[params.id];
       if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
-      const card = (project.cards || []).find(c => c.id === params.cardId);
-      if (!card) return json(res, 404, { error: 'Karte nicht gefunden: ' + params.cardId });
+      const qs = url.parse(req.url, true).query;
+      const cardIdx = (project.cards || []).findIndex(c => c.id === params.cardId);
+      if (cardIdx < 0) return json(res, 404, { error: 'Karte nicht gefunden: ' + params.cardId });
+
+      if (qs.permanent === 'true') {
+        // Permanent remove: splice from cards and cardPriority
+        const card = project.cards[cardIdx];
+        project.cards.splice(cardIdx, 1);
+        if (project.cardPriority) {
+          project.cardPriority = project.cardPriority.filter(id => id !== params.cardId);
+        }
+        saveRegistry();
+        return json(res, 200, { action: 'permanently-deleted', card });
+      }
+
+      // Soft delete: set status to deleted
+      const card = project.cards[cardIdx];
       transitionCardStatus(card, 'deleted');
       writeDenormalizedStatus(project, card);
       saveRegistry();
@@ -873,6 +891,108 @@ const server = http.createServer(async (req, res) => {
       const result = createSnapshot(params.id);
       if (result.error) return json(res, 400, result);
       return json(res, 200, { action: 'snapshot-created', path: result.path });
+    }
+
+    // ── POST /api/projects/:id/migrate-backlog — Backlog-JSON in Registry importieren ──
+    if ((params = matchRoute(route, '/api/projects/:id/migrate-backlog')) && req.method === 'POST') {
+      const project = registry.projects[params.id];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
+      if (!project.projectPath || !project.promptsDir) return json(res, 400, { error: 'projectPath/promptsDir nicht konfiguriert' });
+
+      const promptsDir = path.join(project.projectPath, project.promptsDir);
+      const backlogFile = path.join(promptsDir, 'backlog-priority.json');
+      if (!fs.existsSync(backlogFile)) return json(res, 404, { error: 'backlog-priority.json nicht gefunden' });
+
+      try {
+        const raw = fs.readFileSync(backlogFile, 'utf-8');
+        const data = JSON.parse(raw);
+        if (!project.cards) project.cards = [];
+        if (!project.cardPriority) project.cardPriority = [];
+        const existingIds = new Set(project.cards.map(c => c.id));
+        let imported = 0, moved = 0;
+        const statusMap = { backlog: 'new', inProgress: 'in-progress', done: 'done' };
+        const folderMap = { backlog: 'new', inProgress: 'in-progress', done: 'done' };
+
+        for (const [jsonKey, status] of Object.entries(statusMap)) {
+          const items = data[jsonKey] || [];
+          for (const item of items) {
+            if (existingIds.has(item.id)) continue; // idempotent
+            const card = {
+              id: item.id,
+              file: item.file || item.id + '.md',
+              title: item.title || item.id,
+              type: item.type || 'bugfix',
+              num: item.num || 0,
+              status,
+              timestamps: {
+                new: item.new || null,
+                'in-progress': item.inProgress || null,
+                done: item.done || null,
+                deleted: null,
+              },
+              blocked: item.blocked || false,
+              blockedBy: item.blockedBy || null,
+            };
+            project.cards.push(card);
+            project.cardPriority.push(item.id);
+            existingIds.add(item.id);
+            imported++;
+
+            // Move file from subfolder to prompts root (if still in subfolder)
+            const srcFolder = folderMap[jsonKey];
+            const srcPath = path.join(promptsDir, srcFolder, card.file);
+            const dstPath = path.join(promptsDir, card.file);
+            if (fs.existsSync(srcPath) && !fs.existsSync(dstPath)) {
+              try {
+                fs.copyFileSync(srcPath, dstPath);
+                fs.unlinkSync(srcPath);
+                moved++;
+              } catch (e) {
+                console.log(`  Migration: Datei ${card.file} konnte nicht verschoben werden: ${e.message}`);
+              }
+            }
+          }
+        }
+
+        // Import deleted files too (scan deleted/ folder)
+        const deletedDir = path.join(promptsDir, 'deleted');
+        if (fs.existsSync(deletedDir)) {
+          try {
+            const deletedFiles = fs.readdirSync(deletedDir).filter(f => f.endsWith('.md'));
+            for (const file of deletedFiles) {
+              const id = file.replace('.md', '');
+              if (existingIds.has(id)) continue;
+              const card = {
+                id, file, title: id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                type: 'bugfix', num: project.nextNum++,
+                status: 'deleted',
+                timestamps: { new: null, 'in-progress': null, done: null, deleted: nowISO() },
+                blocked: false, blockedBy: null,
+              };
+              project.cards.push(card);
+              existingIds.add(id);
+              imported++;
+              // Move from deleted/ to prompts root
+              const srcPath = path.join(deletedDir, file);
+              const dstPath = path.join(promptsDir, file);
+              if (!fs.existsSync(dstPath)) {
+                try { fs.copyFileSync(srcPath, dstPath); fs.unlinkSync(srcPath); moved++; } catch {}
+              }
+            }
+          } catch {}
+        }
+
+        // Set nextNum from backlog data
+        if (data.nextNum && data.nextNum > (project.nextNum || 1)) {
+          project.nextNum = data.nextNum;
+        }
+
+        saveRegistry();
+        console.log(`  Migration: ${imported} Karten importiert, ${moved} Dateien verschoben (${params.id})`);
+        return json(res, 200, { action: 'migrated', imported, moved, totalCards: project.cards.length });
+      } catch (e) {
+        return json(res, 500, { error: 'Migration fehlgeschlagen: ' + e.message });
+      }
     }
 
     // ── Doppelstart-Schutz (Helper, wird von /start-cc genutzt) ──
@@ -1300,7 +1420,7 @@ const server = http.createServer(async (req, res) => {
     // ── INFO ──
     if (route === '/info' && req.method === 'GET') {
       return json(res, 200, {
-        server: 'kanprompt-companion', version: '1.2.0',
+        server: 'kanprompt-companion', version: '1.3.0',
         endpoints: [
           'GET  /ping', 'GET  /info',
           'GET  /dispatch              → dispatch.html Seite',
@@ -1336,6 +1456,7 @@ const server = http.createServer(async (req, res) => {
           'PATCH  /api/projects/:id/cards/:cardId/status  → Status-Transition',
           'DELETE /api/projects/:id/cards/:cardId         → Karte löschen (soft)',
           'PUT    /api/projects/:id/card-priority         → Sortierung setzen',
+          'POST   /api/projects/:id/migrate-backlog        → Backlog-JSON importieren',
           'GET    /api/projects/:id/worktrees             → Worktrees',
           'PUT    /api/projects/:id/worktrees/:branch     → Worktree registrieren',
           'DELETE /api/projects/:id/worktrees/:branch     → Worktree entfernen',

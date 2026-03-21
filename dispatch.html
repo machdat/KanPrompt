@@ -456,6 +456,14 @@ function syncWithInstances() {
       item.cost = inst.cost;
       item.sessionId = inst.sessionId;
       changed = true;
+      // Update Registry worktree with results
+      if (item.worktreeBranch) {
+        updateWorktreeInRegistry(item.project.name, item.worktreeBranch, {
+          status: 'done', resumeChatId: inst.sessionId,
+          runtime: inst.duration || 0, cost: inst.cost || 0,
+          lastActivityAt: new Date().toISOString(),
+        });
+      }
     } else if (inst.status === 'error' && item.status !== 'error') {
       item.status = 'error';
       changed = true;
@@ -548,7 +556,8 @@ async function runItem(idx) {
   const useWorktree = item.worktree;
   const itemType = item.prompt.type || 'feature';
   const branchName = itemType + '/' + item.prompt.id;
-  const promptFilePath = item.project.path + '\\doc\\prompts\\new\\' + item.prompt.file;
+  // Try flat path first (registry mode), fall back to new/ subfolder
+  const promptFilePath = item.project.path + '\\doc\\prompts\\' + item.prompt.file;
 
   item.status = 'running';
   item.startedAt = new Date().toISOString();
@@ -569,6 +578,11 @@ async function runItem(idx) {
     if (result.worktree && result.cwd) {
       item.worktreePath = result.cwd;
       item.worktreeBranch = result.branch || branchName;
+      // Register worktree in Registry
+      registerWorktreeInRegistry(item.project.name, result.branch || branchName, {
+        path: result.cwd, cardId: item.prompt.id, status: 'running',
+        startedAt: new Date().toISOString(),
+      });
     }
     saveDispatchQueue();
     renderDispatch();
@@ -633,6 +647,31 @@ async function resumeCC(sessionId, cwd) {
     command: 'claude --resume ' + sessionId,
   });
   if (result && result.action) toast('Resume-Terminal geöffnet');
+}
+
+// ══════════════════════════════════════
+//  REGISTRY WORKTREE INTEGRATION
+// ══════════════════════════════════════
+async function registerWorktreeInRegistry(projectName, branch, data) {
+  try {
+    await fetch(COMPANION_URL + '/api/projects/' + encodeURIComponent(projectName) + '/worktrees/' + encodeURIComponent(branch), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch {}
+}
+
+async function updateWorktreeInRegistry(projectName, branch, data) {
+  try {
+    await fetch(COMPANION_URL + '/api/projects/' + encodeURIComponent(projectName) + '/worktrees/' + encodeURIComponent(branch), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch {}
 }
 
 // ══════════════════════════════════════

@@ -2,6 +2,26 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [1.3.0] - 2026-03-21
+
+### Added
+- **UI-Migration auf Registry**: KanPrompt UI nutzt jetzt die Projects Registry API als primäre Datenquelle statt `backlog-priority.json` + Ordnerstruktur
+- `POST /api/projects/:id/migrate-backlog` — Importiert bestehende `backlog-priority.json`-Daten in die Registry und verschiebt Dateien in flaches `doc/prompts/`-Verzeichnis
+- Registry-Modus im UI: Spalten basieren auf `card.status` statt auf physischen Ordnern
+- Drag & Drop zwischen Spalten nutzt `PATCH /api/projects/:id/cards/:cardId/status` — keine Datei-Verschiebungen mehr
+- Karten-Erstellung registriert via `PUT /api/projects/:id/cards/:cardId`
+- Karten-Reihenfolge wird via `PUT /api/projects/:id/card-priority` persistiert
+- `blocked`/`blockedBy`-Felder im Card-Datenmodell der Registry
+- Automatische Migration beim ersten Laden: bestehende Backlog-Daten werden idempotent importiert
+- Legacy-Fallback: Ohne Companion arbeitet KanPrompt weiterhin mit `backlog-priority.json`
+
+### Changed
+- KanPrompt auf v0.22.0
+- Companion-Server auf v1.3.0
+- `registerProjectWithCompanion()` ist jetzt async (Promise-basiert)
+- Deleted-Karten werden im Registry-Modus aus der API geladen statt aus dem `deleted/`-Ordner
+- Column-Header zeigen im Registry-Modus keine Ordner-Hinweise mehr
+
 ## [1.2.0] - 2026-03-21
 
 ### Added

@@ -700,7 +700,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.21.0';
+const VERSION = '0.22.0';
 const SCHEMA_VERSION = '1.2.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
@@ -714,12 +714,14 @@ let draggedId = null, dragSourceCol = null, dropTargetCol = null, dropTargetInde
 let selectedId = null, selectedItem = null, selectedCol = null, editMode = false;
 let fileContentsCache = {};
 let projectSchemaVersion = null;
+let registryMode = false;  // true when using Registry API instead of backlog-priority.json
+let projectId = null;      // project ID for Registry API calls
 const DONE_VISIBLE_COUNT = 5;
 const LS_KEY = 'kanprompt_recent_projects';
 const COLUMNS = [
-  { id: 'backlog',    title: 'Backlog',     folder: 'new',         jsonKey: 'backlog' },
-  { id: 'inProgress', title: 'In Progress', folder: 'in-progress', jsonKey: 'inProgress' },
-  { id: 'done',       title: 'Done',        folder: 'done',        jsonKey: 'done' },
+  { id: 'backlog',    title: 'Backlog',     folder: 'new',         jsonKey: 'backlog',    registryStatus: 'new' },
+  { id: 'inProgress', title: 'In Progress', folder: 'in-progress', jsonKey: 'inProgress', registryStatus: 'in-progress' },
+  { id: 'done',       title: 'Done',        folder: 'done',        jsonKey: 'done',       registryStatus: 'done' },
 ];
 
 // Prompt template for new prompts
@@ -901,7 +903,9 @@ async function openInEditor() {
   if (!selectedItem || !selectedCol) return;
   const basePath = await getProjectPath();
   if (!basePath) return;
-  const filePath = basePath + '\\doc\\prompts\\' + selectedCol.folder + '\\' + selectedItem.file;
+  const filePath = registryMode
+    ? basePath + '\\doc\\prompts\\' + selectedItem.file
+    : basePath + '\\doc\\prompts\\' + selectedCol.folder + '\\' + selectedItem.file;
   const result = await companionPost('/open-editor', { filePath });
   if (result && result.action) toast('💻 Im Editor geöffnet');
 }
@@ -914,7 +918,9 @@ async function startCCWithPrompt(event) {
   const interactive = !(event && event.shiftKey); // Shift+Klick = silent (kein Resume)
   const itemType = selectedItem.type || 'bugfix';
   const branchName = itemType + '/' + selectedItem.id;
-  const promptFilePath = basePath + '\\doc\\prompts\\' + selectedCol.folder + '\\' + selectedItem.file;
+  const promptFilePath = registryMode
+    ? basePath + '\\doc\\prompts\\' + selectedItem.file
+    : basePath + '\\doc\\prompts\\' + selectedCol.folder + '\\' + selectedItem.file;
 
   const modeLabel = interactive ? 'Live + Resume' : 'Live (silent)';
   toast('⚡ CC wird gestartet (' + modeLabel + ')' + (useWorktree ? ' — Worktree: ' + branchName : '') + '...');
@@ -986,7 +992,108 @@ function updateCCBadge() {
 // Periodisch Badge aktualisieren
 setInterval(() => { if (companionAvailable) fetchCCInstances(); }, 10000);
 
+// ══════════════════════════════════════
+//  REGISTRY API HELPERS
+// ══════════════════════════════════════
+async function registryFetch(method, apiPath, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(5000) };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(COMPANION_URL + apiPath, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data?.error || 'HTTP ' + r.status);
+  return data;
+}
 
+function registryToJsonData(data) {
+  const jd = { backlog: [], inProgress: [], done: [], nextNum: data.nextNum || 1 };
+  const priorityIndex = {};
+  if (data.cardPriority) data.cardPriority.forEach((id, i) => priorityIndex[id] = i);
+  for (const card of (data.cards || [])) {
+    if (card.status === 'deleted') continue; // skip deleted cards for main board
+    const item = {
+      id: card.id, file: card.file, title: card.title, num: card.num, type: card.type || 'bugfix',
+      new: card.timestamps?.new || null,
+      inProgress: card.timestamps?.['in-progress'] || null,
+      done: card.timestamps?.done || null,
+      blocked: card.blocked || false,
+      blockedBy: card.blockedBy || null,
+      _priority: priorityIndex[card.id] ?? 9999,
+    };
+    switch (card.status) {
+      case 'new': jd.backlog.push(item); break;
+      case 'in-progress': jd.inProgress.push(item); break;
+      case 'done': jd.done.push(item); break;
+    }
+  }
+  // Sort backlog and inProgress by cardPriority order
+  jd.backlog.sort((a, b) => a._priority - b._priority);
+  jd.inProgress.sort((a, b) => a._priority - b._priority);
+  return jd;
+}
+
+function buildCardPriority() {
+  // Build cardPriority from current jsonData order (all columns)
+  return [...(jsonData.backlog||[]), ...(jsonData.inProgress||[]), ...(jsonData.done||[])].map(i => i.id);
+}
+
+async function loadFromRegistry() {
+  if (!companionAvailable) return false;
+  projectId = projectHandle.name;
+  try {
+    let data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId));
+    if (!data) return false;
+
+    // If no cards yet, try migration from backlog-priority.json
+    if (!data.cards || data.cards.length === 0) {
+      try {
+        const migResult = await registryFetch('POST', '/api/projects/' + encodeURIComponent(projectId) + '/migrate-backlog');
+        if (migResult && migResult.imported > 0) {
+          toast('📦 Migration: ' + migResult.imported + ' Karten aus backlog-priority.json importiert');
+          // Reload after migration
+          data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId));
+          if (!data) return false;
+        }
+        // Empty project with no backlog to migrate is a valid state — stay in registry mode
+      } catch {
+        // Migration endpoint failed (e.g. no backlog-priority.json) — still valid
+      }
+    }
+
+    jsonData = registryToJsonData(data);
+    registryMode = true;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function reloadFromRegistry() {
+  if (!registryMode || !projectId) return false;
+  try {
+    const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId));
+    jsonData = registryToJsonData(data);
+    fileContentsCache = {};
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function registryPatchStatus(cardId, newStatus) {
+  return registryFetch('PATCH', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(cardId) + '/status', { status: newStatus });
+}
+
+async function registryPutCard(cardId, cardData) {
+  return registryFetch('PUT', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(cardId), cardData);
+}
+
+async function registryDeleteCard(cardId) {
+  return registryFetch('DELETE', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(cardId));
+}
+
+async function registryUpdatePriority(cardPriority) {
+  return registryFetch('PUT', '/api/projects/' + encodeURIComponent(projectId) + '/card-priority', { cardPriority });
+}
 
 
 // ══════════════════════════════════════
@@ -1174,6 +1281,8 @@ async function initProjectFromHandle() {
     closePreview();
     fileContentsCache = {}; lastJsonText = '';
     switchedFromBoard = false;
+    registryMode = false;
+    projectId = null;
 
     // Save handle to IndexedDB for quick re-open
     const saved = await saveHandleToIDB(projectHandle.name, projectHandle);
@@ -1194,7 +1303,7 @@ async function initProjectFromHandle() {
     }
     dirHandle = promptsHandle;
 
-    // Ensure subfolders exist
+    // Ensure subfolders exist (needed for legacy mode and migration)
     for (const col of COLUMNS) {
       try { subDirs[col.folder] = await dirHandle.getDirectoryHandle(col.folder, { create: true }); }
       catch { subDirs[col.folder] = null; }
@@ -1202,6 +1311,52 @@ async function initProjectFromHandle() {
     try { subDirs['deleted'] = await dirHandle.getDirectoryHandle('deleted', { create: true }); }
     catch { subDirs['deleted'] = null; }
 
+    // Ensure README.md exists
+    try { await dirHandle.getFileHandle('README.md'); }
+    catch {
+      const rh = await dirHandle.getFileHandle('README.md', { create: true });
+      const w = await rh.createWritable();
+      await w.write('# CC-Prompts\n\nSiehe KanPrompt für die Verwaltung der Prompt-Dateien.\n');
+      await w.close();
+    }
+
+    // Read schema version from project root
+    try {
+      const vfh = await projectHandle.getFileHandle('.kanprompt-version.json');
+      const vf = await vfh.getFile();
+      const vt = await vf.text();
+      const vd = JSON.parse(vt);
+      projectSchemaVersion = vd.schema || null;
+    } catch {
+      projectSchemaVersion = null;
+    }
+
+    // Try Registry mode first (requires companion)
+    if (companionAvailable) {
+      // Ensure project is registered with companion
+      const key = 'kanprompt_path_' + projectHandle.name;
+      let projectPath = localStorage.getItem(key);
+      if (!projectPath) {
+        const findResult = await companionPost('/find-project', { name: projectHandle.name });
+        if (findResult && findResult.found) {
+          projectPath = findResult.path;
+          localStorage.setItem(key, projectPath);
+        }
+      }
+      if (projectPath) {
+        await registerProjectWithCompanion(projectHandle.name, projectPath);
+        // Small delay to ensure registration is processed
+        await new Promise(r => setTimeout(r, 100));
+      }
+
+      if (await loadFromRegistry()) {
+        showApp();
+        toast('Projekt geladen (Registry): ' + projectHandle.name);
+        return;
+      }
+    }
+
+    // Fallback: Legacy mode with backlog-priority.json
     // Recovery: check for interrupted safe-write
     try {
       const tmpH = await dirHandle.getFileHandle('.backlog-priority.json.tmp');
@@ -1225,26 +1380,6 @@ async function initProjectFromHandle() {
       await w.write(JSON.stringify(initial, null, 2) + '\n');
       await w.close();
       toast('backlog-priority.json angelegt');
-    }
-
-    // Ensure README.md exists
-    try { await dirHandle.getFileHandle('README.md'); }
-    catch {
-      const rh = await dirHandle.getFileHandle('README.md', { create: true });
-      const w = await rh.createWritable();
-      await w.write('# CC-Prompts\n\nSiehe KanPrompt für die Verwaltung der Prompt-Dateien.\n');
-      await w.close();
-    }
-
-    // Read schema version from project root
-    try {
-      const vfh = await projectHandle.getFileHandle('.kanprompt-version.json');
-      const vf = await vfh.getFile();
-      const vt = await vf.text();
-      const vd = JSON.parse(vt);
-      projectSchemaVersion = vd.schema || null;
-    } catch {
-      projectSchemaVersion = null;
     }
 
     await loadJson();
@@ -1301,6 +1436,27 @@ async function writeJson() {
 //  FILE OPERATIONS
 // ══════════════════════════════════════
 async function readMdFile(folder, filename) {
+  if (registryMode) {
+    // Registry mode: files are flat in doc/prompts/
+    const key = 'flat/' + filename;
+    if (fileContentsCache[key]) return fileContentsCache[key];
+    try {
+      const pH = await safeDirHandle(); dirHandle = pH;
+      const fh = await pH.getFileHandle(filename);
+      const f = await fh.getFile(); const t = await f.text();
+      fileContentsCache[key] = t; return t;
+    } catch {
+      // Fallback: try subfolder (for files not yet migrated)
+      try {
+        const pH = await safeDirHandle();
+        const dir = await pH.getDirectoryHandle(folder);
+        const fh = await dir.getFileHandle(filename);
+        const f = await fh.getFile(); const t = await f.text();
+        fileContentsCache[key] = t; return t;
+      } catch { return null; }
+    }
+  }
+  // Legacy mode
   const key = folder + '/' + filename;
   if (fileContentsCache[key]) return fileContentsCache[key];
   try {
@@ -1313,6 +1469,13 @@ async function readMdFile(folder, filename) {
   } catch { return null; }
 }
 async function writeMdFile(folder, filename, content) {
+  if (registryMode) {
+    try {
+      const pH = await safeDirHandle(); dirHandle = pH;
+      await safeWriteFile(pH, filename, content);
+      fileContentsCache['flat/'+filename] = content; return true;
+    } catch (e) { toast('Speichern fehlgeschlagen: ' + e.message); return false; }
+  }
   try {
     const pH = await safeDirHandle();
     const dir = await pH.getDirectoryHandle(folder);
@@ -1338,6 +1501,14 @@ async function moveFile(filename, from, to) {
   } catch (e) { toast('Verschieben fehlgeschlagen: ' + e.message); return false; }
 }
 async function createMdFile(folder, filename, content) {
+  if (registryMode) {
+    try {
+      const pH = await safeDirHandle(); dirHandle = pH;
+      const fh = await pH.getFileHandle(filename, { create: true });
+      const w = await fh.createWritable(); await w.write(content); await w.close();
+      fileContentsCache['flat/'+filename] = content; return true;
+    } catch (e) { toast('Erstellen fehlgeschlagen: ' + e.message); return false; }
+  }
   try {
     const pH = await safeDirHandle();
     const dir = await pH.getDirectoryHandle(folder);
@@ -1348,6 +1519,17 @@ async function createMdFile(folder, filename, content) {
   } catch (e) { toast('Erstellen fehlgeschlagen: ' + e.message); return false; }
 }
 async function listMdFiles(folder) {
+  if (registryMode && folder !== 'deleted') {
+    // Registry mode: list .md files in flat doc/prompts/ dir
+    try {
+      const pH = await safeDirHandle(); dirHandle = pH;
+      const files = [];
+      for await (const [name, h] of pH.entries()) {
+        if (h.kind === 'file' && name.endsWith('.md') && name !== 'README.md' && name !== 'TEMPLATE.md') files.push(name);
+      }
+      return files;
+    } catch { return null; }
+  }
   try {
     const pH = await safeDirHandle();
     const freshDir = await pH.getDirectoryHandle(folder);
@@ -1364,6 +1546,37 @@ async function listMdFiles(folder) {
 //  FOLDER → JSON SYNC
 // ══════════════════════════════════════
 async function syncFolderToJson(silent) {
+  if (registryMode) {
+    // Registry mode: scan flat dir for new .md files not yet in registry
+    try {
+      const diskFiles = await listMdFiles('prompts'); // uses flat scan in registryMode
+      if (!diskFiles) { syncFailCount++; updateSyncWarning(); return; }
+      const allIds = new Set();
+      for (const c of COLUMNS) for (const item of (jsonData[c.jsonKey] || [])) allIds.add(item.id);
+      let added = 0;
+      for (const f of diskFiles) {
+        const id = f.replace('.md', '');
+        if (allIds.has(id)) continue;
+        // Register new card via API
+        const title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const result = await registryPutCard(id, { file: f, title, type: 'bugfix', status: 'new' });
+        if (result) { added++; allIds.add(id); }
+      }
+      if (added > 0) {
+        await reloadFromRegistry();
+        renderBoard(); updateInfoBar();
+        toast('Sync: +' + added + ' neue Karten registriert');
+      } else if (!silent) {
+        toast('Sync: Alles aktuell');
+      }
+      syncFailCount = 0; updateSyncWarning();
+    } catch (e) {
+      syncFailCount++; updateSyncWarning();
+      if (!silent) toast('Sync-Fehler: ' + e.message);
+    }
+    return;
+  }
+  // Legacy mode
   try {
     let added = 0, removed = 0, anyNull = false;
     // Build global ID set across all columns to prevent duplicates
@@ -1422,22 +1635,47 @@ function updateSyncWarning() {
 // ══════════════════════════════════════
 function startPoll() {
   if (pollInterval) clearInterval(pollInterval);
-  pollInterval = setInterval(async () => {
-    if (!projectHandle || !polling) return;
-    try {
-      const pH = await safeDirHandle();
-      const fH = await pH.getFileHandle('backlog-priority.json');
-      const f = await fH.getFile(); const t = await f.text();
-      dirHandle = pH; jsonHandle = fH;
-      if (t !== lastJsonText) { jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {}; renderBoard(); updateInfoBar(); toast('↻ Externe Änderung'); }
-    } catch {}
-  }, 2000);
-  // Periodic folder sync: detect new .md files created externally (e.g. by CC)
-  if (folderSyncInterval) clearInterval(folderSyncInterval);
-  folderSyncInterval = setInterval(async () => {
-    if (!jsonHandle || !polling) return;
-    await syncFolderToJson(true);
-  }, 10000);
+  if (registryMode) {
+    // Registry mode: poll Registry API for changes
+    pollInterval = setInterval(async () => {
+      if (!projectHandle || !polling || !registryMode) return;
+      try {
+        const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId));
+        const newJsonData = registryToJsonData(data);
+        const newText = JSON.stringify(newJsonData);
+        if (newText !== lastJsonText) {
+          jsonData = newJsonData; lastJsonText = newText; fileContentsCache = {};
+          renderBoard(); updateInfoBar(); toast('↻ Externe Änderung');
+        }
+        if (syncFailCount > 0) { syncFailCount = 0; updateSyncWarning(); }
+      } catch {
+        syncFailCount++; updateSyncWarning();
+      }
+    }, 3000);
+    // Periodic folder sync for new files
+    if (folderSyncInterval) clearInterval(folderSyncInterval);
+    folderSyncInterval = setInterval(async () => {
+      if (!projectHandle || !polling) return;
+      await syncFolderToJson(true);
+    }, 15000);
+  } else {
+    // Legacy mode
+    pollInterval = setInterval(async () => {
+      if (!projectHandle || !polling) return;
+      try {
+        const pH = await safeDirHandle();
+        const fH = await pH.getFileHandle('backlog-priority.json');
+        const f = await fH.getFile(); const t = await f.text();
+        dirHandle = pH; jsonHandle = fH;
+        if (t !== lastJsonText) { jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {}; renderBoard(); updateInfoBar(); toast('↻ Externe Änderung'); }
+      } catch {}
+    }, 2000);
+    if (folderSyncInterval) clearInterval(folderSyncInterval);
+    folderSyncInterval = setInterval(async () => {
+      if (!jsonHandle || !polling) return;
+      await syncFolderToJson(true);
+    }, 10000);
+  }
 }
 function togglePoll() {
   polling = !polling;
@@ -1448,7 +1686,17 @@ function togglePoll() {
 async function refreshAll() {
   if (!projectHandle) return;
   try {
-    // 1) JSON neu von Disk laden
+    if (registryMode) {
+      // Registry mode: reload from API
+      if (await reloadFromRegistry()) {
+        lastJsonText = JSON.stringify(jsonData);
+        syncFailCount = 0; updateSyncWarning();
+        renderBoard(); updateInfoBar();
+        await syncFolderToJson(false);
+        return;
+      }
+    }
+    // Legacy mode: JSON neu von Disk laden
     const pH = await safeDirHandle();
     const fH = await pH.getFileHandle('backlog-priority.json');
     const f = await fH.getFile(); const t = await f.text();
@@ -1466,12 +1714,14 @@ async function refreshAll() {
 function showApp() {
   document.getElementById('welcomeScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  document.getElementById('folderLabel').textContent = projectHandle.name;
+  document.getElementById('folderLabel').textContent = projectHandle.name + (registryMode ? ' ⚡' : '');
   saveRecentProject(projectHandle.name);
-  renderBoard(); updateInfoBar(); updateSchemaBadge(); updateDeletedCount(); startPoll();
-
-  // Auto-resolve project path via companion
-  setTimeout(() => resolveProjectPath(), 300);
+  renderBoard(); updateInfoBar(); updateDeletedCount(); startPoll();
+  if (!registryMode) {
+    updateSchemaBadge();
+    // Auto-resolve project path via companion
+    setTimeout(() => resolveProjectPath(), 300);
+  }
 }
 
 let switchedFromBoard = false;
@@ -1501,6 +1751,7 @@ function resetProjectState() {
   closePreview();
   projectHandle = null; dirHandle = null; subDirs = {}; jsonHandle = null; jsonData = null;
   fileContentsCache = {}; lastJsonText = '';
+  registryMode = false; projectId = null;
   document.getElementById('board').innerHTML = '';
   switchedFromBoard = false;
 }
@@ -1623,14 +1874,16 @@ async function resolveProjectPath() {
   }
 }
 
-function registerProjectWithCompanion(id, projectPath) {
+async function registerProjectWithCompanion(id, projectPath) {
   if (!companionAvailable || !projectPath) return;
-  fetch(COMPANION_URL + '/api/projects/' + encodeURIComponent(id), {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ projectPath, promptsDir: 'doc/prompts' }),
-    signal: AbortSignal.timeout(2000)
-  }).catch(() => {});
+  try {
+    await fetch(COMPANION_URL + '/api/projects/' + encodeURIComponent(id), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectPath, promptsDir: 'doc/prompts' }),
+      signal: AbortSignal.timeout(2000)
+    });
+  } catch {}
 }
 
 async function getProjectPath() {
@@ -1663,7 +1916,8 @@ function renderBoard() {
     const allItems = jsonData[col.jsonKey] || [];
     const colEl = document.createElement('div');
     colEl.className = 'column';
-    colEl.innerHTML = `<div class="column-header"><span class="column-title">${col.title} <span class="folder-hint">${col.folder}/</span></span><span style="display:flex;align-items:center;gap:6px;">${col.jsonKey==='done'&&allItems.length>0?'<button class="btn btn-sm" onclick="openArchive()" style="font-size:10px;padding:2px 6px;" title="Alle done-Einträge durchsuchen">📦 Archiv</button>':''}<span class="column-count">${allItems.length}</span></span></div>`;
+    const folderHint = registryMode ? '' : ` <span class="folder-hint">${col.folder}/</span>`;
+    colEl.innerHTML = `<div class="column-header"><span class="column-title">${col.title}${folderHint}</span><span style="display:flex;align-items:center;gap:6px;">${col.jsonKey==='done'&&allItems.length>0?'<button class="btn btn-sm" onclick="openArchive()" style="font-size:10px;padding:2px 6px;" title="Alle done-Einträge durchsuchen">📦 Archiv</button>':''}<span class="column-count">${allItems.length}</span></span></div>`;
     const body = document.createElement('div');
     body.className = 'column-body'; body.dataset.column = col.id;
 
@@ -1730,14 +1984,21 @@ function createCard(item, col, index) {
 function findItem(id) { for (const c of COLUMNS) { const f = (jsonData[c.jsonKey]||[]).find(i => i.id===id); if (f) return f; } return null; }
 function toggleBlocked(id) {
   const item = findItem(id); if (!item) return;
-  if (item.blocked) { delete item.blocked; delete item.blockedBy; writeJson(); renderBoard(); toast('✓ Unblocked: ' + item.title); }
+  if (item.blocked) {
+    delete item.blocked; delete item.blockedBy;
+    if (registryMode) registryPutCard(id, { blocked: false, blockedBy: null });
+    else writeJson();
+    renderBoard(); toast('✓ Unblocked: ' + item.title);
+  }
   else { document.getElementById('blockedItemId').value = id; document.getElementById('blockedReason').value = ''; document.getElementById('blockedModalOverlay').classList.add('open'); setTimeout(() => document.getElementById('blockedReason').focus(), 100); }
 }
 function confirmSetBlocked() {
   const id = document.getElementById('blockedItemId').value; const reason = document.getElementById('blockedReason').value.trim();
   const item = findItem(id); if (!item) return;
   item.blocked = true; if (reason) item.blockedBy = reason; else delete item.blockedBy;
-  writeJson(); renderBoard(); closeBlockedModal(); toast('⊘ Blocked: ' + item.title);
+  if (registryMode) registryPutCard(id, { blocked: true, blockedBy: reason || null });
+  else writeJson();
+  renderBoard(); closeBlockedModal(); toast('⊘ Blocked: ' + item.title);
 }
 function closeBlockedModal() { document.getElementById('blockedModalOverlay').classList.remove('open'); }
 
@@ -1750,6 +2011,40 @@ async function handleDrop(itemId, targetColId, insertIndex) {
   if (!item || !srcCol) return;
   const tgtCol = COLUMNS.find(c => c.id===targetColId); if (!tgtCol) return;
 
+  if (registryMode) {
+    try {
+      if (srcCol.id === tgtCol.id) {
+        // Reorder within same column
+        const a = jsonData[srcCol.jsonKey]; let adj = insertIndex; if (insertIndex > srcIdx) adj--;
+        if (adj === srcIdx) return;
+        a.splice(srcIdx, 1); if (adj < 0 || adj >= a.length) a.push(item); else a.splice(adj, 0, item);
+        await registryUpdatePriority(buildCardPriority());
+        renderBoard(); updateInfoBar(); toast(`↕ ${item.title} → #${adj<0?a.length:adj+1}`);
+      } else {
+        // Cross-column: status transition via API (no file move!)
+        const result = await registryPatchStatus(item.id, tgtCol.registryStatus);
+        // Update local state from API response
+        jsonData[srcCol.jsonKey].splice(srcIdx, 1);
+        item.new = result.card.timestamps?.new || item.new;
+        item.inProgress = result.card.timestamps?.['in-progress'] || null;
+        item.done = result.card.timestamps?.done || null;
+        if (!jsonData[tgtCol.jsonKey]) jsonData[tgtCol.jsonKey] = [];
+        const a = jsonData[tgtCol.jsonKey]; if (insertIndex<0||insertIndex>=a.length) a.push(item); else a.splice(insertIndex, 0, item);
+        await registryUpdatePriority(buildCardPriority());
+        renderBoard(); updateInfoBar(); toast(`${item.title}: ${srcCol.title} → ${tgtCol.title}`);
+        if (tgtCol.jsonKey === 'done' && item.type) {
+          const nextVer = computeNextVersion(VERSION, item.type);
+          if (nextVer !== VERSION) suggestVersionBump(item, nextVer);
+        }
+      }
+    } catch (e) {
+      toast('Verschieben fehlgeschlagen — lade Board neu');
+      try { await reloadFromRegistry(); renderBoard(); updateInfoBar(); } catch {}
+    }
+    return;
+  }
+
+  // Legacy mode
   try {
     if (srcCol.id === tgtCol.id) {
       const a = jsonData[srcCol.jsonKey]; let adj = insertIndex; if (insertIndex > srcIdx) adj--;
@@ -1825,10 +2120,23 @@ function computePlannedVersion() {
 //  DELETE
 // ══════════════════════════════════════
 async function deleteItem(id) {
-  if (!confirm('Prompt nach deleted/ verschieben?')) return;
+  if (!confirm('Prompt löschen?')) return;
   let srcCol = null, item = null;
   for (const c of COLUMNS) { const f = (jsonData[c.jsonKey]||[]).find(i => i.id===id); if (f) { srcCol=c; item=f; break; } }
   if (!item || !srcCol) return;
+
+  if (registryMode) {
+    try {
+      await registryDeleteCard(id);
+      const a = jsonData[srcCol.jsonKey]; const i = a.findIndex(x => x.id===id); if (i>=0) a.splice(i, 1);
+      if (selectedId===id) closePreview(); renderBoard(); updateInfoBar(); toast('Gelöscht: ' + item.title);
+    } catch (e) {
+      toast('Löschen fehlgeschlagen: ' + e.message);
+    }
+    return;
+  }
+
+  // Legacy mode
   if (subDirs['deleted']) await moveFile(item.file, srcCol.folder, 'deleted');
   const a = jsonData[srcCol.jsonKey]; const i = a.findIndex(x => x.id===id); if (i>=0) a.splice(i, 1);
   await writeJson(); if (selectedId===id) closePreview(); renderBoard(); updateInfoBar(); updateDeletedCount(); toast('→ deleted/: ' + item.file);
@@ -1873,13 +2181,27 @@ let deletedItems = [];
 let deletedCountVal = 0;
 
 async function updateDeletedCount() {
-  const files = await listMdFiles('deleted');
-  deletedCountVal = files ? files.length : 0;
+  if (registryMode) {
+    try {
+      const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId) + '/cards?status=deleted');
+      deletedCountVal = data ? (data.cards || []).length : 0;
+    } catch { deletedCountVal = 0; }
+  } else {
+    const files = await listMdFiles('deleted');
+    deletedCountVal = files ? files.length : 0;
+  }
   const btn = document.getElementById('deletedBtn');
   if (btn) btn.textContent = '🗑' + (deletedCountVal > 0 ? ' ' + deletedCountVal : '');
 }
 
 async function loadDeletedFiles() {
+  if (registryMode) {
+    try {
+      const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId) + '/cards?status=deleted');
+      if (!data || !data.cards) return [];
+      return data.cards.map(c => ({ id: c.id, file: c.file, title: c.title }));
+    } catch { return []; }
+  }
   const files = await listMdFiles('deleted');
   if (!files) return [];
   const items = [];
@@ -1963,21 +2285,33 @@ async function previewDeleted(item) {
   pp.classList.add('open');
   updateDeletedPosition();
   document.getElementById('previewTitle').textContent = '🗑 ' + item.title;
-  document.getElementById('previewMeta').innerHTML = '<span>🗑 deleted/' + esc(item.file) + '</span>';
+  document.getElementById('previewMeta').innerHTML = '<span>🗑 ' + (registryMode ? '' : 'deleted/') + esc(item.file) + '</span>';
   document.getElementById('editToggleBtn').style.display = 'none';
   showReadView();
   const content = document.getElementById('previewContent');
   content.textContent = 'Lade...';
-  const md = await readMdFile('deleted', item.file);
+  const md = registryMode ? await readMdFile('prompts', item.file) : await readMdFile('deleted', item.file);
   content.innerHTML = md ? renderMarkdown(md) : '(Datei nicht lesbar)';
   updateCCButtonState();
 }
 
 async function restoreDeleted(filename) {
   if (!confirm('Prompt zurück ins Backlog verschieben?')) return;
+  const id = filename.replace('.md', '');
   try {
+    if (registryMode) {
+      // Registry mode: change status back to 'new'
+      const result = await registryPatchStatus(id, 'new');
+      if (!result) { toast('Wiederherstellen fehlgeschlagen'); return; }
+      await reloadFromRegistry();
+      renderBoard(); updateInfoBar();
+      deletedItems = deletedItems.filter(i => i.file !== filename);
+      filterDeleted(); updateDeletedCount();
+      toast('↩ Wiederhergestellt: ' + filename);
+      return;
+    }
+    // Legacy mode
     if (!await moveFile(filename, 'deleted', 'new')) return;
-    const id = filename.replace('.md', '');
     let title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     const content = await readMdFile('new', filename);
     if (content) {
@@ -2000,10 +2334,18 @@ async function restoreDeleted(filename) {
 async function permanentDelete(filename) {
   if (!confirm('⚠ "' + filename + '" endgültig löschen?\n\nDiese Aktion kann NICHT rückgängig gemacht werden!')) return;
   try {
-    const dir = subDirs['deleted'];
-    if (!dir) { toast('deleted/ Ordner nicht verfügbar'); return; }
-    await dir.removeEntry(filename);
-    delete fileContentsCache['deleted/' + filename];
+    if (registryMode) {
+      // In Registry mode: remove from registry + delete file
+      const id = filename.replace('.md', '');
+      try { await registryFetch('DELETE', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(id) + '?permanent=true'); } catch {}
+      try { const pH = await safeDirHandle(); await pH.removeEntry(filename); } catch {}
+      delete fileContentsCache['flat/' + filename];
+    } else {
+      const dir = subDirs['deleted'];
+      if (!dir) { toast('deleted/ Ordner nicht verfügbar'); return; }
+      await dir.removeEntry(filename);
+      delete fileContentsCache['deleted/' + filename];
+    }
     deletedItems = deletedItems.filter(i => i.file !== filename);
     filterDeleted();
     updateDeletedCount();
@@ -2031,7 +2373,7 @@ async function openPreview(item, col) {
   const meta = document.getElementById('previewMeta');
   const itype = item.type || 'bugfix';
   let mh = item.num ? `<span>#${item.num}</span>` : '';
-  mh += `<span>📄 ${col.folder}/${item.file}</span>`;
+  mh += registryMode ? `<span>📄 ${item.file}</span>` : `<span>📄 ${col.folder}/${item.file}</span>`;
   if (item.new) mh += `<span>🆕 ${formatTS(item.new)}</span>`;
   if (item.inProgress) mh += `<span>🔧 ${formatTS(item.inProgress)}</span>`;
   if (item.done) mh += `<span>✅ ${formatTS(item.done)}</span>`;
@@ -2051,7 +2393,11 @@ async function openPreview(item, col) {
 async function changeItemType(newType) {
   if (!selectedItem) return;
   selectedItem.type = newType;
-  await writeJson();
+  if (registryMode) {
+    await registryPutCard(selectedItem.id, { type: newType });
+  } else {
+    await writeJson();
+  }
   renderBoard();
   updateInfoBar();
   const sel = document.getElementById('previewTypeSelector');
@@ -2075,8 +2421,15 @@ async function saveEdit() {
 function cancelEdit() { showReadView(); }
 async function refreshPreview() {
   if (!selectedItem||!selectedCol) return;
-  await loadJson();
+  if (registryMode) {
+    await reloadFromRegistry();
+  } else {
+    await loadJson();
+  }
   for (const c of COLUMNS) { const f = (jsonData[c.jsonKey]||[]).find(i => i.id===selectedId); if (f) { selectedItem=f; selectedCol=c; break; } }
+  // Clear cached file content for this item
+  delete fileContentsCache['flat/' + selectedItem.file];
+  delete fileContentsCache[selectedCol.folder + '/' + selectedItem.file];
   await openPreview(selectedItem, selectedCol);
   toast('🔄 Aktualisiert');
 }
@@ -2107,6 +2460,22 @@ async function createNewPrompt() {
   const title=document.getElementById('newTitle').value.trim(); let fn=document.getElementById('newFilename').value.trim(); const c=document.getElementById('newContent').value;
   if(!title){toast('Titel fehlt');return;} if(!fn)fn=slugify(title)+'.md'; if(!fn.endsWith('.md'))fn+='.md';
   const id=fn.replace('.md',''), today=nowStr();
+
+  if (registryMode) {
+    // Registry mode: create file in flat dir, register via API
+    if(!await createMdFile('new',fn,c||PROMPT_TEMPLATE(title)))return;
+    try {
+      const result = await registryPutCard(id, { file: fn, title, type: getSelectedType(), status: 'new' });
+      jsonData.backlog.push({ id, file: fn, title, type: getSelectedType(), num: result.card.num, new: today });
+      await registryUpdatePriority(buildCardPriority());
+      renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: ' + fn);
+    } catch (e) {
+      toast('Registrierung fehlgeschlagen: ' + e.message);
+    }
+    return;
+  }
+
+  // Legacy mode
   if(!await createMdFile('new',fn,c||PROMPT_TEMPLATE(title)))return;
   jsonData.backlog.push({id,file:fn,title,type:getSelectedType(),num:getNextNum(),new:today});
   await writeJson(); renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: new/'+fn);
