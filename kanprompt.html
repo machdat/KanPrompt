@@ -700,7 +700,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.22.0';
+const VERSION = '0.22.1';
 const SCHEMA_VERSION = '1.2.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
@@ -1005,11 +1005,11 @@ async function registryFetch(method, apiPath, body) {
 }
 
 function registryToJsonData(data) {
-  const jd = { backlog: [], inProgress: [], done: [], nextNum: data.nextNum || 1 };
+  const jd = { backlog: [], inProgress: [], done: [], nextNum: data.nextNum || 1, deletedIds: new Set() };
   const priorityIndex = {};
   if (data.cardPriority) data.cardPriority.forEach((id, i) => priorityIndex[id] = i);
   for (const card of (data.cards || [])) {
-    if (card.status === 'deleted') continue; // skip deleted cards for main board
+    if (card.status === 'deleted') { jd.deletedIds.add(card.id); continue; }
     const item = {
       id: card.id, file: card.file, title: card.title, num: card.num, type: card.type || 'bugfix',
       new: card.timestamps?.new || null,
@@ -1553,6 +1553,7 @@ async function syncFolderToJson(silent) {
       if (!diskFiles) { syncFailCount++; updateSyncWarning(); return; }
       const allIds = new Set();
       for (const c of COLUMNS) for (const item of (jsonData[c.jsonKey] || [])) allIds.add(item.id);
+      if (jsonData.deletedIds) jsonData.deletedIds.forEach(id => allIds.add(id));
       let added = 0;
       for (const f of diskFiles) {
         const id = f.replace('.md', '');
