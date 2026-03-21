@@ -948,11 +948,19 @@ const server = http.createServer(async (req, res) => {
           const statusOut = await execPromise(`git -C "${wtResolved}" status --porcelain`);
           isDirty = statusOut.trim().length > 0;
           if (isDirty && !force) {
+            // Parse porcelain output into file list with status
+            const dirtyFiles = statusOut.trim().split('\n').map(line => {
+              const status = line.slice(0, 2).trim();
+              const file = line.slice(3);
+              const labels = { 'M': 'geändert', 'A': 'neu', 'D': 'gelöscht', '??': 'unversioniert', 'R': 'umbenannt' };
+              return { file, status, label: labels[status] || status };
+            });
             return json(res, 409, {
               success: false,
               dirty: true,
               error: 'Worktree hat uncommitted Changes',
-              changes: statusOut.trim().split('\n').length,
+              changes: dirtyFiles.length,
+              dirtyFiles,
             });
           }
           const branchOut = await execPromise(`git -C "${wtResolved}" rev-parse --abbrev-ref HEAD`);
@@ -1057,6 +1065,15 @@ const server = http.createServer(async (req, res) => {
         // Check for uncommitted changes in worktree
         const statusOut = await execPromise(`git -C "${wtResolved}" status --porcelain`);
         const isDirty = statusOut.trim().length > 0;
+        let dirtyFiles = [];
+        if (isDirty) {
+          const labels = { 'M': 'geändert', 'A': 'neu', 'D': 'gelöscht', '??': 'unversioniert', 'R': 'umbenannt' };
+          dirtyFiles = statusOut.trim().split('\n').map(line => {
+            const status = line.slice(0, 2).trim();
+            const file = line.slice(3);
+            return { file, status, label: labels[status] || status };
+          });
+        }
 
         // Check if branch is merged
         let isMerged = false;
@@ -1074,6 +1091,7 @@ const server = http.createServer(async (req, res) => {
           deletions,
           diffStat: diffOut.trim(),
           dirty: isDirty,
+          dirtyFiles,
           isMerged,
         });
       } catch (e) {

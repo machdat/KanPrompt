@@ -759,7 +759,16 @@ async function showDeleteDialog(idx) {
   let isMerged = stat?.isMerged || false;
 
   if (stat && stat.dirty) {
-    warnings += '<div class="modal-warning">⚠️ Worktree hat uncommitted Changes! Änderungen gehen verloren.</div>';
+    const fileList = (stat.dirtyFiles || []).map(f =>
+      `<div style="display:flex;gap:8px;padding:2px 0;font-size:11px;">
+        <span style="color:var(--accent-orange);min-width:90px;">${esc(f.label)}</span>
+        <span style="color:var(--text-secondary);">${esc(f.file)}</span>
+      </div>`
+    ).join('');
+    warnings += `<div class="modal-warning">⚠️ Worktree hat uncommitted Changes! Änderungen gehen verloren.</div>`;
+    if (fileList) {
+      warnings += `<div style="max-height:160px;overflow-y:auto;margin:6px 0;padding:6px 8px;background:var(--bg-card);border-radius:var(--radius-sm);">${fileList}</div>`;
+    }
   }
   if (stat && !stat.isMerged && stat.commitCount > 0) {
     warnings += `<div class="modal-warning">⚠️ Branch <strong>${esc(stat.branch)}</strong> wurde NICHT in ${esc(stat.defaultBranch)} gemergt. ${stat.commitCount} Commits gehen verloren!</div>`;
@@ -808,16 +817,62 @@ async function executeDelete(idx) {
 
 // Orphan worktree delete (from git status section)
 async function deleteOrphanWorktree(projectPath, worktreePath) {
-  const confirmed = confirm('Verwaisten Worktree löschen?\n' + worktreePath);
-  if (!confirmed) return;
+  // First try without force to check for dirty files
+  const check = await companionPost('/worktree-delete', {
+    projectPath,
+    worktreePath,
+    deleteBranch: true,
+  });
 
+  if (check && check.success) {
+    toast('Verwaister Worktree gelöscht');
+    if (gitSectionExpanded) loadGitStatus();
+    return;
+  }
+
+  if (check && check.dirty && check.dirtyFiles) {
+    // Show dirty files in modal
+    const container = document.getElementById('modalContainer');
+    const fileList = check.dirtyFiles.map(f =>
+      `<div style="display:flex;gap:8px;padding:2px 0;font-size:11px;">
+        <span style="color:var(--accent-orange);min-width:90px;">${esc(f.label)}</span>
+        <span style="color:var(--text-secondary);">${esc(f.file)}</span>
+      </div>`
+    ).join('');
+
+    container.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>⚠️ Worktree hat ungesicherte Änderungen</h3>
+        <div class="modal-body">
+          <div style="margin-bottom:8px;">${esc(worktreePath)}</div>
+          <div class="modal-warning">
+            <strong>${check.dirtyFiles.length} Datei${check.dirtyFiles.length > 1 ? 'en' : ''} betroffen:</strong>
+          </div>
+          <div style="max-height:200px;overflow-y:auto;margin:8px 0;padding:6px 8px;background:var(--bg-card);border-radius:var(--radius-sm);">
+            ${fileList}
+          </div>
+          <div style="color:var(--accent-red);font-size:11px;margin-top:6px;">Diese Änderungen gehen beim Löschen verloren.</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-sm" onclick="closeModal()">Abbrechen</button>
+          <button class="btn btn-sm" style="color:var(--accent-red);" onclick="forceDeleteOrphan('${esc(projectPath).replace(/'/g,"\\'")}','${esc(worktreePath).replace(/'/g,"\\'")}')">Trotzdem löschen</button>
+        </div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  toast('Fehler: ' + (check?.error || 'Unbekannt'));
+}
+
+async function forceDeleteOrphan(projectPath, worktreePath) {
+  closeModal();
   const result = await companionPost('/worktree-delete', {
     projectPath,
     worktreePath,
     deleteBranch: true,
     force: true,
   });
-
   if (result && result.success) {
     toast('Verwaister Worktree gelöscht');
     if (gitSectionExpanded) loadGitStatus();
