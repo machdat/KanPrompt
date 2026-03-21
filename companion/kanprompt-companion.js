@@ -509,7 +509,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // ── PING ──
     if (route === '/ping' && req.method === 'GET') {
-      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '1.1.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
+      return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: '1.2.0', pid: process.pid, uptime: Math.floor(process.uptime()) });
     }
 
     // ── SHUTDOWN ──
@@ -1282,7 +1282,7 @@ const server = http.createServer(async (req, res) => {
     // ── INFO ──
     if (route === '/info' && req.method === 'GET') {
       return json(res, 200, {
-        server: 'kanprompt-companion', version: '1.1.0',
+        server: 'kanprompt-companion', version: '1.2.0',
         endpoints: [
           'GET  /ping', 'GET  /info',
           'GET  /dispatch              → dispatch.html Seite',
