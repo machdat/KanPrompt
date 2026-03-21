@@ -694,7 +694,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.20.0';
+const VERSION = '0.21.0';
 const SCHEMA_VERSION = '1.2.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
@@ -780,6 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
 //  COMPANION SERVER
 // ══════════════════════════════════════
 async function checkCompanion() {
+  const wasPreviouslyAvailable = companionAvailable;
   try {
     const r = await fetch(COMPANION_URL + '/ping', { signal: AbortSignal.timeout(1500) });
     const data = await r.json();
@@ -788,6 +789,12 @@ async function checkCompanion() {
     companionAvailable = false;
   }
   updateCompanionUI();
+  // Auto-register project when companion becomes available
+  if (companionAvailable && !wasPreviouslyAvailable && projectHandle) {
+    const key = 'kanprompt_path_' + projectHandle.name;
+    const projectPath = localStorage.getItem(key);
+    if (projectPath) registerProjectWithCompanion(projectHandle.name, projectPath);
+  }
 }
 
 function updateCompanionUI() {
@@ -1543,21 +1550,40 @@ document.addEventListener('click', (e) => {
 async function resolveProjectPath() {
   if (!projectHandle || !companionAvailable) return;
   const key = 'kanprompt_path_' + projectHandle.name;
-  if (localStorage.getItem(key)) { updateInfoBar(); return; } // already known
+  if (localStorage.getItem(key)) {
+    updateInfoBar();
+    registerProjectWithCompanion(projectHandle.name, localStorage.getItem(key));
+    return;
+  }
 
   // Ask companion to find the project by folder name
   const result = await companionPost('/find-project', { name: projectHandle.name });
   if (result && result.found) {
     localStorage.setItem(key, result.path);
     updateInfoBar();
+    registerProjectWithCompanion(projectHandle.name, result.path);
     toast('📍 Projekt-Pfad erkannt: ' + result.path);
   } else {
     // Fallback: ask user manually only if companion couldn't find it
     const p = prompt(
       `Projekt-Pfad konnte nicht automatisch ermittelt werden.\n` +
       `Bitte den vollen Pfad zu "${projectHandle.name}" eingeben:`, '');
-    if (p) { localStorage.setItem(key, p); updateInfoBar(); }
+    if (p) {
+      localStorage.setItem(key, p);
+      updateInfoBar();
+      registerProjectWithCompanion(projectHandle.name, p);
+    }
   }
+}
+
+function registerProjectWithCompanion(id, projectPath) {
+  if (!companionAvailable || !projectPath) return;
+  fetch(COMPANION_URL + '/api/projects/' + encodeURIComponent(id), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ projectPath, promptsDir: 'doc/prompts' }),
+    signal: AbortSignal.timeout(2000)
+  }).catch(() => {});
 }
 
 async function getProjectPath() {
