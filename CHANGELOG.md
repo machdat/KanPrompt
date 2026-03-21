@@ -2,6 +2,12 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [1.3.1] - 2026-03-21
+
+### Fixed
+- **Worktree-Delete bei inkonsistentem Zustand**: `/worktree-delete` und `/worktree-remove` führen bei fehlgeschlagenem `git worktree remove` jetzt einen Fallback-Cleanup durch (`git worktree prune` + Verzeichnis löschen)
+- Sicherheitscheck: `fs.rmSync` wird nur auf Pfade mit `-worktrees/` angewendet, nie auf das Hauptrepo
+
 ## [1.3.0] - 2026-03-21
 
 ### Added
