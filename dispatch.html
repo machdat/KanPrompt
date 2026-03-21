@@ -815,6 +815,7 @@ async function deleteOrphanWorktree(projectPath, worktreePath) {
     projectPath,
     worktreePath,
     deleteBranch: true,
+    force: true,
   });
 
   if (result && result.success) {
