@@ -100,17 +100,21 @@
     font-family: 'JetBrains Mono', monospace;
   }
   .project-dropdown-divider { height: 1px; background: var(--border-subtle); margin: 2px 0; }
-  .schema-badge {
+  .companion-version-badge {
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px; padding: 1px 8px;
     border-radius: 3px; margin-left: 6px;
     cursor: default; transition: var(--transition);
+    color: var(--accent-green); border: 1px solid var(--accent-green);
   }
-  .schema-badge.ok { color: var(--accent-green); border: 1px solid var(--accent-green); }
-  .schema-badge.warn { color: var(--accent-orange); border: 1px solid var(--accent-orange); cursor: pointer; }
-  .schema-badge.warn:hover { background: rgba(210,153,34,.1); }
-  .schema-badge.missing { color: var(--accent-red); border: 1px solid var(--accent-red); cursor: pointer; }
-  .schema-badge.missing:hover { background: rgba(248,81,73,.08); }
+  .companion-blocked {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    position: fixed; inset: 0; background: var(--bg-root); z-index: 9999;
+    gap: 16px; text-align: center; padding: 40px;
+  }
+  .companion-blocked.active { display: flex; }
+  .companion-blocked h2 { color: var(--accent-red); font-size: 20px; }
+  .companion-blocked p { color: var(--text-secondary); font-size: 14px; max-width: 400px; }
   .header-right { display: flex; align-items: center; gap: 8px; }
   .status-dot {
     width: 8px; height: 8px; border-radius: 50%;
@@ -541,7 +545,7 @@
         </div>
         <div class="project-dropdown" id="projectDropdown"></div>
       </div>
-      <span class="schema-badge" id="schemaBadge"></span>
+      <span class="companion-version-badge" id="companionVersionBadge" style="display:none;"></span>
     </div>
     <div class="header-right">
       <div style="display:flex;align-items:center;gap:6px;margin-right:6px;">
@@ -646,17 +650,11 @@
   </div>
 </div>
 
-<!-- UPGRADE MODAL -->
-<div class="modal-overlay" id="upgradeModalOverlay" onclick="event.target===this&&closeUpgradeModal()">
-  <div class="modal" style="width:520px;">
-    <h2>🔄 Schema-Upgrade</h2>
-    <div id="upgradeInfo" style="font-size:12px;color:var(--text-secondary);line-height:1.6;"></div>
-    <div id="upgradeLog" style="display:none;margin-top:12px;padding:10px;background:var(--bg-card);border-radius:var(--radius-sm);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-secondary);max-height:200px;overflow-y:auto;white-space:pre-wrap;"></div>
-    <div class="modal-actions">
-      <button class="btn" id="upgradeCancelBtn" onclick="closeUpgradeModal()">Abbrechen</button>
-      <button class="btn btn-primary" id="upgradeBtn" onclick="performUpgrade()">🔄 Upgrade durchführen</button>
-    </div>
-  </div>
+<!-- COMPANION BLOCKADE -->
+<div class="companion-blocked" id="companionBlocked">
+  <h2>Companion nicht verfügbar</h2>
+  <p>KanPrompt benötigt einen laufenden Companion-Server.<br>Starte ihn mit: <code>node companion/kanprompt-companion.js</code></p>
+  <button class="btn btn-primary" onclick="retryCompanionCheck()" style="font-size:14px;padding:10px 22px;">🔄 Erneut versuchen</button>
 </div>
 
 <div class="toast-container" id="toasts"></div>
@@ -700,10 +698,10 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.23.3';
-const SCHEMA_VERSION = '1.2.0';
+const VERSION = '0.24.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
+let companionVersion = null;
 let companionCheckInterval = null;
 let projectHandle = null;  // project root (e.g. erju_wp27/)
 let dirHandle = null;      // doc/prompts/ subfolder
@@ -714,7 +712,6 @@ let pendingMutations = 0; // skip poll while local API mutations are in-flight
 let draggedId = null, dragSourceCol = null, dropTargetCol = null, dropTargetIndex = -1;
 let selectedId = null, selectedItem = null, selectedCol = null, editMode = false;
 let fileContentsCache = {};
-let projectSchemaVersion = null;
 let registryMode = false;  // true when using Registry API instead of backlog-priority.json
 let projectId = null;      // project ID for Registry API calls
 const DONE_VISIBLE_COUNT = 5;
@@ -794,15 +791,40 @@ async function checkCompanion() {
     const r = await fetch(COMPANION_URL + '/ping', { signal: AbortSignal.timeout(1500) });
     const data = await r.json();
     companionAvailable = data.status === 'ok';
+    companionVersion = data.version || null;
   } catch {
     companionAvailable = false;
+    companionVersion = null;
   }
   updateCompanionUI();
+  updateCompanionVersionBadge();
   // Auto-register project when companion becomes available
   if (companionAvailable && !wasPreviouslyAvailable && projectHandle) {
     const key = 'kanprompt_path_' + projectHandle.name;
     const projectPath = localStorage.getItem(key);
     if (projectPath) registerProjectWithCompanion(projectHandle.name, projectPath);
+  }
+}
+
+function updateCompanionVersionBadge() {
+  const badge = document.getElementById('companionVersionBadge');
+  if (!badge) return;
+  if (companionAvailable && companionVersion) {
+    badge.textContent = 'companion ' + companionVersion + ' \u2713';
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+async function retryCompanionCheck() {
+  await checkCompanion();
+  if (companionAvailable) {
+    document.getElementById('companionBlocked').classList.remove('active');
+    // Re-trigger project opening if a handle was saved
+    if (projectHandle) await initProjectFromHandle();
+  } else {
+    toast('Companion immer noch nicht erreichbar');
   }
 }
 
@@ -1323,43 +1345,35 @@ async function initProjectFromHandle() {
       await w.close();
     }
 
-    // Read schema version from project root
-    try {
-      const vfh = await projectHandle.getFileHandle('.kanprompt-version.json');
-      const vf = await vfh.getFile();
-      const vt = await vf.text();
-      const vd = JSON.parse(vt);
-      projectSchemaVersion = vd.schema || null;
-    } catch {
-      projectSchemaVersion = null;
+    // Companion-Pflicht: Ohne Companion kein Board-Zugang
+    if (!companionAvailable) {
+      document.getElementById('companionBlocked').classList.add('active');
+      return;
     }
 
-    // Try Registry mode first (requires companion)
-    if (companionAvailable) {
-      // Ensure project is registered with companion
-      const key = 'kanprompt_path_' + projectHandle.name;
-      let projectPath = localStorage.getItem(key);
-      if (!projectPath) {
-        const findResult = await companionPost('/find-project', { name: projectHandle.name });
-        if (findResult && findResult.found) {
-          projectPath = findResult.path;
-          localStorage.setItem(key, projectPath);
-        }
-      }
-      if (projectPath) {
-        await registerProjectWithCompanion(projectHandle.name, projectPath);
-        // Small delay to ensure registration is processed
-        await new Promise(r => setTimeout(r, 100));
-      }
-
-      if (await loadFromRegistry()) {
-        showApp();
-        toast('Projekt geladen (Registry): ' + projectHandle.name);
-        return;
+    // Registry mode (requires companion)
+    const key = 'kanprompt_path_' + projectHandle.name;
+    let projectPath = localStorage.getItem(key);
+    if (!projectPath) {
+      const findResult = await companionPost('/find-project', { name: projectHandle.name });
+      if (findResult && findResult.found) {
+        projectPath = findResult.path;
+        localStorage.setItem(key, projectPath);
       }
     }
+    if (projectPath) {
+      await registerProjectWithCompanion(projectHandle.name, projectPath);
+      // Small delay to ensure registration is processed
+      await new Promise(r => setTimeout(r, 100));
+    }
 
-    // Fallback: Legacy mode with backlog-priority.json
+    if (await loadFromRegistry()) {
+      showApp();
+      toast('Projekt geladen (Registry): ' + projectHandle.name);
+      return;
+    }
+
+    // Fallback: Legacy mode with backlog-priority.json (only if registry load fails)
     // Recovery: check for interrupted safe-write
     try {
       const tmpH = await dirHandle.getFileHandle('.backlog-priority.json.tmp');
@@ -1724,8 +1738,8 @@ function showApp() {
   document.getElementById('folderLabel').textContent = projectHandle.name + (registryMode ? ' ⚡' : '');
   saveRecentProject(projectHandle.name);
   renderBoard(); updateInfoBar(); updateDeletedCount(); startPoll();
+  updateCompanionVersionBadge();
   if (!registryMode) {
-    updateSchemaBadge();
     // Auto-resolve project path via companion
     setTimeout(() => resolveProjectPath(), 300);
   }
@@ -2099,20 +2113,6 @@ function suggestVersionBump(item, nextVersion) {
   const t = item.type || 'bugfix';
   const label = { bugfix: '🐛 Bugfix', feature: '✨ Feature', release: '🚀 Release' }[t];
   toast(`${label} abgeschlossen → nächste Version: v${nextVersion}`);
-  updateProjectVersionFile(nextVersion);
-}
-async function updateProjectVersionFile(newVersion) {
-  if (!projectHandle) return;
-  try {
-    const vfh = await projectHandle.getFileHandle('.kanprompt-version.json');
-    const vf = await vfh.getFile();
-    const vd = JSON.parse(await vf.text());
-    vd.app = newVersion;
-    vd.updatedAt = nowStr();
-    const w = await vfh.createWritable();
-    await w.write(JSON.stringify(vd, null, 2) + '\n');
-    await w.close();
-  } catch {}
 }
 function computePlannedVersion() {
   const allOpen = [...(jsonData.backlog || []), ...(jsonData.inProgress || [])];
@@ -2547,233 +2547,6 @@ function assignNum(item) {
 function updateInfoBar(){if(!jsonData)return;const b=(jsonData.backlog||[]).length,i=(jsonData.inProgress||[]).length,d=(jsonData.done||[]).length;document.getElementById('taskCountInfo').textContent=`${b} backlog · ${i} active · ${d} done`;document.getElementById('lastSyncInfo').textContent='Sync: '+new Date().toLocaleTimeString('de-DE');const sp=projectHandle?localStorage.getItem('kanprompt_path_'+projectHandle.name):null;document.getElementById('folderPathInfo').textContent=sp||projectHandle?.name||'—';const vpi=document.getElementById('versionPlanInfo');const planned=computePlannedVersion();vpi.textContent=planned?`v${VERSION} → v${planned.version}`:'';}
 
 function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;document.getElementById('toasts').appendChild(e);setTimeout(()=>e.remove(),5000);}
-
-// ══════════════════════════════════════
-//  SCHEMA MIGRATIONS REGISTRY
-// ══════════════════════════════════════
-const MIGRATIONS = [
-  {
-    from: null,
-    to: '1.0.0',
-    title: 'Initiale Schema-Einrichtung',
-    run: async (log) => {
-      let changes = 0;
-      // 1) Timestamps YYYY-MM-DD → YYYY-MM-DDTHH:MM:SS
-      const tsFields = ['new', 'inProgress', 'done', 'deleted'];
-      let migrated = 0;
-      for (const key of ['backlog', 'inProgress', 'done']) {
-        for (const item of (jsonData[key] || [])) {
-          for (const f of tsFields) {
-            if (item[f] && item[f].length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(item[f])) {
-              item[f] += 'T00:00:00';
-              migrated++;
-            }
-          }
-        }
-      }
-      if (migrated > 0) {
-        await writeJson();
-        log('\u2713 ' + migrated + ' Timestamps auf ISO-Format migriert');
-        changes += migrated;
-      } else {
-        log('\u00b7 Timestamps bereits im ISO-Format');
-      }
-      // 2) TEMPLATE.md anlegen falls fehlend
-      try {
-        await dirHandle.getFileHandle('TEMPLATE.md');
-        log('\u00b7 TEMPLATE.md existiert bereits');
-      } catch {
-        const th = await dirHandle.getFileHandle('TEMPLATE.md', { create: true });
-        const tw = await th.createWritable();
-        await tw.write(PROMPT_TEMPLATE('Titel'));
-        await tw.close();
-        log('\u2713 TEMPLATE.md erstellt');
-        changes++;
-      }
-      // 3) deleted/ Ordner sicherstellen
-      try {
-        await dirHandle.getDirectoryHandle('deleted', { create: true });
-        log('\u00b7 deleted/ Ordner vorhanden');
-      } catch {
-        log('\u26a0 deleted/ konnte nicht erstellt werden');
-      }
-      return changes;
-    }
-  },
-  {
-    from: '1.0.0',
-    to: '1.1.0',
-    title: 'Prompt-Typ für automatische Versionierung',
-    run: async (log) => {
-      let changes = 0;
-      for (const key of ['backlog', 'inProgress', 'done']) {
-        for (const item of (jsonData[key] || [])) {
-          if (!item.type) { item.type = 'bugfix'; changes++; }
-        }
-      }
-      if (changes > 0) {
-        await writeJson();
-        log('\u2713 ' + changes + ' Items mit Default-Typ "bugfix" ergänzt');
-      } else {
-        log('\u00b7 Alle Items haben bereits einen Typ');
-      }
-      return changes;
-    }
-  },
-  {
-    from: '1.1.0',
-    to: '1.2.0',
-    title: 'Eindeutige Nummern pro Prompt-Karte',
-    run: async (log) => {
-      let num = 1;
-      // Done zuerst (älteste zuerst nach done-Timestamp), dann inProgress, dann backlog
-      const doneItems = [...(jsonData.done || [])].sort((a, b) => (a.done || a.new || '').localeCompare(b.done || b.new || ''));
-      for (const item of doneItems) { if (!item.num) { item.num = num++; } else { num = Math.max(num, item.num + 1); } }
-      for (const item of (jsonData.inProgress || [])) { if (!item.num) { item.num = num++; } else { num = Math.max(num, item.num + 1); } }
-      for (const item of (jsonData.backlog || [])) { if (!item.num) { item.num = num++; } else { num = Math.max(num, item.num + 1); } }
-      jsonData.nextNum = num;
-      await writeJson();
-      log('\u2713 ' + (num - 1) + ' Items nummeriert, nextNum = ' + num);
-      return num - 1;
-    }
-  },
-];
-
-function getMigrationsNeeded(fromVersion) {
-  const needed = [];
-  let current = fromVersion;
-  for (const m of MIGRATIONS) {
-    if (m.from === current) { needed.push(m); current = m.to; }
-  }
-  if (current !== SCHEMA_VERSION && needed.length > 0) {
-    console.warn('[KanPrompt] Migrations-Kette endet bei ' + current + ', nicht bei ' + SCHEMA_VERSION);
-  }
-  return needed;
-}
-
-function updateSchemaBadge() {
-  const badge = document.getElementById('schemaBadge');
-  if (!badge) return;
-  if (projectSchemaVersion === SCHEMA_VERSION) {
-    badge.className = 'schema-badge ok';
-    badge.textContent = 'schema ' + SCHEMA_VERSION + ' \u2713';
-    badge.onclick = null;
-    badge.title = 'Schema ist aktuell';
-  } else if (projectSchemaVersion) {
-    badge.className = 'schema-badge warn';
-    badge.textContent = 'schema ' + projectSchemaVersion + ' \u26a0';
-    badge.onclick = () => openUpgradeModal();
-    badge.title = 'Schema veraltet \u2014 Klicken f\u00fcr Upgrade auf ' + SCHEMA_VERSION;
-  } else {
-    badge.className = 'schema-badge missing';
-    badge.textContent = 'kein Schema \u26a0';
-    badge.onclick = () => openUpgradeModal();
-    badge.title = 'Kein Schema erkannt \u2014 Klicken f\u00fcr Initialisierung';
-  }
-}
-
-function openUpgradeModal() {
-  const info = document.getElementById('upgradeInfo');
-  const log = document.getElementById('upgradeLog');
-  log.style.display = 'none'; log.textContent = '';
-  const btn = document.getElementById('upgradeBtn');
-  btn.disabled = false;
-  btn.textContent = '\ud83d\udd04 Upgrade durchf\u00fchren';
-  const cancelBtn = document.getElementById('upgradeCancelBtn');
-  cancelBtn.textContent = 'Abbrechen';
-  cancelBtn.className = 'btn';
-
-  const migrations = getMigrationsNeeded(projectSchemaVersion);
-
-  let html = '';
-  if (migrations.length === 0) {
-    html += '<p><strong>Schema ist aktuell (' + SCHEMA_VERSION + ').</strong></p>';
-    btn.style.display = 'none';
-    cancelBtn.textContent = 'OK';
-  } else {
-    btn.style.display = '';
-    const fromLabel = projectSchemaVersion || 'kein Schema';
-    html += '<p><strong>Upgrade: ' + esc(fromLabel) + ' \u2192 ' + SCHEMA_VERSION + '</strong></p>';
-    html += '<p>' + migrations.length + ' Migration' + (migrations.length > 1 ? 'en' : '') + ' geplant:</p>';
-    html += '<ol style="margin:6px 0 0 18px;font-size:12px;">';
-    for (const m of migrations) {
-      html += '<li><strong>' + esc(m.to) + '</strong> \u2014 ' + esc(m.title) + '</li>';
-    }
-    html += '</ol>';
-  }
-  html += '<p style="margin-top:8px;color:var(--text-muted);font-size:11px;">Bestehende Prompt-Inhalte werden nicht ver\u00e4ndert \u2014 nur Struktur und Metadaten.</p>';
-  info.innerHTML = html;
-  document.getElementById('upgradeModalOverlay').classList.add('open');
-}
-
-function closeUpgradeModal() {
-  document.getElementById('upgradeModalOverlay').classList.remove('open');
-}
-
-async function performUpgrade() {
-  const log = document.getElementById('upgradeLog');
-  const btn = document.getElementById('upgradeBtn');
-  log.style.display = 'block';
-  log.textContent = '';
-  btn.disabled = true;
-  btn.textContent = '\u23f3 Upgrade l\u00e4uft...';
-
-  const addLog = (msg) => {
-    log.textContent += msg + '\n';
-    log.scrollTop = log.scrollHeight;
-  };
-
-  try {
-    const migrations = getMigrationsNeeded(projectSchemaVersion);
-
-    if (migrations.length === 0) {
-      addLog('Nichts zu tun \u2014 Schema ist aktuell (' + SCHEMA_VERSION + ').');
-      btn.textContent = '\u2713 Aktuell';
-      return;
-    }
-
-    addLog('Upgrade-Pfad: ' + (projectSchemaVersion || 'kein Schema') + ' \u2192 ' + SCHEMA_VERSION);
-    addLog('Migrationen: ' + migrations.length);
-    addLog('\u2500'.repeat(40));
-
-    let totalChanges = 0;
-    for (const m of migrations) {
-      addLog('');
-      addLog('\u25b8 Migration \u2192 ' + m.to + ': ' + m.title);
-      const changes = await m.run(addLog);
-      totalChanges += changes;
-      addLog('  (' + changes + ' \u00c4nderungen)');
-    }
-
-    // .kanprompt-version.json schreiben (immer als letzter Schritt)
-    addLog('');
-    addLog('\u2500'.repeat(40));
-    const versionData = { schema: SCHEMA_VERSION, app: VERSION, updatedAt: nowStr() };
-    const vfh = await projectHandle.getFileHandle('.kanprompt-version.json', { create: true });
-    const w = await vfh.createWritable();
-    await w.write(JSON.stringify(versionData, null, 2) + '\n');
-    await w.close();
-    addLog('\u2713 .kanprompt-version.json \u2192 schema ' + SCHEMA_VERSION);
-
-    projectSchemaVersion = SCHEMA_VERSION;
-    updateSchemaBadge();
-    renderBoard();
-
-    addLog('');
-    addLog('\u2550\u2550\u2550 Upgrade abgeschlossen: ' + totalChanges + ' \u00c4nderungen \u2550\u2550\u2550');
-    btn.style.display = 'none';
-    const cancelBtn = document.getElementById('upgradeCancelBtn');
-    cancelBtn.textContent = '\u2713 OK';
-    cancelBtn.className = 'btn btn-primary';
-    toast('Schema-Upgrade auf v' + SCHEMA_VERSION + ' abgeschlossen');
-  } catch (e) {
-    addLog('');
-    addLog('\u2717 FEHLER: ' + e.message);
-    btn.textContent = '\u2717 Fehlgeschlagen';
-    btn.disabled = false;
-    toast('Upgrade fehlgeschlagen: ' + e.message);
-  }
-}
 
 // ── PREVIEW RESIZE ──
 (function() {
