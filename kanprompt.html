@@ -700,7 +700,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.22.1';
+const VERSION = '0.23.0';
 const SCHEMA_VERSION = '1.2.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
@@ -917,7 +917,7 @@ async function startCCWithPrompt(event) {
   const useWorktree = document.getElementById('worktreeToggle')?.checked ?? true;
   const interactive = !(event && event.shiftKey); // Shift+Klick = silent (kein Resume)
   const itemType = selectedItem.type || 'bugfix';
-  const branchName = itemType + '/' + selectedItem.id;
+  const branchName = itemType + '/' + (selectedItem.file || selectedItem.id + '.md').replace(/\.md$/, '');
   const promptFilePath = registryMode
     ? basePath + '\\doc\\prompts\\' + selectedItem.file
     : basePath + '\\doc\\prompts\\' + selectedCol.folder + '\\' + selectedItem.file;
@@ -1005,11 +1005,11 @@ async function registryFetch(method, apiPath, body) {
 }
 
 function registryToJsonData(data) {
-  const jd = { backlog: [], inProgress: [], done: [], nextNum: data.nextNum || 1, deletedIds: new Set() };
+  const jd = { backlog: [], inProgress: [], done: [], nextNum: data.nextNum || 1, deletedFiles: new Set() };
   const priorityIndex = {};
-  if (data.cardPriority) data.cardPriority.forEach((id, i) => priorityIndex[id] = i);
+  if (data.cardPriority) data.cardPriority.forEach((num, i) => priorityIndex[num] = i);
   for (const card of (data.cards || [])) {
-    if (card.status === 'deleted') { jd.deletedIds.add(card.id); continue; }
+    if (card.status === 'deleted') { jd.deletedFiles.add(card.file); continue; }
     const item = {
       id: card.id, file: card.file, title: card.title, num: card.num, type: card.type || 'bugfix',
       new: card.timestamps?.new || null,
@@ -1017,7 +1017,7 @@ function registryToJsonData(data) {
       done: card.timestamps?.done || null,
       blocked: card.blocked || false,
       blockedBy: card.blockedBy || null,
-      _priority: priorityIndex[card.id] ?? 9999,
+      _priority: priorityIndex[card.num] ?? 9999,
     };
     switch (card.status) {
       case 'new': jd.backlog.push(item); break;
@@ -1031,9 +1031,11 @@ function registryToJsonData(data) {
   return jd;
 }
 
+function padNum(n) { return String(n).padStart(4, '0'); }
+
 function buildCardPriority() {
-  // Build cardPriority from current jsonData order (all columns)
-  return [...(jsonData.backlog||[]), ...(jsonData.inProgress||[]), ...(jsonData.done||[])].map(i => i.id);
+  // Build cardPriority from current jsonData order (all columns) — uses num (integer)
+  return [...(jsonData.backlog||[]), ...(jsonData.inProgress||[]), ...(jsonData.done||[])].map(i => i.num);
 }
 
 async function loadFromRegistry() {
@@ -1079,16 +1081,16 @@ async function reloadFromRegistry() {
   }
 }
 
-async function registryPatchStatus(cardId, newStatus) {
-  return registryFetch('PATCH', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(cardId) + '/status', { status: newStatus });
+async function registryPatchStatus(cardNum, newStatus) {
+  return registryFetch('PATCH', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(cardNum) + '/status', { status: newStatus });
 }
 
-async function registryPutCard(cardId, cardData) {
-  return registryFetch('PUT', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(cardId), cardData);
+async function registryPutCard(cardNum, cardData) {
+  return registryFetch('PUT', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(cardNum), cardData);
 }
 
-async function registryDeleteCard(cardId) {
-  return registryFetch('DELETE', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(cardId));
+async function registryDeleteCard(cardNum) {
+  return registryFetch('DELETE', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(cardNum));
 }
 
 async function registryUpdatePriority(cardPriority) {
@@ -1551,17 +1553,19 @@ async function syncFolderToJson(silent) {
     try {
       const diskFiles = await listMdFiles('prompts'); // uses flat scan in registryMode
       if (!diskFiles) { syncFailCount++; updateSyncWarning(); return; }
-      const allIds = new Set();
-      for (const c of COLUMNS) for (const item of (jsonData[c.jsonKey] || [])) allIds.add(item.id);
-      if (jsonData.deletedIds) jsonData.deletedIds.forEach(id => allIds.add(id));
+      const allFiles = new Set();
+      for (const c of COLUMNS) for (const item of (jsonData[c.jsonKey] || [])) allFiles.add(item.file);
+      if (jsonData.deletedFiles) jsonData.deletedFiles.forEach(f => allFiles.add(f));
       let added = 0;
       for (const f of diskFiles) {
-        const id = f.replace('.md', '');
-        if (allIds.has(id)) continue;
-        // Register new card via API
-        const title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        const result = await registryPutCard(id, { file: f, title, type: 'bugfix', status: 'new' });
-        if (result) { added++; allIds.add(id); }
+        if (allFiles.has(f)) continue;
+        // Parse slug from filename (strip optional NNNN- prefix)
+        const slugMatch = f.match(/^(\d{4})-(.+)\.md$/);
+        const slug = slugMatch ? slugMatch[2] : f.replace('.md', '');
+        const title = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        // Register new card via API (num=0 → auto-assign)
+        const result = await registryPutCard(0, { slug, file: f, title, type: 'bugfix', status: 'new' });
+        if (result) { added++; allFiles.add(f); }
       }
       if (added > 0) {
         await reloadFromRegistry();
@@ -1969,7 +1973,7 @@ function createCard(item, col, index) {
   const dsDisplay = formatTS(ds);
   el.innerHTML = `
     <div class="card-actions"><button class="card-action-btn" onclick="toggleBlocked('${item.id}')" title="${item.blocked?'Unblock':'Block'}">⊘</button><button class="card-action-btn delete" onclick="deleteItem('${item.id}')" title="Löschen">✕</button></div>
-    <div class="card-title"><span class="prio-num">${item.num ? '#'+item.num : ''}</span>${esc(item.title)}</div>
+    <div class="card-title"><span class="prio-num">${item.num ? '#'+padNum(item.num) : ''}</span>${esc(item.title)}</div>
     <div class="card-file">${esc(item.file)}</div>
     <div class="card-meta">
       <span class="badge badge-type" style="color:${TYPE_COLORS[item.type||'bugfix']};border-color:${TYPE_COLORS[item.type||'bugfix']}">${TYPE_LABELS[item.type||'bugfix']} ${item.type||'bugfix'}</span>
@@ -1987,7 +1991,7 @@ function toggleBlocked(id) {
   const item = findItem(id); if (!item) return;
   if (item.blocked) {
     delete item.blocked; delete item.blockedBy;
-    if (registryMode) registryPutCard(id, { blocked: false, blockedBy: null });
+    if (registryMode) registryPutCard(item.num, { blocked: false, blockedBy: null });
     else writeJson();
     renderBoard(); toast('✓ Unblocked: ' + item.title);
   }
@@ -1997,7 +2001,7 @@ function confirmSetBlocked() {
   const id = document.getElementById('blockedItemId').value; const reason = document.getElementById('blockedReason').value.trim();
   const item = findItem(id); if (!item) return;
   item.blocked = true; if (reason) item.blockedBy = reason; else delete item.blockedBy;
-  if (registryMode) registryPutCard(id, { blocked: true, blockedBy: reason || null });
+  if (registryMode) registryPutCard(item.num, { blocked: true, blockedBy: reason || null });
   else writeJson();
   renderBoard(); closeBlockedModal(); toast('⊘ Blocked: ' + item.title);
 }
@@ -2023,7 +2027,7 @@ async function handleDrop(itemId, targetColId, insertIndex) {
         renderBoard(); updateInfoBar(); toast(`↕ ${item.title} → #${adj<0?a.length:adj+1}`);
       } else {
         // Cross-column: status transition via API (no file move!)
-        const result = await registryPatchStatus(item.id, tgtCol.registryStatus);
+        const result = await registryPatchStatus(item.num, tgtCol.registryStatus);
         // Update local state from API response
         jsonData[srcCol.jsonKey].splice(srcIdx, 1);
         item.new = result.card.timestamps?.new || item.new;
@@ -2128,7 +2132,7 @@ async function deleteItem(id) {
 
   if (registryMode) {
     try {
-      await registryDeleteCard(id);
+      await registryDeleteCard(item.num);
       const a = jsonData[srcCol.jsonKey]; const i = a.findIndex(x => x.id===id); if (i>=0) a.splice(i, 1);
       if (selectedId===id) closePreview(); renderBoard(); updateInfoBar(); toast('Gelöscht: ' + item.title);
     } catch (e) {
@@ -2170,7 +2174,7 @@ function renderArchiveList(q) {
   sorted.forEach(item => {
     const r = document.createElement('div'); r.className = 'archive-item'; r.onclick = () => { openPreview(item, dc); };
     const doneFmt = item.done ? formatTS(item.done) : '';
-    r.innerHTML = `<div class="archive-item-title">${item.num ? '<span style="color:var(--text-muted);font-size:11px;">#'+item.num+'</span> ' : ''}${esc(item.title)}</div><div class="archive-item-meta"><span>${esc(item.id)}</span>${doneFmt ? `<span>✅ ${doneFmt}</span>` : ''}</div>`;
+    r.innerHTML = `<div class="archive-item-title">${item.num ? '<span style="color:var(--text-muted);font-size:11px;">#'+padNum(item.num)+'</span> ' : ''}${esc(item.title)}</div><div class="archive-item-meta"><span>${esc(item.file)}</span>${doneFmt ? `<span>✅ ${doneFmt}</span>` : ''}</div>`;
     list.appendChild(r);
   });
 }
@@ -2200,7 +2204,7 @@ async function loadDeletedFiles() {
     try {
       const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId) + '/cards?status=deleted');
       if (!data || !data.cards) return [];
-      return data.cards.map(c => ({ id: c.id, file: c.file, title: c.title }));
+      return data.cards.map(c => ({ id: c.id, file: c.file, title: c.title, num: c.num }));
     } catch { return []; }
   }
   const files = await listMdFiles('deleted');
@@ -2301,8 +2305,10 @@ async function restoreDeleted(filename) {
   const id = filename.replace('.md', '');
   try {
     if (registryMode) {
-      // Registry mode: change status back to 'new'
-      const result = await registryPatchStatus(id, 'new');
+      // Registry mode: change status back to 'new' — find card by filename to get num
+      const delItem = deletedItems.find(i => i.file === filename);
+      const cardNum = delItem ? delItem.num : parseInt(id);
+      const result = await registryPatchStatus(cardNum, 'new');
       if (!result) { toast('Wiederherstellen fehlgeschlagen'); return; }
       await reloadFromRegistry();
       renderBoard(); updateInfoBar();
@@ -2336,9 +2342,10 @@ async function permanentDelete(filename) {
   if (!confirm('⚠ "' + filename + '" endgültig löschen?\n\nDiese Aktion kann NICHT rückgängig gemacht werden!')) return;
   try {
     if (registryMode) {
-      // In Registry mode: remove from registry + delete file
-      const id = filename.replace('.md', '');
-      try { await registryFetch('DELETE', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(id) + '?permanent=true'); } catch {}
+      // In Registry mode: remove from registry + delete file — find card by filename to get num
+      const delItem = deletedItems.find(i => i.file === filename);
+      const cardNum = delItem ? delItem.num : parseInt(filename);
+      try { await registryFetch('DELETE', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(cardNum) + '?permanent=true'); } catch {}
       try { const pH = await safeDirHandle(); await pH.removeEntry(filename); } catch {}
       delete fileContentsCache['flat/' + filename];
     } else {
@@ -2373,7 +2380,7 @@ async function openPreview(item, col) {
   document.getElementById('editToggleBtn').style.display = '';
   const meta = document.getElementById('previewMeta');
   const itype = item.type || 'bugfix';
-  let mh = item.num ? `<span>#${item.num}</span>` : '';
+  let mh = item.num ? `<span>#${padNum(item.num)}</span>` : '';
   mh += registryMode ? `<span>📄 ${item.file}</span>` : `<span>📄 ${col.folder}/${item.file}</span>`;
   if (item.new) mh += `<span>🆕 ${formatTS(item.new)}</span>`;
   if (item.inProgress) mh += `<span>🔧 ${formatTS(item.inProgress)}</span>`;
@@ -2395,7 +2402,7 @@ async function changeItemType(newType) {
   if (!selectedItem) return;
   selectedItem.type = newType;
   if (registryMode) {
-    await registryPutCard(selectedItem.id, { type: newType });
+    await registryPutCard(selectedItem.num, { type: newType });
   } else {
     await writeJson();
   }
@@ -2459,17 +2466,20 @@ function closeModal() { document.getElementById('modalOverlay').classList.remove
 function slugify(s) { return s.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60); }
 async function createNewPrompt() {
   const title=document.getElementById('newTitle').value.trim(); let fn=document.getElementById('newFilename').value.trim(); const c=document.getElementById('newContent').value;
-  if(!title){toast('Titel fehlt');return;} if(!fn)fn=slugify(title)+'.md'; if(!fn.endsWith('.md'))fn+='.md';
-  const id=fn.replace('.md',''), today=nowStr();
+  if(!title){toast('Titel fehlt');return;} if(!fn)fn=slugify(title); if(fn.endsWith('.md'))fn=fn.replace(/\.md$/,'');
+  const slug=fn, today=nowStr();
 
   if (registryMode) {
-    // Registry mode: create file in flat dir, register via API
-    if(!await createMdFile('new',fn,c||PROMPT_TEMPLATE(title)))return;
+    // Registry mode: get num, create file with NNNN-slug.md, register via API
+    const num = getNextNum();
+    const paddedNum = padNum(num);
+    const newFn = paddedNum + '-' + slug + '.md';
+    if(!await createMdFile('new',newFn,c||PROMPT_TEMPLATE(title)))return;
     try {
-      const result = await registryPutCard(id, { file: fn, title, type: getSelectedType(), status: 'new' });
-      jsonData.backlog.push({ id, file: fn, title, type: getSelectedType(), num: result.card.num, new: today });
+      const result = await registryPutCard(num, { slug, file: newFn, title, type: getSelectedType(), status: 'new', num });
+      jsonData.backlog.push({ id: paddedNum, file: newFn, title, type: getSelectedType(), num: result.card.num, new: today });
       await registryUpdatePriority(buildCardPriority());
-      renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: ' + fn);
+      renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: ' + newFn);
     } catch (e) {
       toast('Registrierung fehlgeschlagen: ' + e.message);
     }
@@ -2477,9 +2487,10 @@ async function createNewPrompt() {
   }
 
   // Legacy mode
-  if(!await createMdFile('new',fn,c||PROMPT_TEMPLATE(title)))return;
-  jsonData.backlog.push({id,file:fn,title,type:getSelectedType(),num:getNextNum(),new:today});
-  await writeJson(); renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: new/'+fn);
+  const legacyFn = slug + '.md';
+  if(!await createMdFile('new',legacyFn,c||PROMPT_TEMPLATE(title)))return;
+  jsonData.backlog.push({id:slug,file:legacyFn,title,type:getSelectedType(),num:getNextNum(),new:today});
+  await writeJson(); renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: new/'+legacyFn);
 }
 
 // ══════════════════════════════════════
