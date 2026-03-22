@@ -2,6 +2,17 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [1.6.0] - 2026-03-22
+
+### Added
+- **Reconciliation bei Projektaktivierung**: Beim Öffnen eines Projekts vergleicht der Companion den Registry-Stand mit den real vorhandenen `.md`-Dateien auf Disk
+- `GET /api/projects/:id/reconcile` — Nicht-destruktiver Abgleich, liefert `onDiskOnly` und `inRegistryOnly` Listen
+- `POST /api/projects/:id/reconcile` — Auto-Sync: Neue Dateien als Karten anlegen, fehlende Karten als gelöscht markieren
+- Differenz-Dialog im UI: Zeigt Abweichungen übersichtlich, bietet Auto-Sync oder manuelles Klären
+- Dezenter Hinweis-Banner im Header (`⚠ Sync-Differenz`), klickbar zum erneuten Öffnen des Dialogs
+- `README.md` wird vom Reconciliation-Scan ausgenommen
+- Companion-Version auf v1.6.0, KanPrompt auf v0.25.0
+
 ## [1.5.0] - 2026-03-22
 
 ### Changed

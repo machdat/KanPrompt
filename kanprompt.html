@@ -398,6 +398,28 @@
   .form-hint { font-size: 10px; color: var(--text-muted); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
   .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 
+  /* ── RECONCILE ── */
+  .reconcile-section { margin-bottom: 14px; }
+  .reconcile-section h3 { font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-secondary); }
+  .reconcile-list { list-style: none; padding: 0; margin: 0; }
+  .reconcile-list li {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    padding: 4px 8px; border-radius: var(--radius-sm);
+    background: var(--bg-card); margin-bottom: 3px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .reconcile-list .badge-disk { color: var(--accent-green); font-weight: 600; }
+  .reconcile-list .badge-registry { color: var(--accent-orange); font-weight: 600; }
+  .reconcile-hint { font-size: 10px; color: var(--text-muted); margin-top: 2px; font-style: italic; }
+  .reconcile-banner {
+    display: none; align-items: center; gap: 6px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--accent-orange); padding: 2px 8px;
+    border: 1px solid var(--accent-orange); border-radius: var(--radius-sm);
+    background: rgba(255,160,50,.08); transition: var(--transition);
+  }
+  .reconcile-banner:hover { background: rgba(255,160,50,.15); }
+
   /* ── ARCHIVE ── */
   .archive-toggle {
     display: flex; align-items: center; justify-content: center; gap: 5px;
@@ -546,6 +568,7 @@
         <div class="project-dropdown" id="projectDropdown"></div>
       </div>
       <span class="companion-version-badge" id="companionVersionBadge" style="display:none;"></span>
+      <span class="reconcile-banner" id="reconcileBanner" onclick="openReconcileDialog()">⚠ Sync-Differenz</span>
     </div>
     <div class="header-right">
       <div style="display:flex;align-items:center;gap:6px;margin-right:6px;">
@@ -657,6 +680,18 @@
   <button class="btn btn-primary" onclick="retryCompanionCheck()" style="font-size:14px;padding:10px 22px;">🔄 Erneut versuchen</button>
 </div>
 
+<!-- RECONCILE DIALOG -->
+<div class="modal-overlay" id="reconcileOverlay" onclick="event.target===this&&closeReconcileDialog()">
+  <div class="modal" style="width:560px;">
+    <h2>⚠ Disk ↔ Registry Abweichung</h2>
+    <div id="reconcileBody"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeReconcileDialog()">Manuell klären</button>
+      <button class="btn btn-primary" onclick="runAutoSync()">🔄 Auto-Sync</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toasts"></div>
 
 <!-- ARCHIVE OVERLAY -->
@@ -698,7 +733,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.24.0';
+const VERSION = '0.25.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
 let companionVersion = null;
@@ -714,6 +749,7 @@ let selectedId = null, selectedItem = null, selectedCol = null, editMode = false
 let fileContentsCache = {};
 let registryMode = false;  // true when using Registry API instead of backlog-priority.json
 let projectId = null;      // project ID for Registry API calls
+let lastReconcileResult = null; // cached reconcile diff for re-opening dialog
 const DONE_VISIBLE_COUNT = 5;
 const LS_KEY = 'kanprompt_recent_projects';
 const COLUMNS = [
@@ -1308,6 +1344,8 @@ async function initProjectFromHandle() {
     switchedFromBoard = false;
     registryMode = false;
     projectId = null;
+    lastReconcileResult = null;
+    document.getElementById('reconcileBanner').style.display = 'none';
 
     // Save handle to IndexedDB for quick re-open
     const saved = await saveHandleToIDB(projectHandle.name, projectHandle);
@@ -1370,6 +1408,8 @@ async function initProjectFromHandle() {
     if (await loadFromRegistry()) {
       showApp();
       toast('Projekt geladen (Registry): ' + projectHandle.name);
+      // Non-blocking reconciliation check
+      checkReconciliation();
       return;
     }
 
@@ -1914,6 +1954,78 @@ async function getProjectPath() {
   await resolveProjectPath();
   return localStorage.getItem(key);
 }
+
+// ══════════════════════════════════════
+//  RECONCILIATION
+// ══════════════════════════════════════
+async function checkReconciliation() {
+  if (!registryMode || !projectId || !companionAvailable) return;
+  try {
+    const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId) + '/reconcile');
+    if (data.inSync) {
+      lastReconcileResult = null;
+      document.getElementById('reconcileBanner').style.display = 'none';
+      return;
+    }
+    lastReconcileResult = data;
+    document.getElementById('reconcileBanner').style.display = 'flex';
+    openReconcileDialog();
+  } catch {
+    // Reconcile-Check fehlgeschlagen — still weiterarbeiten
+    lastReconcileResult = null;
+    document.getElementById('reconcileBanner').style.display = 'none';
+  }
+}
+
+function openReconcileDialog() {
+  if (!lastReconcileResult) return;
+  const body = document.getElementById('reconcileBody');
+  let html = '';
+  const { onDiskOnly, inRegistryOnly } = lastReconcileResult;
+  if (onDiskOnly.length > 0) {
+    html += '<div class="reconcile-section"><h3>📁 Dateien nur auf Disk (nicht in Registry)</h3>';
+    html += '<p class="reconcile-hint">Diese Dateien wurden vermutlich extern erstellt (z.B. durch CC)</p><ul class="reconcile-list">';
+    for (const f of onDiskOnly) {
+      html += `<li><span class="badge-disk">+</span> <span>${f.file}</span> <span style="color:var(--text-muted);font-size:10px;">— ${f.title}</span></li>`;
+    }
+    html += '</ul></div>';
+  }
+  if (inRegistryOnly.length > 0) {
+    html += '<div class="reconcile-section"><h3>👻 Karten nur in Registry (Datei fehlt)</h3>';
+    html += '<p class="reconcile-hint">Diese Dateien wurden vermutlich extern gelöscht oder umbenannt</p><ul class="reconcile-list">';
+    for (const c of inRegistryOnly) {
+      html += `<li><span class="badge-registry">−</span> <span>${c.file}</span> <span style="color:var(--text-muted);font-size:10px;">— ${c.title} (${c.status})</span></li>`;
+    }
+    html += '</ul></div>';
+  }
+  body.innerHTML = html;
+  document.getElementById('reconcileOverlay').classList.add('open');
+}
+
+function closeReconcileDialog() {
+  document.getElementById('reconcileOverlay').classList.remove('open');
+}
+
+async function runAutoSync() {
+  if (!registryMode || !projectId) return;
+  try {
+    const result = await registryFetch('POST', '/api/projects/' + encodeURIComponent(projectId) + '/reconcile', { action: 'auto-sync' });
+    const msgs = [];
+    if (result.added && result.added.length > 0) msgs.push(result.added.length + ' Karten hinzugefügt');
+    if (result.removed && result.removed.length > 0) msgs.push(result.removed.length + ' Karten entfernt');
+    toast('🔄 Auto-Sync: ' + (msgs.length > 0 ? msgs.join(', ') : 'Keine Änderungen'));
+    lastReconcileResult = null;
+    document.getElementById('reconcileBanner').style.display = 'none';
+    closeReconcileDialog();
+    await reloadFromRegistry();
+    renderBoard();
+    updateInfoBar();
+    updateDeletedCount();
+  } catch (e) {
+    toast('Auto-Sync fehlgeschlagen: ' + e.message);
+  }
+}
+
 function nowStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + 'T' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0'); }
 const TYPE_LABELS = { bugfix: '🐛', feature: '✨', release: '🚀' };
 const TYPE_COLORS = { bugfix: 'var(--accent-orange)', feature: 'var(--accent-blue)', release: 'var(--accent-green)' };

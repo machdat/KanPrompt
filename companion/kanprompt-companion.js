@@ -30,6 +30,8 @@
  *   POST /git-status-all      → batch git status for multiple projects
  *   POST /cc-stop             → stop a running CC instance
  *   POST /focus-window        → bring terminal window to front
+ *   GET  /api/projects/:id/reconcile → disk vs. registry diff
+ *   POST /api/projects/:id/reconcile → auto-sync (action: auto-sync)
  *
  * Start:  node kanprompt-companion.js
  */
@@ -42,7 +44,7 @@ const url = require('url');
 const os = require('os');
 const { getProjectsFromRegistry } = require('./project-utils');
 
-const COMPANION_VERSION = '1.5.0';
+const COMPANION_VERSION = '1.6.0';
 const PORT = parseInt(process.env.COMPANION_PORT, 10) || 9177;
 const HOST = '127.0.0.1';
 
@@ -912,6 +914,144 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { action: 'snapshot-created', path: result.path });
     }
 
+    // ── GET /api/projects/:id/reconcile — Disk vs. Registry Abgleich ──
+    if ((params = matchRoute(route, '/api/projects/:id/reconcile')) && req.method === 'GET') {
+      const project = registry.projects[params.id];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
+      if (!project.projectPath || !project.promptsDir) return json(res, 400, { error: 'projectPath/promptsDir nicht konfiguriert' });
+
+      const promptsDir = path.join(project.projectPath, project.promptsDir);
+      if (!fs.existsSync(promptsDir)) return json(res, 400, { error: 'Prompts-Verzeichnis existiert nicht: ' + promptsDir });
+
+      // Scan .md files on disk (flat, no subfolders)
+      const diskFiles = new Set();
+      try {
+        const entries = fs.readdirSync(promptsDir);
+        for (const entry of entries) {
+          if (!entry.endsWith('.md')) continue;
+          if (entry === 'README.md') continue;
+          const fullPath = path.join(promptsDir, entry);
+          const stat = fs.statSync(fullPath);
+          if (stat.isFile()) diskFiles.add(entry);
+        }
+      } catch (e) {
+        return json(res, 500, { error: 'Disk-Scan fehlgeschlagen: ' + e.message });
+      }
+
+      // Registry files (non-deleted cards)
+      const registryFiles = new Map();
+      for (const card of (project.cards || [])) {
+        if (card.status === 'deleted') continue;
+        registryFiles.set(card.file, card);
+      }
+
+      // onDiskOnly: files on disk but not in registry
+      const onDiskOnly = [];
+      for (const file of diskFiles) {
+        if (!registryFiles.has(file)) {
+          // Try to extract title from first # heading
+          let title = file.replace(/\.md$/, '').replace(/^\d{4}-/, '').replace(/-/g, ' ');
+          try {
+            const content = fs.readFileSync(path.join(promptsDir, file), 'utf-8');
+            const headingMatch = content.match(/^#\s+(.+)$/m);
+            if (headingMatch) title = headingMatch[1].trim();
+          } catch {}
+          onDiskOnly.push({ file, title });
+        }
+      }
+
+      // inRegistryOnly: registry cards whose files don't exist on disk
+      const inRegistryOnly = [];
+      for (const [file, card] of registryFiles) {
+        if (!diskFiles.has(file)) {
+          inRegistryOnly.push({ id: card.id, file: card.file, title: card.title, status: card.status });
+        }
+      }
+
+      const inSync = onDiskOnly.length === 0 && inRegistryOnly.length === 0;
+      return json(res, 200, { inSync, onDiskOnly, inRegistryOnly });
+    }
+
+    // ── POST /api/projects/:id/reconcile — Auto-Sync durchführen ──
+    if ((params = matchRoute(route, '/api/projects/:id/reconcile')) && req.method === 'POST') {
+      const project = registry.projects[params.id];
+      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
+      if (!project.projectPath || !project.promptsDir) return json(res, 400, { error: 'projectPath/promptsDir nicht konfiguriert' });
+      const body = await readBody(req);
+      if (body.action !== 'auto-sync') return json(res, 400, { error: 'action "auto-sync" required' });
+
+      if (!project.cards) project.cards = [];
+      if (!project.cardPriority) project.cardPriority = [];
+      if (!project.nextNum) project.nextNum = 1;
+
+      const promptsDir = path.join(project.projectPath, project.promptsDir);
+
+      // Scan disk files
+      const diskFiles = new Set();
+      try {
+        const entries = fs.readdirSync(promptsDir);
+        for (const entry of entries) {
+          if (!entry.endsWith('.md') || entry === 'README.md') continue;
+          const stat = fs.statSync(path.join(promptsDir, entry));
+          if (stat.isFile()) diskFiles.add(entry);
+        }
+      } catch (e) {
+        return json(res, 500, { error: 'Disk-Scan fehlgeschlagen: ' + e.message });
+      }
+
+      const registryFiles = new Set();
+      for (const card of project.cards) {
+        if (card.status !== 'deleted') registryFiles.add(card.file);
+      }
+
+      const added = [];
+      const removed = [];
+
+      // Add new cards for files only on disk
+      for (const file of diskFiles) {
+        if (registryFiles.has(file)) continue;
+        const num = project.nextNum++;
+        const paddedId = padNum(num);
+        let title = file.replace(/\.md$/, '').replace(/^\d{4}-/, '').replace(/-/g, ' ');
+        let type = 'feature';
+        // Extract title from heading, detect type from filename prefix
+        try {
+          const content = fs.readFileSync(path.join(promptsDir, file), 'utf-8');
+          const headingMatch = content.match(/^#\s+(.+)$/m);
+          if (headingMatch) title = headingMatch[1].trim();
+        } catch {}
+        if (file.match(/^(\d{4}-)?fix-/)) type = 'bugfix';
+        else if (file.match(/^(\d{4}-)?cleanup-/)) type = 'bugfix';
+
+        const card = {
+          id: paddedId, file, title, type, num,
+          status: 'new',
+          timestamps: { new: nowISO(), 'in-progress': null, done: null, deleted: null },
+          blocked: false, blockedBy: null,
+        };
+        project.cards.push(card);
+        project.cardPriority.push(num);
+        added.push({ id: paddedId, file, num });
+      }
+
+      // Remove cards whose files no longer exist on disk
+      for (let i = project.cards.length - 1; i >= 0; i--) {
+        const card = project.cards[i];
+        if (card.status === 'deleted') continue;
+        if (!diskFiles.has(card.file)) {
+          // Set to deleted status
+          card.status = 'deleted';
+          card.timestamps = card.timestamps || {};
+          card.timestamps.deleted = nowISO();
+          removed.push({ id: card.id, file: card.file });
+        }
+      }
+
+      saveRegistry();
+      console.log(`  Reconcile: ${added.length} hinzugefügt, ${removed.length} entfernt (${params.id})`);
+      return json(res, 200, { action: 'auto-synced', added, removed });
+    }
+
     // ── POST /api/projects/:id/migrate-backlog — Backlog-JSON in Registry importieren ──
     if ((params = matchRoute(route, '/api/projects/:id/migrate-backlog')) && req.method === 'POST') {
       const project = registry.projects[params.id];
@@ -1569,6 +1709,8 @@ const server = http.createServer(async (req, res) => {
           'PUT    /api/projects/:id/worktrees/:branch     → Worktree registrieren',
           'DELETE /api/projects/:id/worktrees/:branch     → Worktree entfernen',
           'POST   /api/projects/:id/snapshot              → Snapshot erzeugen',
+          'GET    /api/projects/:id/reconcile             → Disk vs. Registry Abgleich',
+          'POST   /api/projects/:id/reconcile             → Auto-Sync (action: auto-sync)',
         ],
       });
     }
