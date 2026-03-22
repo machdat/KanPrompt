@@ -2,6 +2,22 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [1.5.0] - 2026-03-22
+
+### Changed
+- **Companion-Pflicht**: KanPrompt erfordert jetzt einen laufenden Companion-Server. Ohne Companion wird eine Blockade-Meldung mit Retry-Button angezeigt statt des bisherigen eingeschränkten Betriebs
+- **Companion-Versions-Badge**: Das bisherige Schema-Badge im Header zeigt jetzt `companion X.Y.Z` statt `schema X.Y.Z`
+- Companion-Version auf v1.5.0, KanPrompt auf v0.24.0
+
+### Added
+- `GET /api/version` Endpunkt im Companion (liefert `{ version, uptime }`)
+
+### Removed
+- **Schema-Migrationslogik komplett entfernt**: `SCHEMA_VERSION`, `MIGRATIONS`-Array, `getMigrationsNeeded()`, `updateSchemaBadge()`, `openUpgradeModal()`, `closeUpgradeModal()`, `performUpgrade()`
+- Upgrade-Modal (`#upgradeModalOverlay`) und zugehörige CSS-Regeln (`.schema-badge.*`)
+- Lesen/Schreiben von `.kanprompt-version.json` (Datei wird ignoriert, nicht aktiv gelöscht)
+- `updateProjectVersionFile()` Funktion
+
 ## [1.4.0] - 2026-03-22
 
 ### Changed

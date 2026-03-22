@@ -6,6 +6,7 @@
  *
  * Endpoints:
  *   GET  /ping                → health check
+ *   GET  /api/version         → companion version + uptime
  *   GET  /info                → list endpoints
  *   GET  /dispatch            → serve dispatch.html page
  *   GET  /projects            → list KanPrompt projects
@@ -41,7 +42,7 @@ const url = require('url');
 const os = require('os');
 const { getProjectsFromRegistry } = require('./project-utils');
 
-const COMPANION_VERSION = '1.4.0';
+const COMPANION_VERSION = '1.5.0';
 const PORT = parseInt(process.env.COMPANION_PORT, 10) || 9177;
 const HOST = '127.0.0.1';
 
@@ -521,6 +522,11 @@ const server = http.createServer(async (req, res) => {
     // ── PING ──
     if (route === '/ping' && req.method === 'GET') {
       return json(res, 200, { status: 'ok', server: 'kanprompt-companion', version: COMPANION_VERSION, pid: process.pid, uptime: Math.floor(process.uptime()) });
+    }
+
+    // ── VERSION ──
+    if (route === '/api/version' && req.method === 'GET') {
+      return json(res, 200, { version: COMPANION_VERSION, uptime: Math.floor(process.uptime()) });
     }
 
     // ── SHUTDOWN ──
@@ -1524,7 +1530,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, {
         server: 'kanprompt-companion', version: COMPANION_VERSION,
         endpoints: [
-          'GET  /ping', 'GET  /info',
+          'GET  /ping', 'GET  /api/version', 'GET  /info',
           'GET  /dispatch              → dispatch.html Seite',
           'GET  /projects              → KanPrompt-Projekte auflisten',
           'POST /find-project         {name}',
