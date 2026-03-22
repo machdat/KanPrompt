@@ -41,7 +41,7 @@ const url = require('url');
 const os = require('os');
 const { getProjectsFromRegistry } = require('./project-utils');
 
-const COMPANION_VERSION = '1.3.0';
+const COMPANION_VERSION = '1.4.0';
 const PORT = parseInt(process.env.COMPANION_PORT, 10) || 9177;
 const HOST = '127.0.0.1';
 
@@ -178,6 +178,16 @@ function nowISO() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function padNum(n) { return String(n).padStart(4, '0'); }
+
+function findCardByNum(project, cardId) {
+  const num = parseInt(cardId);
+  if (isNaN(num)) return { idx: -1, card: null };
+  const cards = project.cards || [];
+  const idx = cards.findIndex(c => c.num === num);
+  return { idx, card: idx >= 0 ? cards[idx] : null };
 }
 
 function loadRegistry() {
@@ -740,29 +750,33 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { id: params.id, cards });
     }
 
-    // ── GET /api/projects/:id/cards/:cardId — Einzelne Karte ──
+    // ── GET /api/projects/:id/cards/:cardId — Einzelne Karte (cardId = num) ──
     if ((params = matchRoute(route, '/api/projects/:id/cards/:cardId')) && req.method === 'GET') {
       const project = registry.projects[params.id];
       if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
-      const card = (project.cards || []).find(c => c.id === params.cardId);
+      const { card } = findCardByNum(project, params.cardId);
       if (!card) return json(res, 404, { error: 'Karte nicht gefunden: ' + params.cardId });
       return json(res, 200, card);
     }
 
-    // ── PUT /api/projects/:id/cards/:cardId — Karte anlegen oder aktualisieren ──
+    // ── PUT /api/projects/:id/cards/:cardId — Karte anlegen oder aktualisieren (cardId = num, 0 = auto-assign) ──
     if ((params = matchRoute(route, '/api/projects/:id/cards/:cardId')) && req.method === 'PUT') {
       const project = registry.projects[params.id];
       if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
       if (!project.cards) project.cards = [];
       const body = await readBody(req);
-      const idx = project.cards.findIndex(c => c.id === params.cardId);
-      const existing = idx >= 0 ? project.cards[idx] : null;
+      let numId = parseInt(params.cardId);
+      const { idx, card: existing } = (numId > 0) ? findCardByNum(project, params.cardId) : { idx: -1, card: null };
+      // Assign num: from URL if valid, from body, from existing, or auto-assign
+      const num = (numId > 0) ? numId : (body.num != null ? body.num : (existing ? existing.num : project.nextNum++));
+      const slug = body.slug || (existing ? existing.file.replace(/^\d{4}-/, '').replace(/\.md$/, '') : 'card');
+      const paddedNum = padNum(num);
       const cardData = {
-        id: params.cardId,
-        file: body.file || (existing ? existing.file : params.cardId + '.md'),
-        title: body.title || (existing ? existing.title : params.cardId),
+        id: paddedNum,
+        file: body.file || (existing ? existing.file : paddedNum + '-' + slug + '.md'),
+        title: body.title || (existing ? existing.title : slug),
         type: body.type || (existing ? existing.type : 'feature'),
-        num: body.num != null ? body.num : (existing ? existing.num : project.nextNum++),
+        num,
         status: body.status || (existing ? existing.status : 'new'),
         timestamps: body.timestamps || (existing ? existing.timestamps : { new: nowISO(), 'in-progress': null, done: null, deleted: null }),
         blocked: body.blocked != null ? body.blocked : (existing ? existing.blocked : false),
@@ -773,17 +787,17 @@ const server = http.createServer(async (req, res) => {
       } else {
         project.cards.push(cardData);
         if (!project.cardPriority) project.cardPriority = [];
-        project.cardPriority.push(params.cardId);
+        project.cardPriority.push(num);
       }
       saveRegistry();
       return json(res, 200, { action: idx >= 0 ? 'updated' : 'created', card: cardData });
     }
 
-    // ── PATCH /api/projects/:id/cards/:cardId/status — Status-Transition ──
+    // ── PATCH /api/projects/:id/cards/:cardId/status — Status-Transition (cardId = num) ──
     if ((params = matchRoute(route, '/api/projects/:id/cards/:cardId/status')) && req.method === 'PATCH') {
       const project = registry.projects[params.id];
       if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
-      const card = (project.cards || []).find(c => c.id === params.cardId);
+      const { card } = findCardByNum(project, params.cardId);
       if (!card) return json(res, 404, { error: 'Karte nicht gefunden: ' + params.cardId });
       const body = await readBody(req);
       if (!body.status) return json(res, 400, { error: 'status required' });
@@ -796,27 +810,25 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { action: 'transitioned', from: result.oldStatus, to: card.status, card });
     }
 
-    // ── DELETE /api/projects/:id/cards/:cardId — Karte auf deleted setzen (oder permanent entfernen) ──
+    // ── DELETE /api/projects/:id/cards/:cardId — Karte auf deleted setzen (oder permanent entfernen, cardId = num) ──
     if ((params = matchRoute(route, '/api/projects/:id/cards/:cardId')) && req.method === 'DELETE') {
       const project = registry.projects[params.id];
       if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
       const qs = url.parse(req.url, true).query;
-      const cardIdx = (project.cards || []).findIndex(c => c.id === params.cardId);
-      if (cardIdx < 0) return json(res, 404, { error: 'Karte nicht gefunden: ' + params.cardId });
+      const { idx: cardIdx, card } = findCardByNum(project, params.cardId);
+      if (cardIdx < 0 || !card) return json(res, 404, { error: 'Karte nicht gefunden: ' + params.cardId });
 
       if (qs.permanent === 'true') {
         // Permanent remove: splice from cards and cardPriority
-        const card = project.cards[cardIdx];
         project.cards.splice(cardIdx, 1);
         if (project.cardPriority) {
-          project.cardPriority = project.cardPriority.filter(id => id !== params.cardId);
+          project.cardPriority = project.cardPriority.filter(n => n !== card.num);
         }
         saveRegistry();
         return json(res, 200, { action: 'permanently-deleted', card });
       }
 
       // Soft delete: set status to deleted
-      const card = project.cards[cardIdx];
       transitionCardStatus(card, 'deleted');
       writeDenormalizedStatus(project, card);
       saveRegistry();
@@ -918,12 +930,15 @@ const server = http.createServer(async (req, res) => {
           const items = data[jsonKey] || [];
           for (const item of items) {
             if (existingIds.has(item.id)) continue; // idempotent
+            const num = item.num || project.nextNum++;
+            const paddedNum = padNum(num);
+            const slug = item.id || 'card';
             const card = {
-              id: item.id,
-              file: item.file || item.id + '.md',
-              title: item.title || item.id,
+              id: paddedNum,
+              file: paddedNum + '-' + slug + '.md',
+              title: item.title || slug,
               type: item.type || 'bugfix',
-              num: item.num || 0,
+              num,
               status,
               timestamps: {
                 new: item.new || null,
@@ -935,13 +950,14 @@ const server = http.createServer(async (req, res) => {
               blockedBy: item.blockedBy || null,
             };
             project.cards.push(card);
-            project.cardPriority.push(item.id);
+            project.cardPriority.push(num);
             existingIds.add(item.id);
             imported++;
 
-            // Move file from subfolder to prompts root (if still in subfolder)
+            // Move file from subfolder to prompts root (rename to NNNN-slug.md)
             const srcFolder = folderMap[jsonKey];
-            const srcPath = path.join(promptsDir, srcFolder, card.file);
+            const oldFile = item.file || item.id + '.md';
+            const srcPath = path.join(promptsDir, srcFolder, oldFile);
             const dstPath = path.join(promptsDir, card.file);
             if (fs.existsSync(srcPath) && !fs.existsSync(dstPath)) {
               try {
@@ -961,21 +977,24 @@ const server = http.createServer(async (req, res) => {
           try {
             const deletedFiles = fs.readdirSync(deletedDir).filter(f => f.endsWith('.md'));
             for (const file of deletedFiles) {
-              const id = file.replace('.md', '');
-              if (existingIds.has(id)) continue;
+              const slug = file.replace('.md', '');
+              if (existingIds.has(slug)) continue;
+              const num = project.nextNum++;
+              const paddedNum = padNum(num);
+              const newFile = paddedNum + '-' + slug + '.md';
               const card = {
-                id, file, title: id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-                type: 'bugfix', num: project.nextNum++,
+                id: paddedNum, file: newFile, title: slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                type: 'bugfix', num,
                 status: 'deleted',
                 timestamps: { new: null, 'in-progress': null, done: null, deleted: nowISO() },
                 blocked: false, blockedBy: null,
               };
               project.cards.push(card);
-              existingIds.add(id);
+              existingIds.add(slug);
               imported++;
-              // Move from deleted/ to prompts root
+              // Move from deleted/ to prompts root (with new filename)
               const srcPath = path.join(deletedDir, file);
-              const dstPath = path.join(promptsDir, file);
+              const dstPath = path.join(promptsDir, newFile);
               if (!fs.existsSync(dstPath)) {
                 try { fs.copyFileSync(srcPath, dstPath); fs.unlinkSync(srcPath); moved++; } catch {}
               }

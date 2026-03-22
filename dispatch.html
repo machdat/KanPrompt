@@ -494,7 +494,7 @@ function renderDispatch() {
   list.innerHTML = dispatchQueue.map((item, idx) => {
     const icons = { ready: '\u26AA', running: '\uD83D\uDFE1', done: '\uD83D\uDFE2', error: '\uD83D\uDD34' };
     const icon = icons[item.status] || '\u26AA';
-    const num = item.prompt.num ? '#' + item.prompt.num + ' ' : '';
+    const num = item.prompt.num ? '#' + String(item.prompt.num).padStart(4, '0') + ' ' : '';
     const title = num + (item.prompt.title || item.prompt.file);
     const hasWorktree = item.worktree && item.worktreePath;
     const wtBadge = hasWorktree ? `<span class="wt-badge" title="${esc(item.worktreeBranch || '')}">🌿 ${esc(item.worktreeBranch || '')}</span>` : '';
@@ -555,7 +555,7 @@ async function runItem(idx) {
 
   const useWorktree = item.worktree;
   const itemType = item.prompt.type || 'feature';
-  const branchName = itemType + '/' + item.prompt.id;
+  const branchName = itemType + '/' + (item.prompt.file || item.prompt.id + '.md').replace(/\.md$/, '');
   // Try flat path first (registry mode), fall back to new/ subfolder
   const promptFilePath = item.project.path + '\\doc\\prompts\\' + item.prompt.file;
 
@@ -580,7 +580,7 @@ async function runItem(idx) {
       item.worktreeBranch = result.branch || branchName;
       // Register worktree in Registry
       registerWorktreeInRegistry(item.project.name, result.branch || branchName, {
-        path: result.cwd, cardId: item.prompt.id, status: 'running',
+        path: result.cwd, cardId: item.prompt.num || item.prompt.id, status: 'running',
         startedAt: new Date().toISOString(),
       });
     }

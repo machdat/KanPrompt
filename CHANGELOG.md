@@ -2,6 +2,24 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [1.4.0] - 2026-03-22
+
+### Changed
+- **Karten-ID auf Nummer umgestellt**: Die Kartennummer (`num`) ist jetzt der primäre Identifikator statt des Slug-basierten `id`-Feldes
+- Registry: `id`-Feld ist jetzt eine formatierte Nummer (`"0072"` statt `"companion-pflicht-schema-migration-entfernen"`)
+- Registry: `cardPriority` enthält jetzt Nummern statt Slugs
+- Registry: `blockedBy` enthält jetzt Nummern statt Slugs
+- Dateinamen folgen dem Format `NNNN-slug.md` (z.B. `0072-companion-pflicht.md`)
+- API-Endpunkte akzeptieren die Kartennummer als `:cardId` (z.B. `GET /api/projects/KanPrompt/cards/72`)
+- UI zeigt Kartennummern konsistent als `#NNNN` (4-stellig, zero-padded)
+- Branch-Namen bei CC-Start nutzen das Format `type/NNNN-slug`
+- KanPrompt auf v0.23.0, Companion auf v1.4.0
+
+### Added
+- `scripts/migrate-card-ids.js` — Einmaliges Migrationsskript zum Umbenennen bestehender Karten (Dateien + Registry)
+- `padNum()`-Hilfsfunktion in Companion und Frontend
+- `findCardByNum()`-Lookup im Companion für nummerbasierte Kartensuche
+
 ## [1.3.1] - 2026-03-21
 
 ### Fixed
