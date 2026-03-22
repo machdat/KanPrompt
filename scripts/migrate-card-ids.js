@@ -21,13 +21,23 @@ if (!fs.existsSync(REGISTRY_FILE)) {
 }
 
 const registry = JSON.parse(fs.readFileSync(REGISTRY_FILE, 'utf-8'));
-let totalRenamed = 0, totalUpdated = 0;
+let totalRenamed = 0, totalUpdated = 0, totalNumAssigned = 0;
 
 for (const [projectId, project] of Object.entries(registry.projects || {})) {
   console.log(`\n=== Projekt: ${projectId} ===`);
   const promptsDir = project.projectPath && project.promptsDir
     ? path.join(project.projectPath, project.promptsDir)
     : null;
+
+  // Phase 0: Assign missing num values (cards created before num was introduced)
+  if (!project.nextNum) project.nextNum = 1;
+  for (const card of (project.cards || [])) {
+    if (!card.num || card.num === 0) {
+      card.num = project.nextNum++;
+      totalNumAssigned++;
+      console.log(`  Nummer vergeben: "${card.id}" → num ${card.num}`);
+    }
+  }
 
   // Build slug→num lookup for blockedBy resolution
   const slugToNum = {};
@@ -76,15 +86,14 @@ for (const [projectId, project] of Object.entries(registry.projects || {})) {
       }
     }
 
-    // Convert blockedBy from slug to number
-    if (card.blockedBy && typeof card.blockedBy === 'string' && !/^\d+$/.test(card.blockedBy)) {
+    // Convert blockedBy from slug to number (only if it matches a known card slug)
+    if (card.blockedBy && typeof card.blockedBy === 'string') {
       const blockedNum = slugToNum[card.blockedBy];
       if (blockedNum != null) {
         console.log(`    blockedBy: "${card.blockedBy}" → ${blockedNum}`);
         card.blockedBy = blockedNum;
-      } else {
-        console.log(`    Warnung: blockedBy "${card.blockedBy}" — referenzierte Karte nicht gefunden`);
       }
+      // else: it's a freetext reason (e.g. "blocked because of no priority") — keep as-is
     }
   }
 
@@ -96,18 +105,17 @@ for (const [projectId, project] of Object.entries(registry.projects || {})) {
       if (typeof entry === 'number') return entry;
       const num = slugToNum[entry];
       if (num != null) return num;
-      console.log(`    Warnung: cardPriority-Eintrag "${entry}" — Karte nicht gefunden`);
-      return entry; // keep as-is if not found
-    });
+      console.log(`    Warnung: cardPriority-Eintrag "${entry}" — Karte nicht gefunden, entfernt`);
+      return null;
+    }).filter(n => n != null);
     console.log(`  cardPriority: ${oldPriority.length} Einträge konvertiert`);
   }
 
-  // nextNum bleibt unverändert
-  console.log(`  nextNum: ${project.nextNum} (unverändert)`);
+  console.log(`  nextNum: ${project.nextNum}`);
 }
 
 if (dryRun) {
-  console.log(`\n[DRY RUN] ${totalUpdated} Karten würden aktualisiert, ${totalRenamed} Dateien würden umbenannt.`);
+  console.log(`\n[DRY RUN] ${totalUpdated} Karten würden aktualisiert, ${totalRenamed} Dateien würden umbenannt, ${totalNumAssigned} Nummern würden vergeben.`);
   console.log('Registry wurde NICHT geschrieben.');
 } else {
   registry.lastUpdated = new Date().toISOString().replace(/\.\d{3}Z$/, '').replace('T', 'T');
@@ -119,6 +127,6 @@ if (dryRun) {
     try { fs.unlinkSync(REGISTRY_FILE); } catch {}
     fs.renameSync(tmp, REGISTRY_FILE);
   }
-  console.log(`\n${totalUpdated} Karten aktualisiert, ${totalRenamed} Dateien umbenannt.`);
+  console.log(`\n${totalUpdated} Karten aktualisiert, ${totalRenamed} Dateien umbenannt, ${totalNumAssigned} Nummern vergeben.`);
   console.log('Registry gespeichert:', REGISTRY_FILE);
 }
