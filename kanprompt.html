@@ -2312,22 +2312,23 @@ async function updateDeletedCount() {
     try {
       const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId) + '/cards?status=deleted');
       deletedCountVal = data ? (data.cards || []).length : 0;
-    } catch { deletedCountVal = 0; }
+    } catch (e) { console.warn('[deletedCount] registry fetch failed:', e); deletedCountVal = 0; }
   } else {
     const files = await listMdFiles('deleted');
     deletedCountVal = files ? files.length : 0;
   }
   const btn = document.getElementById('deletedBtn');
-  if (btn) btn.textContent = '🗑' + (deletedCountVal > 0 ? ' ' + deletedCountVal : '');
+  if (btn) btn.textContent = '🗑 ' + deletedCountVal;
 }
 
 async function loadDeletedFiles() {
   if (registryMode) {
     try {
       const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId) + '/cards?status=deleted');
-      if (!data || !data.cards) return [];
+      if (!data || !data.cards) { console.warn('[loadDeleted] no cards in response:', data); return []; }
+      console.log('[loadDeleted] found', data.cards.length, 'deleted cards');
       return data.cards.map(c => ({ id: c.id, file: c.file, title: c.title, num: c.num }));
-    } catch { return []; }
+    } catch (e) { console.warn('[loadDeleted] registry fetch failed:', e); return []; }
   }
   const files = await listMdFiles('deleted');
   if (!files) return [];
