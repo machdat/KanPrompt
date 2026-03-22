@@ -2017,11 +2017,12 @@ async function handleDrop(itemId, targetColId, insertIndex) {
   const tgtCol = COLUMNS.find(c => c.id===targetColId); if (!tgtCol) return;
 
   if (registryMode) {
+    const wasPoll = polling; polling = false; // suppress poll during API calls to prevent race condition
     try {
       if (srcCol.id === tgtCol.id) {
         // Reorder within same column
         const a = jsonData[srcCol.jsonKey]; let adj = insertIndex; if (insertIndex > srcIdx) adj--;
-        if (adj === srcIdx) return;
+        if (adj === srcIdx) { polling = wasPoll; return; }
         a.splice(srcIdx, 1); if (adj < 0 || adj >= a.length) a.push(item); else a.splice(adj, 0, item);
         await registryUpdatePriority(buildCardPriority());
         renderBoard(); updateInfoBar(); toast(`↕ ${item.title} → #${adj<0?a.length:adj+1}`);
@@ -2036,6 +2037,7 @@ async function handleDrop(itemId, targetColId, insertIndex) {
         if (!jsonData[tgtCol.jsonKey]) jsonData[tgtCol.jsonKey] = [];
         const a = jsonData[tgtCol.jsonKey]; if (insertIndex<0||insertIndex>=a.length) a.push(item); else a.splice(insertIndex, 0, item);
         await registryUpdatePriority(buildCardPriority());
+        lastJsonText = JSON.stringify(jsonData); // update snapshot so poll doesn't revert
         renderBoard(); updateInfoBar(); toast(`${item.title}: ${srcCol.title} → ${tgtCol.title}`);
         if (tgtCol.jsonKey === 'done' && item.type) {
           const nextVer = computeNextVersion(VERSION, item.type);
@@ -2046,6 +2048,7 @@ async function handleDrop(itemId, targetColId, insertIndex) {
       toast('Verschieben fehlgeschlagen — lade Board neu');
       try { await reloadFromRegistry(); renderBoard(); updateInfoBar(); } catch {}
     }
+    polling = wasPoll;
     return;
   }
 
@@ -2131,15 +2134,18 @@ async function deleteItem(id) {
   if (!item || !srcCol) return;
 
   if (registryMode) {
+    const wasPoll = polling; polling = false;
     try {
       await registryDeleteCard(item.num);
       const a = jsonData[srcCol.jsonKey]; const i = a.findIndex(x => x.id===id); if (i>=0) a.splice(i, 1);
       if (!jsonData.deletedFiles) jsonData.deletedFiles = new Set();
       jsonData.deletedFiles.add(item.file);
+      lastJsonText = JSON.stringify(jsonData);
       if (selectedId===id) closePreview(); renderBoard(); updateInfoBar(); toast('Gelöscht: ' + item.title);
     } catch (e) {
       toast('Löschen fehlgeschlagen: ' + e.message);
     }
+    polling = wasPoll;
     return;
   }
 
