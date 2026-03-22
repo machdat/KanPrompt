@@ -2134,6 +2134,8 @@ async function deleteItem(id) {
     try {
       await registryDeleteCard(item.num);
       const a = jsonData[srcCol.jsonKey]; const i = a.findIndex(x => x.id===id); if (i>=0) a.splice(i, 1);
+      if (!jsonData.deletedFiles) jsonData.deletedFiles = new Set();
+      jsonData.deletedFiles.add(item.file);
       if (selectedId===id) closePreview(); renderBoard(); updateInfoBar(); toast('Gelöscht: ' + item.title);
     } catch (e) {
       toast('Löschen fehlgeschlagen: ' + e.message);
