@@ -710,6 +710,7 @@ let dirHandle = null;      // doc/prompts/ subfolder
 let subDirs = {}, jsonHandle = null, jsonData = null;
 let lastJsonText = '', polling = true, pollInterval = null, folderSyncInterval = null;
 let syncFailCount = 0; // consecutive sync failures for warning display
+let pendingMutations = 0; // skip poll while local API mutations are in-flight
 let draggedId = null, dragSourceCol = null, dropTargetCol = null, dropTargetIndex = -1;
 let selectedId = null, selectedItem = null, selectedCol = null, editMode = false;
 let fileContentsCache = {};
@@ -1643,9 +1644,10 @@ function startPoll() {
   if (registryMode) {
     // Registry mode: poll Registry API for changes
     pollInterval = setInterval(async () => {
-      if (!projectHandle || !polling || !registryMode) return;
+      if (!projectHandle || !polling || !registryMode || pendingMutations > 0) return;
       try {
         const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId));
+        if (pendingMutations > 0) return; // mutation started while GET was in-flight
         const newJsonData = registryToJsonData(data);
         const newText = JSON.stringify(newJsonData);
         if (newText !== lastJsonText) {
@@ -2017,19 +2019,19 @@ async function handleDrop(itemId, targetColId, insertIndex) {
   const tgtCol = COLUMNS.find(c => c.id===targetColId); if (!tgtCol) return;
 
   if (registryMode) {
-    const wasPoll = polling; polling = false; // suppress poll during API calls to prevent race condition
+    pendingMutations++;
     try {
       if (srcCol.id === tgtCol.id) {
         // Reorder within same column
         const a = jsonData[srcCol.jsonKey]; let adj = insertIndex; if (insertIndex > srcIdx) adj--;
-        if (adj === srcIdx) { polling = wasPoll; return; }
+        if (adj === srcIdx) { pendingMutations--; return; }
         a.splice(srcIdx, 1); if (adj < 0 || adj >= a.length) a.push(item); else a.splice(adj, 0, item);
         await registryUpdatePriority(buildCardPriority());
+        lastJsonText = JSON.stringify(jsonData);
         renderBoard(); updateInfoBar(); toast(`↕ ${item.title} → #${adj<0?a.length:adj+1}`);
       } else {
-        // Cross-column: status transition via API (no file move!)
+        // Cross-column: status transition via API, then update local state from response
         const result = await registryPatchStatus(item.num, tgtCol.registryStatus);
-        // Update local state from API response
         jsonData[srcCol.jsonKey].splice(srcIdx, 1);
         item.new = result.card.timestamps?.new || item.new;
         item.inProgress = result.card.timestamps?.['in-progress'] || null;
@@ -2037,7 +2039,7 @@ async function handleDrop(itemId, targetColId, insertIndex) {
         if (!jsonData[tgtCol.jsonKey]) jsonData[tgtCol.jsonKey] = [];
         const a = jsonData[tgtCol.jsonKey]; if (insertIndex<0||insertIndex>=a.length) a.push(item); else a.splice(insertIndex, 0, item);
         await registryUpdatePriority(buildCardPriority());
-        lastJsonText = JSON.stringify(jsonData); // update snapshot so poll doesn't revert
+        lastJsonText = JSON.stringify(jsonData);
         renderBoard(); updateInfoBar(); toast(`${item.title}: ${srcCol.title} → ${tgtCol.title}`);
         if (tgtCol.jsonKey === 'done' && item.type) {
           const nextVer = computeNextVersion(VERSION, item.type);
@@ -2048,7 +2050,7 @@ async function handleDrop(itemId, targetColId, insertIndex) {
       toast('Verschieben fehlgeschlagen — lade Board neu');
       try { await reloadFromRegistry(); renderBoard(); updateInfoBar(); } catch {}
     }
-    polling = wasPoll;
+    pendingMutations--;
     return;
   }
 
@@ -2134,7 +2136,7 @@ async function deleteItem(id) {
   if (!item || !srcCol) return;
 
   if (registryMode) {
-    const wasPoll = polling; polling = false;
+    pendingMutations++;
     try {
       await registryDeleteCard(item.num);
       const a = jsonData[srcCol.jsonKey]; const i = a.findIndex(x => x.id===id); if (i>=0) a.splice(i, 1);
@@ -2145,7 +2147,7 @@ async function deleteItem(id) {
     } catch (e) {
       toast('Löschen fehlgeschlagen: ' + e.message);
     }
-    polling = wasPoll;
+    pendingMutations--;
     return;
   }
 
