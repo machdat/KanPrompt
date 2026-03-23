@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-03-21T10:04:20",
+  "lastUpdated": "2026-03-23T22:30:00",
   "projects": {
     "erju_wp27": {
       "projectPath": "C:\\Users\\christian.mangold\\IdeaProjects\\erju_wp27",
@@ -9,8 +9,905 @@
     },
     "KanPrompt": {
       "projectPath": "C:\\Users\\christian.mangold\\git\\KanPrompt",
+      "gitRemote": null,
+      "worktreeBase": null,
+      "mainBranch": "master",
+      "worktreeBaseDir": null,
       "promptsDir": "doc/prompts",
-      "mainBranch": "master"
+      "versionFiles": [],
+      "changelogFile": "CHANGELOG.md",
+      "branchPattern": "feature/{slug}",
+      "nextNum": 94,
+      "cards": [
+        {
+          "id": "0093",
+          "file": "0093-kanprompt-repo-nach-home-verschieben.md",
+          "title": "KanPrompt-Repo nach Home-Verzeichnis verschieben",
+          "type": "feature",
+          "num": 93,
+          "status": "new",
+          "timestamps": {
+            "new": "2026-03-23T12:58:56",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0062",
+          "file": "0062-prompt-lifecycle-skill.md",
+          "title": "Prompt Lifecycle Skill",
+          "type": "bugfix",
+          "num": 62,
+          "status": "new",
+          "timestamps": {
+            "new": "2026-03-21T10:04:07",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0090",
+          "file": "0090-dispatch-add-form-verbesserungen.md",
+          "title": "Dispatch: Add-Form Verbesserungen",
+          "type": "feature",
+          "num": 90,
+          "status": "new",
+          "timestamps": {
+            "new": "2026-03-23T12:33:19",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0091",
+          "file": "0091-companion-create-card-endpoint.md",
+          "title": "Companion: Atomarer create-card-Endpoint",
+          "type": "feature",
+          "num": 91,
+          "status": "new",
+          "timestamps": {
+            "new": "2026-03-23T12:46:19",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0092",
+          "file": "0092-cowork-skill-cc-prompt-erstellen.md",
+          "title": "Cowork-Skill: CC-Prompt-Karte erstellen",
+          "type": "feature",
+          "num": 92,
+          "status": "new",
+          "timestamps": {
+            "new": "2026-03-23T12:47:14",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0073",
+          "file": "0073-reconciliation-bei-projektaktivierung.md",
+          "title": "Reconciliation bei Projektaktivierung",
+          "type": "feature",
+          "num": 73,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-22T00:45:34",
+            "in-progress": null,
+            "done": "2026-03-22T23:51:37",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0081",
+          "file": "0081-companion-pflicht-schema-migration-entfernen.md",
+          "title": "Companion Pflicht Schema Migration Entfernen",
+          "type": "bugfix",
+          "num": 81,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-22T02:40:29",
+            "in-progress": "2026-03-22T18:52:54",
+            "done": "2026-03-22T18:52:59",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0075",
+          "file": "0075-karten-id-auf-nummer-umstellen.md",
+          "title": "Karten-ID auf Nummer umstellen",
+          "type": "feature",
+          "num": 75,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-22T01:03:33",
+            "in-progress": null,
+            "done": "2026-03-22T02:01:50",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0071",
+          "file": "0071-bugfix-worktree-delete-broken-state.md",
+          "title": "Bugfix: Worktree-Delete scheitert bei inkonsistentem Zustand",
+          "type": "bugfix",
+          "num": 71,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-21T18:30:00",
+            "in-progress": null,
+            "done": "2026-03-22T00:00:03",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0070",
+          "file": "0070-prompt-karte-laesst-sich-nicht-loeshen.md",
+          "title": "Prompt-Karte laesst sich nicht loeschen",
+          "type": "bugfix",
+          "num": 70,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-21T15:32:51",
+            "in-progress": "2026-03-21T16:29:23",
+            "done": "2026-03-21T16:30:30",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0069",
+          "file": "0069-kanprompt-ui-migration-registry.md",
+          "title": "KanPrompt UI Migration Registry",
+          "type": "bugfix",
+          "num": 69,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-21T15:26:05",
+            "in-progress": null,
+            "done": "2026-03-21T15:26:05",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0068",
+          "file": "0068-dispatch-git-worktree-handling.md",
+          "title": "Dispatch Git Worktree Handling",
+          "type": "bugfix",
+          "num": 68,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-21T10:04:07",
+            "in-progress": "2026-03-21T12:00:00",
+            "done": "2026-03-21T12:45:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0067",
+          "file": "0067-projects-registry-datenbank.md",
+          "title": "Projects Registry Datenbank",
+          "type": "bugfix",
+          "num": 67,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-21T10:04:07",
+            "in-progress": null,
+            "done": "2026-03-21T10:04:07",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0066",
+          "file": "0066-dispatch-als-eigene-seite.md",
+          "title": "Dispatch Als Eigene Seite",
+          "type": "bugfix",
+          "num": 66,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-21T10:04:07",
+            "in-progress": null,
+            "done": "2026-03-21T10:04:07",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0065",
+          "file": "0065-bugfix-restart-companion-eaddrinuse.md",
+          "title": "Bugfix Restart Companion Eaddrinuse",
+          "type": "bugfix",
+          "num": 65,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-21T10:04:07",
+            "in-progress": null,
+            "done": "2026-03-21T10:04:07",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0064",
+          "file": "0064-bugfix-dispatch-projekt-nicht-gefunden.md",
+          "title": "Bugfix Dispatch Projekt Nicht Gefunden",
+          "type": "bugfix",
+          "num": 64,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-21T10:04:07",
+            "in-progress": null,
+            "done": "2026-03-21T10:04:07",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0051",
+          "file": "0051-cc-launch-live-runner.md",
+          "title": "CC-Launch Live-Runner: stream-json + interaktiver Resume",
+          "type": "feature",
+          "num": 51,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-19T20:56:58",
+            "in-progress": "2026-03-19T23:15:00",
+            "done": "2026-03-19T23:30:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0049",
+          "file": "0049-bugfix-cc-button-nur-backlog.md",
+          "title": "Bugfix: CC-Button nur fuer Backlog-Prompts aktiv",
+          "type": "bugfix",
+          "num": 49,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-19T22:15:00",
+            "in-progress": "2026-03-19T22:42:00",
+            "done": "2026-03-19T22:45:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0054",
+          "file": "0054-vereinigung-von-sync-refresh-button.md",
+          "title": "Vereinigung von Sync- und Refresh-Button",
+          "type": "bugfix",
+          "num": 54,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-19T21:39:36",
+            "in-progress": "2026-03-19T22:38:22",
+            "done": "2026-03-19T22:42:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0055",
+          "file": "0055-feat-multi-projekt-cc-dispatch.md",
+          "title": "Feat Multi Projekt Cc Dispatch",
+          "type": "feature",
+          "num": 55,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-19T22:17:57",
+            "in-progress": "2026-03-19T22:17:57",
+            "done": "2026-03-19T22:38:47",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0053",
+          "file": "0053-feat-cc-status-dashboard.md",
+          "title": "Feat Cc Status Dashboard",
+          "type": "feature",
+          "num": 53,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-19T21:32:25",
+            "in-progress": "2026-03-19T21:32:25",
+            "done": "2026-03-19T21:48:23",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0048",
+          "file": "0048-cc-interaktiver-modus-terminal-sichtbar.md",
+          "title": "Cc Interaktiver Modus Terminal Sichtbar",
+          "type": "bugfix",
+          "num": 48,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-19T12:23:12",
+            "in-progress": null,
+            "done": "2026-03-19T12:23:12",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0043",
+          "file": "0043-gui-cc-button-prominent.md",
+          "title": "Gui Cc Button Prominent",
+          "type": "bugfix",
+          "num": 43,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T22:07:26",
+            "in-progress": null,
+            "done": "2026-03-18T22:07:26",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0040",
+          "file": "0040-cc-aus-kanprompt-antriggern.md",
+          "title": "Cc Aus Kanprompt Antriggern",
+          "type": "bugfix",
+          "num": 40,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T21:46:36",
+            "in-progress": null,
+            "done": "2026-03-18T21:46:36",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0038",
+          "file": "0038-ui-improvements-sammlung.md",
+          "title": "Ui Improvements Sammlung",
+          "type": "bugfix",
+          "num": 38,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T21:38:15",
+            "in-progress": null,
+            "done": "2026-03-18T21:38:15",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0036",
+          "file": "0036-selektion-des-promp-typs-auch-in-der-vorschau.md",
+          "title": "Selektion Des Promp Typs Auch In Der Vorschau",
+          "type": "bugfix",
+          "num": 36,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T21:26:29",
+            "in-progress": null,
+            "done": "2026-03-18T21:26:29",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0026",
+          "file": "0026-duplikat-beim-erstellen-von-prompts.md",
+          "title": "Duplikat-Bug beim Erstellen von Prompts",
+          "type": "bugfix",
+          "num": 26,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T21:13:02",
+            "in-progress": "2026-03-18T21:20:00",
+            "done": "2026-03-18T21:22:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0025",
+          "file": "0025-prompt-karten-eindeutige-nummer.md",
+          "title": "Prompt Karten Eindeutige Nummer",
+          "type": "bugfix",
+          "num": 25,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-16T21:06:17",
+            "in-progress": "2026-03-18T21:10:00",
+            "done": "2026-03-18T21:15:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0023",
+          "file": "0023-prompt-type-auto-versioning.md",
+          "title": "Prompt Type Auto Versioning",
+          "type": "bugfix",
+          "num": 23,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T21:13:02",
+            "in-progress": null,
+            "done": "2026-03-18T21:13:02",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0024",
+          "file": "0024-upgrade-prozess-beendigung.md",
+          "title": "Upgrade Prozess Beendigung",
+          "type": "bugfix",
+          "num": 24,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T21:13:02",
+            "in-progress": null,
+            "done": "2026-03-18T21:13:02",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0022",
+          "file": "0022-deleted-folder-searchable.md",
+          "title": "Deleted Folder Searchable",
+          "type": "bugfix",
+          "num": 22,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-15T22:57:33",
+            "in-progress": "2026-03-18T20:33:01",
+            "done": "2026-03-18T20:42:14",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0021",
+          "file": "0021-ui-tweaks-projectname-editor-button.md",
+          "title": "Ui Tweaks Projectname Editor Button",
+          "type": "bugfix",
+          "num": 21,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-16T20:46:42",
+            "in-progress": "2026-03-16T20:46:42",
+            "done": "2026-03-16T20:56:33",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0020",
+          "file": "0020-refactor-safe-file-operations.md",
+          "title": "Refactoring: Robustes Lesen und Schreiben",
+          "type": "bugfix",
+          "num": 20,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-16T11:30:00",
+            "in-progress": "2026-03-16T11:35:33",
+            "done": "2026-03-16T11:40:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0019",
+          "file": "0019-fix-stale-handles-comprehensive.md",
+          "title": "Fix Stale Handles Comprehensive",
+          "type": "bugfix",
+          "num": 19,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-16T10:03:12",
+            "in-progress": null,
+            "done": "2026-03-16T10:03:12",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0018",
+          "file": "0018-fix-folder-sync-reliability.md",
+          "title": "Fix: Folder-Sync erkennt neue Dateien nicht zuverlaessig",
+          "type": "bugfix",
+          "num": 18,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-16T09:20:32",
+            "in-progress": "2026-03-16T09:38:03",
+            "done": "2026-03-16T10:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0017",
+          "file": "0017-schema-version-display-and-upgrade.md",
+          "title": "Schema Version Display And Upgrade",
+          "type": "bugfix",
+          "num": 17,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-15T22:44:34",
+            "in-progress": null,
+            "done": "2026-03-15T22:44:34",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0016",
+          "file": "0016-archive-search-filter.md",
+          "title": "Archiv-Overlay: Suche und Filterung",
+          "type": "bugfix",
+          "num": 16,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T17:30:00",
+            "in-progress": "2026-03-15T19:50:00",
+            "done": "2026-03-15T19:55:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0015",
+          "file": "0015-keyboard-navigation-recent-projects.md",
+          "title": "Keyboard-Navigation in der Recent-Projects-Liste",
+          "type": "bugfix",
+          "num": 15,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-15T15:51:06",
+            "in-progress": "2026-03-15T19:25:00",
+            "done": "2026-03-15T19:35:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0014",
+          "file": "0014-cli-button-entfernen-oder-ersetzen.md",
+          "title": "CLI-Button im Header entfernen oder ersetzen",
+          "type": "bugfix",
+          "num": 14,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-15T18:45:00",
+            "in-progress": "2026-03-15T19:10:00",
+            "done": "2026-03-15T19:15:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0013",
+          "file": "0013-button-oder-hotkey-der-einen-schnellen-projektwechsel-ermoeg.md",
+          "title": "Button oder HotKey fuer schnellen Projektwechsel",
+          "type": "bugfix",
+          "num": 13,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T17:14:12",
+            "in-progress": "2026-03-15T17:50:00",
+            "done": "2026-03-15T18:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0012",
+          "file": "0012-auto-changelog.md",
+          "title": "CHANGELOG automatisch aus Git-Commits pflegen",
+          "type": "bugfix",
+          "num": 12,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T17:30:00",
+            "in-progress": "2026-03-15T17:30:00",
+            "done": "2026-03-15T17:35:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0011",
+          "file": "0011-link-zum-oeffnen-von-claude-desktop-anstatt-von-claude-ai.md",
+          "title": "Link zum Oeffnen von Claude Desktop",
+          "type": "bugfix",
+          "num": 11,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-15T13:40:39",
+            "in-progress": "2026-03-15T17:15:00",
+            "done": "2026-03-15T17:20:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0010",
+          "file": "0010-update-workflow-docs-timestamps.md",
+          "title": "Workflow-Doku auf ISO-Timestamps aktualisieren",
+          "type": "bugfix",
+          "num": 10,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T17:30:00",
+            "in-progress": "2026-03-15T17:05:00",
+            "done": "2026-03-15T17:10:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0009",
+          "file": "0009-scaffold-und-dort-liegende-readmes-muessen-aktualisiert-werd.md",
+          "title": "Scaffold und Readmes aktualisieren",
+          "type": "bugfix",
+          "num": 9,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T20:49:29",
+            "in-progress": null,
+            "done": "2026-03-15T17:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0008",
+          "file": "0008-kanprompt-initialisierung-beim-ersten-oeffnen-des-prjs.md",
+          "title": "KanPrompt Initialisierung beim ersten Oeffnen",
+          "type": "bugfix",
+          "num": 8,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T17:12:21",
+            "in-progress": null,
+            "done": "2026-03-15T16:35:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0007",
+          "file": "0007-claude-md-cc-integration.md",
+          "title": "CLAUDE.md fuer CC-Integration anlegen",
+          "type": "bugfix",
+          "num": 7,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T17:30:00",
+            "in-progress": "2026-03-15T16:20:00",
+            "done": "2026-03-15T16:25:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0006",
+          "file": "0006-one-step-deploy.md",
+          "title": "Deploy vereinfachen: Ein-Schritt-Update",
+          "type": "bugfix",
+          "num": 6,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T17:30:00",
+            "in-progress": "2026-03-15T16:00:00",
+            "done": "2026-03-15T16:05:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0005",
+          "file": "0005-schema-versioning.md",
+          "title": "Schema-Versionierung einfuehren",
+          "type": "bugfix",
+          "num": 5,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-15T14:42:49",
+            "in-progress": "2026-03-15T14:42:49",
+            "done": "2026-03-15T15:30:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0004",
+          "file": "0004-iso-timestamps-with-time.md",
+          "title": "ISO-Timestamps mit Uhrzeit + sortierte Done-Spalte",
+          "type": "bugfix",
+          "num": 4,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T15:00:00",
+            "in-progress": "2026-03-14T15:30:00",
+            "done": "2026-03-14T17:10:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0078",
+          "file": "0078-done-column-newest-first.md",
+          "title": "Done-Spalte: Neueste Eintraege oben",
+          "type": "bugfix",
+          "num": 78,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T14:30:00",
+            "in-progress": "2026-03-14T14:35:00",
+            "done": "2026-03-14T14:50:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0083",
+          "file": "0083-fix-preview-panel-width.md",
+          "title": "Fix: Preview-Panel unsichtbar (1px Breite)",
+          "type": "bugfix",
+          "num": 83,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T14:00:00",
+            "in-progress": "2026-03-14T14:10:00",
+            "done": "2026-03-14T14:30:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0082",
+          "file": "0082-setup-git-repo.md",
+          "title": "Git-Repo aufsetzen und Dateien entflechten",
+          "type": "bugfix",
+          "num": 82,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T13:00:00",
+            "in-progress": "2026-03-14T13:10:00",
+            "done": "2026-03-14T14:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        }
+      ],
+      "cardPriority": [
+        93,
+        62,
+        90,
+        91,
+        92,
+        73,
+        81,
+        75,
+        71,
+        70,
+        69,
+        68,
+        67,
+        66,
+        65,
+        64,
+        51,
+        49,
+        54,
+        55,
+        53,
+        48,
+        43,
+        40,
+        38,
+        36,
+        26,
+        25,
+        23,
+        24,
+        22,
+        21,
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        78,
+        83,
+        82
+      ],
+      "worktrees": [],
+      "lastSnapshotAt": null
     }
   }
 }

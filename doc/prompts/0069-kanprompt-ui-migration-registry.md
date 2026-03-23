@@ -82,4 +82,23 @@ Nach Einführung der Projects Registry (#63) existieren zwei Wahrheitsquellen: d
 
 ---
 
-# Session-Log — Pflichtaufgabe nach Abschluss
+# Session-Log
+
+- **Datum:** 2026-03-21T14:30:00
+- **Branch:** feature/kanprompt-ui-migration-registry
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+KanPrompt UI vollständig auf die Projects Registry API umgestellt. Beim Laden wird automatisch von `backlog-priority.json` in die Registry migriert. Danach basieren Spalten auf `card.status`, Dateien bleiben flach in `doc/prompts/` — kein Dateiverschieben mehr. Legacy-Fallback ohne Companion bleibt erhalten.
+
+## Geänderte Dateien
+- `kanprompt.html` — Registry-Modus mit Dual-Mode (Registry/Legacy), 12 Kernfunktionen umgestellt, Version 0.21.0 → 0.22.0
+- `companion/kanprompt-companion.js` — Migrations-Endpoint, blocked/blockedBy im Card-Model, permanent-delete, Version 1.2.0 → 1.3.0
+- `dispatch.html` — Prompt-Pfad auf flaches Verzeichnis, Worktree-Registrierung in Registry, Runtime/Cost-Updates
+- `CHANGELOG.md` — Neuer Abschnitt [1.3.0]
+
+## Abweichungen vom Prompt
+Keine.
+
+## Offene Punkte
+Keine.
