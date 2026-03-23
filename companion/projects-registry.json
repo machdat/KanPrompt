@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-03-24T00:09:51",
+  "lastUpdated": "2026-03-24T00:19:05",
   "projects": {
     "erju_wp27": {
       "projectPath": "C:\\Users\\christian.mangold\\IdeaProjects\\erju_wp27",
@@ -889,11 +889,11 @@
           "title": "Bugfix: nextNum wird doppelt inkrementiert bei externer Kartenerstellung",
           "type": "bugfix",
           "num": 96,
-          "status": "new",
+          "status": "done",
           "timestamps": {
             "new": "2026-03-23T23:56:06",
-            "in-progress": null,
-            "done": null,
+            "in-progress": "2026-03-24T00:16:58",
+            "done": "2026-03-24T00:17:00",
             "deleted": null
           },
           "blocked": false,
@@ -933,12 +933,12 @@
         }
       ],
       "cardPriority": [
-        96,
+        95,
         62,
         91,
         92,
         94,
-        95,
+        98,
         93,
         90,
         73,
@@ -988,8 +988,8 @@
         78,
         83,
         82,
-        97,
-        98
+        96,
+        97
       ],
       "worktrees": [],
       "lastSnapshotAt": null
