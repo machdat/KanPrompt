@@ -289,7 +289,7 @@
     </div>
     <div class="add-row">
       <label>Prompt</label>
-      <select id="addPrompt" disabled>
+      <select id="addPrompt" disabled onchange="onPromptChange()">
         <option value="">— zuerst Projekt wählen —</option>
       </select>
     </div>
@@ -301,7 +301,7 @@
     </div>
     <div class="add-buttons">
       <button class="btn btn-sm" onclick="cancelAdd()">Abbrechen</button>
-      <button class="btn btn-sm btn-primary" onclick="addItem()">Hinzufügen</button>
+      <button class="btn btn-sm btn-primary" onclick="addItem()" id="addBtn" disabled>Hinzufügen</button>
     </div>
   </div>
 
@@ -323,6 +323,7 @@
 const VERSION = '0.3.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 const DISPATCH_LS_KEY = 'kanprompt_dispatch_queue';
+const LAST_PROJECT_LS_KEY = 'kanprompt_dispatch_last_project';
 
 let companionAvailable = false;
 let dispatchQueue = [];
@@ -936,7 +937,13 @@ function cancelAdd() {
 
 async function populateProjectDropdown() {
   const select = document.getElementById('addProject');
+  const promptSelect = document.getElementById('addPrompt');
   select.innerHTML = '<option value="">Lade Projekte...</option>';
+
+  // Prompt-Dropdown und Button zurücksetzen
+  promptSelect.innerHTML = '<option value="">— zuerst Projekt wählen —</option>';
+  promptSelect.disabled = true;
+  document.getElementById('addBtn').disabled = true;
 
   try {
     const r = await fetch(COMPANION_URL + '/projects', { signal: AbortSignal.timeout(3000) });
@@ -959,6 +966,13 @@ async function populateProjectDropdown() {
     }
     select.appendChild(opt);
   });
+
+  // Letztes Projekt wiederherstellen
+  const lastPath = localStorage.getItem(LAST_PROJECT_LS_KEY);
+  if (lastPath && Array.from(select.options).some(o => o.value === lastPath)) {
+    select.value = lastPath;
+    onProjectChange();
+  }
 }
 
 async function onProjectChange() {
@@ -967,11 +981,16 @@ async function onProjectChange() {
   if (!projectPath) {
     promptSelect.innerHTML = '<option value="">— zuerst Projekt wählen —</option>';
     promptSelect.disabled = true;
+    onPromptChange();
     return;
   }
 
+  // Letztes Projekt speichern
+  localStorage.setItem(LAST_PROJECT_LS_KEY, projectPath);
+
   promptSelect.innerHTML = '<option value="">Lade...</option>';
   promptSelect.disabled = true;
+  onPromptChange();
 
   const result = await companionPost('/project-backlog', { projectPath });
   if (!result || result.error) {
@@ -994,6 +1013,13 @@ async function onProjectChange() {
     promptSelect.appendChild(opt);
   });
   promptSelect.disabled = false;
+  onPromptChange();
+}
+
+function onPromptChange() {
+  const hasProject = !!document.getElementById('addProject').value;
+  const hasPrompt = !!document.getElementById('addPrompt').value;
+  document.getElementById('addBtn').disabled = !(hasProject && hasPrompt);
 }
 
 function addItem() {
