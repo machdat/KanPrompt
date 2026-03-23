@@ -2,6 +2,8 @@
 
 Wiederverwendbare Vorlage für den Kanban-gesteuerten CC-Prompt-Workflow.
 
+**Hinweis:** Die Single Source of Truth für Projekt- und Kartendaten ist die Projects Registry im Companion-Server. Die lokalen `backlog-priority.json`-Dateien in den Projekt-Repos sind Spiegel/Backup.
+
 ## Aktive Dateien
 
 | Datei | Zweck |

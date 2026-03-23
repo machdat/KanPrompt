@@ -1,14 +1,15 @@
 # KanPrompt
 
-A standalone Kanban board for managing Claude Code prompts. Runs as a local HTML file in Chrome/Edge — no server, no cloud, no AI roundtrip for board operations.
+A Kanban board for managing Claude Code prompts. The UI runs as a local HTML file in Chrome/Edge, the Companion server (Node.js, port 9177) provides central data storage and desktop integration.
 
 ## Features
 
 - **Drag & drop** between Backlog → In Progress → Done
 - **Direct disk access** via File System Access API (Chrome/Edge)
-- **JSON as single source of truth** (`backlog-priority.json`) — readable by Claude Code, scripts, anything
+- **Companion server as single source of truth** (Projects Registry) — REST API for UI, Claude Code, scripts, anything
+- **Local JSON backup** (`backlog-priority.json` per project) — mirrors Companion data
 - **Inline Markdown editor** for prompt files
-- **Companion server** for desktop integration (VS Code, Claude Code, Explorer, Terminal)
+- **Companion server** for central data storage and desktop integration (VS Code, Claude Code, Explorer, Terminal)
 - **Auto-polling** for external changes (configurable interval)
 - **Project memory** — remembers recently opened projects
 
@@ -40,7 +41,8 @@ powershell -ExecutionPolicy Bypass -File install\update.ps1
 KanPrompt/
 ├── kanprompt.html              # The app (open in browser)
 ├── companion/
-│   ├── kanprompt-companion.js  # Node.js companion server
+│   ├── kanprompt-companion.js  # Node.js companion server (central data store + desktop bridge)
+│   ├── projects-registry.json  # Projects Registry (Single Source of Truth)
 │   ├── start-companion.bat     # Start companion (visible)
 │   └── start-companion-silent.vbs  # Start companion (hidden/autostart)
 ├── workflow/
@@ -58,15 +60,16 @@ KanPrompt/
 
 ## How It Works
 
-1. Open `kanprompt.html` in Chrome or Edge
-2. Select a project folder (e.g., `my-project/`) — KanPrompt navigates to `doc/prompts/` inside it
-3. Cards are backed by `.md` files in `new/`, `in-progress/`, `done/` folders
-4. Drag & drop moves files between folders and updates `backlog-priority.json`
-5. Claude Code reads the same JSON to pick up the next task
+1. Start the Companion server (`companion/start-companion.bat`)
+2. Open `kanprompt.html` in Chrome or Edge
+3. Select a project folder — the Companion manages all project and card data (Projects Registry)
+4. Cards are backed by `.md` files in `new/`, `in-progress/`, `done/` folders
+5. Drag & drop moves cards via the Companion API; local `backlog-priority.json` is kept as a backup
+6. Claude Code reads card data via the Companion to pick up the next task
 
 ## Companion Server (optional)
 
-The companion server bridges browser sandbox limitations:
+The Companion server is the central data store (Projects Registry) and bridges browser sandbox limitations:
 
 - **⚡ Claude Code** — start CC in the project root
 - **💻 VS Code** — open a prompt file directly

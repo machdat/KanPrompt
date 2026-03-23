@@ -12,28 +12,26 @@ Development tasks are driven by prompt files in `doc/prompts/` with a folder-bas
 - `doc/prompts/done/` — completed (with session log)
 - `doc/prompts/deleted/` — removed
 
-The prioritized task queue is `doc/prompts/backlog-priority.json` with three arrays:
-`backlog`, `inProgress`, `done`. Each entry references a prompt file and carries
-timestamp fields (`new`, `inProgress`, `done`) in YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).
+The **Companion server** is the **Single Source of Truth** for all project and card data.
+It stores them in the Projects Registry (`companion/projects-registry.json`) and exposes
+them via REST API. UI, Skills, Dispatcher and Claude Code access data exclusively through
+this API. The local `doc/prompts/backlog-priority.json` is a **mirror/backup** written by
+the Companion — not the authoritative source and must not be edited directly.
 
-**Board management** happens in KanPrompt (standalone HTML app) or Claude.ai —
-NOT in Claude Code. CC only reads and updates the JSON when executing tasks.
+**Board management** happens in KanPrompt (HTML app served by the Companion) or Claude.ai —
+NOT in Claude Code. CC reads card data via the Companion API when executing tasks.
 
 #### When asked to work on the next task:
 
-1. Read `doc/prompts/backlog-priority.json`
+1. Load card data from the Companion (`GET /api/projects/:id`)
 2. Find the first entry in `backlog` where `blocked` is `false` (or absent)
 3. **Present the task to the user and wait for explicit confirmation** before starting
 4. On confirmation:
-   - Move the prompt file from `new/` to `in-progress/`
-   - Move the entry from `backlog` to `inProgress` in the JSON
-   - Set `"inProgress": "YYYY-MM-DDTHH:MM:SS"` with current date and time
+   - Move the card to `inProgress` via the Companion API
    - Begin implementation
 5. On completion:
    - Append the session log to the prompt file (see below)
-   - Move the prompt file from `in-progress/` to `done/`
-   - Move the entry from `inProgress` to `done` array in the JSON
-   - Set `"done": "YYYY-MM-DDTHH:MM:SS"` with current date and time
+   - Move the card to `done` via the Companion API
 
 Do NOT start work without user confirmation. Always show what you intend to do first.
 

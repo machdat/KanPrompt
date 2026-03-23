@@ -4,22 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Was ist KanPrompt?
 
-Ein standalone Kanban-Board (einzelne HTML-Datei) zur Verwaltung von Claude-Code-Prompts. Läuft lokal in Chrome/Edge via File System Access API — kein Build-System, keine Dependencies, kein Server nötig.
+Ein Kanban-Board zur Verwaltung von Claude-Code-Prompts. Die UI läuft als HTML-Datei in Chrome/Edge, die zentrale Datenhaltung übernimmt der Companion-Server (Node.js, Port 9177). Kein Build-System, keine externen Dependencies.
 
 ## Architektur
 
 - **`kanprompt.html`** — Die gesamte App: HTML + CSS + JavaScript in einer Datei (~1400 Zeilen)
-- **`companion/kanprompt-companion.js`** — Optionaler Node.js HTTP-Server (Port 9177) als Bridge für Desktop-Integration (VS Code, Terminal, Explorer, Claude Code starten)
+- **`companion/kanprompt-companion.js`** — Node.js HTTP-Server (Port 9177): zentrale Datenhaltung (Projects Registry) und Desktop-Integration (VS Code, Terminal, Explorer, Claude Code starten)
 - **`workflow/`** — Wiederverwendbare Vorlagen und Dokumentation für den Prompt-Workflow in anderen Projekten
 - **`install/`** — PowerShell-Skripte zum Installieren/Updaten nach `~/.kanprompt/`
 
 ### Datenmodell
 
-`backlog-priority.json` ist die Single Source of Truth mit drei Arrays: `backlog`, `inProgress`, `done`. Jeder Eintrag referenziert eine Markdown-Datei in `new/`, `in-progress/`, `done/` oder `deleted/`. Timestamps im Format `YYYY-MM-DDTHH:MM:SS`.
+Der **Companion-Server** ist die **Single Source of Truth** für alle Projekt- und Kartendaten. Er speichert sie in der Projects Registry (`companion/projects-registry.json`) und exponiert sie über REST-Endpunkte. UI, Skill, Dispatcher und Claude Code greifen ausschließlich über diese API auf die Daten zu.
+
+Die lokalen `backlog-priority.json`-Dateien in den Projekt-Repos sind **Spiegel/Backup** der Companion-Daten — nicht die autoritative Quelle. Sie werden vom Companion geschrieben und dürfen nicht direkt editiert werden.
 
 ### Schema-Versionierung
 
-`workflow/schema.json` ist die Quelle der Wahrheit für das aktuelle Schema (JSON-Felder, Ordnerstruktur, Templates). Jedes Projekt-Repo hat eine `.kanprompt-version.json` im Root, die angibt auf welcher Schema- und App-Version es steht. Das Update-Script liest diese Datei und zeigt an ob Updates verfügbar sind.
+`workflow/schema.json` definiert das aktuelle Schema (JSON-Felder, Ordnerstruktur, Templates). Jedes Projekt-Repo hat eine `.kanprompt-version.json` im Root, die angibt auf welcher Schema- und App-Version es steht. Das Update-Script liest diese Datei und zeigt an ob Updates verfügbar sind.
 
 ### Wichtige Patterns im JavaScript
 
@@ -60,19 +62,15 @@ KanPrompt verwaltet seine eigene Entwicklung über `doc/prompts/`. Prompt-Dateie
 
 ### Nächstes Item abarbeiten
 
-1. `doc/prompts/backlog-priority.json` lesen
+1. Kartendaten vom Companion laden (`GET /api/projects/:id`)
 2. Ersten Eintrag in `backlog` finden, bei dem `blocked` nicht `true` ist
 3. **Task dem User zeigen und auf Bestätigung warten** — nicht eigenständig loslegen
 4. Nach Bestätigung:
-   - Prompt-Datei von `new/` nach `in-progress/` verschieben
-   - Eintrag von `backlog` nach `inProgress` im JSON verschieben
-   - `"inProgress": "YYYY-MM-DDTHH:MM:SS"` mit aktuellem Datum/Uhrzeit setzen
+   - Karte über Companion-API nach `inProgress` verschieben
    - Implementierung beginnen
 5. Nach Abschluss:
    - Session-Log an die Prompt-Datei anhängen (siehe unten)
-   - Prompt-Datei von `in-progress/` nach `done/` verschieben
-   - Eintrag von `inProgress` nach `done` im JSON verschieben
-   - `"done": "YYYY-MM-DDTHH:MM:SS"` setzen
+   - Karte über Companion-API nach `done` verschieben
 
 ### Timestamp-Regeln
 

@@ -2,6 +2,14 @@
   "$schema": "KanPrompt backlog. Timestamps: YYYY-MM-DDTHH:MM:SS format (ISO with time-of-day).",
   "backlog": [
     {
+      "id": "0094",
+      "file": "0094-dispatch-git-status-pfad-mismatch.md",
+      "title": "Dispatch: Git-Status Pfad-Mismatch fixen — Projektpfad nur an einer Stelle halten",
+      "type": "bugfix",
+      "num": 94,
+      "new": "2026-03-23T22:06:07"
+    },
+    {
       "id": "0093",
       "file": "0093-kanprompt-repo-nach-home-verschieben.md",
       "title": "KanPrompt-Repo nach Home-Verzeichnis verschieben",
@@ -483,5 +491,5 @@
       "done": "2026-03-14T14:00:00"
     }
   ],
-  "nextNum": 94
+  "nextNum": 95
 }

@@ -2,11 +2,13 @@
 
 Kanban-gesteuerte Aufgabenverwaltung für das KanPrompt-Projekt selbst.
 
+**Hinweis:** Die Single Source of Truth für alle Projekt- und Kartendaten ist die Projects Registry im Companion-Server. Die lokalen Dateien hier sind ein Spiegel/Backup.
+
 ## Verzeichnisstruktur
 
 ```
 doc/prompts/
-├── backlog-priority.json    # Single Source of Truth (Reihenfolge + Timestamps)
+├── backlog-priority.json    # Lokaler Spiegel der Companion-Daten (Backup)
 ├── new/                     # Backlog — offene Aufgaben
 ├── in-progress/             # Aktuell in Arbeit
 ├── done/                    # Abgeschlossen (mit Session-Log)

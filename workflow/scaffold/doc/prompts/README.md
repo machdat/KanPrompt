@@ -8,15 +8,15 @@ doc/prompts/
 ├── in-progress/    ← Prompts, die gerade in Bearbeitung sind
 ├── done/           ← Abgeschlossene Prompts
 ├── deleted/        ← Entfernte Prompts (über Kanban-Board gelöscht)
-├── backlog-priority.json  ← Priorisierte Aufgabenliste (maschinenlesbar)
+├── backlog-priority.json  ← Lokaler Spiegel der Companion-Daten (Backup)
 └── README.md       ← Diese Datei
 ```
 
 ## Workflow
 
-1. **Neuen Prompt erstellen** → Datei in `new/` ablegen, Eintrag in `backlog-priority.json` ergänzen
-2. **Umsetzung starten** → Datei von `new/` nach `in-progress/` verschieben, JSON aktualisieren
-3. **Umsetzung abschließen** → Session-Log anhängen, Datei nach `done/`, JSON aktualisieren
+1. **Neuen Prompt erstellen** → Karte über KanPrompt-UI oder Companion-API anlegen
+2. **Umsetzung starten** → Karte über Companion-API nach `inProgress` verschieben
+3. **Umsetzung abschließen** → Session-Log anhängen, Karte über Companion-API nach `done` verschieben
 
 ## Prompt-Aufbau (zweiteilig)
 
@@ -71,9 +71,7 @@ Typische Prefixe: `fix-`, `feat-`, `cleanup-`, `ux-`, `gui-`, `phase{N}-`
 
 ## Backlog-Datei
 
-Die Datei `backlog-priority.json` ist die maschinenlesbare Aufgabenliste.
-CC (Claude Code) liest diese Datei, um das nächste zu bearbeitende Item zu bestimmen.
-Das Kanban-Board in Claude.ai visualisiert diese Datei.
+Die **Single Source of Truth** für alle Karten- und Projektdaten ist der **Companion-Server** (Projects Registry). Die lokale `backlog-priority.json` ist ein vom Companion geschriebener **Spiegel/Backup** — nicht die autoritative Quelle. CC (Claude Code) liest Kartendaten über die Companion-API (`GET /api/projects/:id`).
 
 ### JSON-Struktur
 
