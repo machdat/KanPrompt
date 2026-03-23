@@ -179,7 +179,6 @@
     text-transform: uppercase; letter-spacing: 0.5px;
     color: var(--text-secondary); display: flex; align-items: center; gap: 6px;
   }
-  .column-title .folder-hint { font-weight: 400; color: var(--text-muted); font-size: 10px; }
   .column-count {
     font-family: 'JetBrains Mono', monospace; font-size: 11px;
     color: var(--text-muted); background: var(--bg-card);
@@ -535,10 +534,9 @@
   <h1>&gt;_ KanPrompt</h1>
   <p>
     Öffne den Projektordner (z.B. <code>erju_wp27/</code>).<br>
-    KanPrompt sucht darin <code>doc/prompts/</code> mit <code>backlog-priority.json</code>
-    und den Unterordnern <code>new/</code>, <code>in-progress/</code>, <code>done/</code>.<br>
+    KanPrompt sucht darin <code>doc/prompts/</code> und lädt die Karten über den Companion-Server.<br>
     Falls die Struktur noch nicht existiert, wird sie automatisch angelegt.<br><br>
-    Drag &amp; Drop verschiebt Dateien zwischen Ordnern und aktualisiert die JSON automatisch.
+    Drag &amp; Drop verschiebt Karten zwischen Spalten über die Companion-API.
   </p>
   <div style="display:flex;gap:10px;margin-top:8px;">
     <button class="btn btn-primary" onclick="openProjectFolder()" style="font-size:14px;padding:10px 22px;">📂 Projekt-Ordner öffnen</button>
@@ -680,6 +678,13 @@
   <button class="btn btn-primary" onclick="retryCompanionCheck()" style="font-size:14px;padding:10px 22px;">🔄 Erneut versuchen</button>
 </div>
 
+<!-- REGISTRY BLOCKADE -->
+<div class="companion-blocked" id="registryBlocked">
+  <h2>Projekt nicht ladbar</h2>
+  <p id="registryBlockedMsg">Projekt konnte nicht aus der Registry geladen werden. Ist das Projekt im Companion registriert?</p>
+  <button class="btn btn-primary" onclick="retryRegistryLoad()" style="font-size:14px;padding:10px 22px;">🔄 Erneut versuchen</button>
+</div>
+
 <!-- RECONCILE DIALOG -->
 <div class="modal-overlay" id="reconcileOverlay" onclick="event.target===this&&closeReconcileDialog()">
   <div class="modal" style="width:560px;">
@@ -733,21 +738,20 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.25.1';
+const VERSION = '0.26.0';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
 let companionVersion = null;
 let companionCheckInterval = null;
 let projectHandle = null;  // project root (e.g. erju_wp27/)
 let dirHandle = null;      // doc/prompts/ subfolder
-let subDirs = {}, jsonHandle = null, jsonData = null;
+let jsonData = null;
 let lastJsonText = '', polling = true, pollInterval = null;
 let syncFailCount = 0; // consecutive sync failures for warning display
 let pendingMutations = 0; // skip poll while local API mutations are in-flight
 let draggedId = null, dragSourceCol = null, dropTargetCol = null, dropTargetIndex = -1;
 let selectedId = null, selectedItem = null, selectedCol = null, editMode = false;
 let fileContentsCache = {};
-let registryMode = false;  // true when using Registry API instead of backlog-priority.json
 let projectId = null;      // project ID for Registry API calls
 let lastReconcileResult = null; // cached reconcile diff for re-opening dialog
 const DONE_VISIBLE_COUNT = 5;
@@ -864,6 +868,11 @@ async function retryCompanionCheck() {
   }
 }
 
+async function retryRegistryLoad() {
+  document.getElementById('registryBlocked').classList.remove('active');
+  if (projectHandle) await initProjectFromHandle();
+}
+
 function updateCompanionUI() {
   const dot = document.getElementById('companionDot');
   const label = document.getElementById('companionLabel');
@@ -962,9 +971,7 @@ async function openInEditor() {
   if (!selectedItem || !selectedCol) return;
   const basePath = await getProjectPath();
   if (!basePath) return;
-  const filePath = registryMode
-    ? basePath + '\\doc\\prompts\\' + selectedItem.file
-    : basePath + '\\doc\\prompts\\' + selectedCol.folder + '\\' + selectedItem.file;
+  const filePath = basePath + '\\doc\\prompts\\' + selectedItem.file;
   const result = await companionPost('/open-editor', { filePath });
   if (result && result.action) toast('💻 Im Editor geöffnet');
 }
@@ -977,9 +984,7 @@ async function startCCWithPrompt(event) {
   const interactive = !(event && event.shiftKey); // Shift+Klick = silent (kein Resume)
   const itemType = selectedItem.type || 'bugfix';
   const branchName = itemType + '/' + (selectedItem.file || selectedItem.id + '.md').replace(/\.md$/, '');
-  const promptFilePath = registryMode
-    ? basePath + '\\doc\\prompts\\' + selectedItem.file
-    : basePath + '\\doc\\prompts\\' + selectedCol.folder + '\\' + selectedItem.file;
+  const promptFilePath = basePath + '\\doc\\prompts\\' + selectedItem.file;
 
   const modeLabel = interactive ? 'Live + Resume' : 'Live (silent)';
   toast('⚡ CC wird gestartet (' + modeLabel + ')' + (useWorktree ? ' — Worktree: ' + branchName : '') + '...');
@@ -1121,7 +1126,6 @@ async function loadFromRegistry() {
     }
 
     jsonData = registryToJsonData(data);
-    registryMode = true;
     return true;
   } catch {
     return false;
@@ -1129,7 +1133,7 @@ async function loadFromRegistry() {
 }
 
 async function reloadFromRegistry() {
-  if (!registryMode || !projectId) return false;
+  if (!projectId) return false;
   try {
     const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId));
     jsonData = registryToJsonData(data);
@@ -1308,9 +1312,8 @@ function timeAgo(isoStr) {
 async function openFileExternally() {
   if (!selectedItem || !selectedCol) return;
   try {
-    const dir = subDirs[selectedCol.folder];
-    if (!dir) return;
-    const fh = await dir.getFileHandle(selectedItem.file);
+    const pH = await safeDirHandle();
+    const fh = await pH.getFileHandle(selectedItem.file);
     const file = await fh.getFile();
     const url = URL.createObjectURL(file);
     const a = document.createElement('a');
@@ -1342,7 +1345,6 @@ async function initProjectFromHandle() {
     closePreview();
     fileContentsCache = {}; lastJsonText = '';
     switchedFromBoard = false;
-    registryMode = false;
     projectId = null;
     lastReconcileResult = null;
     document.getElementById('reconcileBanner').style.display = 'none';
@@ -1366,13 +1368,11 @@ async function initProjectFromHandle() {
     }
     dirHandle = promptsHandle;
 
-    // Ensure subfolders exist (needed for legacy mode and migration)
+    // Ensure subfolders exist (for migration compatibility)
     for (const col of COLUMNS) {
-      try { subDirs[col.folder] = await dirHandle.getDirectoryHandle(col.folder, { create: true }); }
-      catch { subDirs[col.folder] = null; }
+      try { await dirHandle.getDirectoryHandle(col.folder, { create: true }); } catch {}
     }
-    try { subDirs['deleted'] = await dirHandle.getDirectoryHandle('deleted', { create: true }); }
-    catch { subDirs['deleted'] = null; }
+    try { await dirHandle.getDirectoryHandle('deleted', { create: true }); } catch {}
 
     // Ensure README.md exists
     try { await dirHandle.getFileHandle('README.md'); }
@@ -1407,41 +1407,16 @@ async function initProjectFromHandle() {
 
     if (await loadFromRegistry()) {
       showApp();
-      toast('Projekt geladen (Registry): ' + projectHandle.name);
+      toast('Projekt geladen: ' + projectHandle.name);
       // Non-blocking reconciliation check
       checkReconciliation();
       return;
     }
 
-    // Fallback: Legacy mode with backlog-priority.json (only if registry load fails)
-    // Recovery: check for interrupted safe-write
-    try {
-      const tmpH = await dirHandle.getFileHandle('.backlog-priority.json.tmp');
-      const tmpF = await tmpH.getFile(); const tmpContent = await tmpF.text();
-      JSON.parse(tmpContent); // validate JSON
-      const fH = await dirHandle.getFileHandle('backlog-priority.json', { create: true });
-      const w = await fH.createWritable(); await w.write(tmpContent); await w.close();
-      try { await dirHandle.removeEntry('.backlog-priority.json.tmp'); } catch {}
-      toast('⚠ Unterbrochene Speicherung wiederhergestellt');
-    } catch {} // No temp file or invalid — normal startup
-
-    // Ensure backlog-priority.json exists
-    let jsonExists = true;
-    try { jsonHandle = await dirHandle.getFileHandle('backlog-priority.json'); }
-    catch { jsonExists = false; }
-
-    if (!jsonExists) {
-      jsonHandle = await dirHandle.getFileHandle('backlog-priority.json', { create: true });
-      const initial = { "$schema": "Backlog priority for CC prompts.", backlog: [], inProgress: [], done: [] };
-      const w = await jsonHandle.createWritable();
-      await w.write(JSON.stringify(initial, null, 2) + '\n');
-      await w.close();
-      toast('backlog-priority.json angelegt');
-    }
-
-    await loadJson();
-    showApp();
-    toast('Projekt geladen: ' + projectHandle.name);
+    // Registry load failed — show blockade UI
+    document.getElementById('registryBlockedMsg').textContent =
+      'Projekt „' + projectHandle.name + '" konnte nicht aus der Registry geladen werden. Ist das Projekt im Companion registriert?';
+    document.getElementById('registryBlocked').classList.add('active');
   } catch (e) {
     if (e.name !== 'AbortError') toast('Fehler: ' + e.message);
   }
@@ -1467,131 +1442,52 @@ async function safeWriteFile(parentDirHandle, filename, content) {
   try { await parentDirHandle.removeEntry(tmpName); } catch {}
   return fH;
 }
-async function loadJson() {
-  const pH = await safeDirHandle();
-  const fH = await pH.getFileHandle('backlog-priority.json');
-  const f = await fH.getFile(); const t = await f.text();
-  dirHandle = pH; jsonHandle = fH; lastJsonText = t; jsonData = JSON.parse(t);
-}
-async function writeJson() {
-  const t = JSON.stringify(jsonData, null, 2) + '\n';
-  const wasPolling = polling; polling = false;
-  try {
-    const pH = await safeDirHandle();
-    jsonHandle = await safeWriteFile(pH, 'backlog-priority.json', t);
-    dirHandle = pH; lastJsonText = t;
-  } catch (e) {
-    toast('Speichern fehlgeschlagen: ' + e.message);
-    polling = wasPolling; throw e;
-  }
-  polling = wasPolling;
-}
 
 // ══════════════════════════════════════
 //  FILE OPERATIONS
 // ══════════════════════════════════════
 async function readMdFile(folder, filename) {
-  if (registryMode) {
-    // Registry mode: files are flat in doc/prompts/
-    const key = 'flat/' + filename;
-    if (fileContentsCache[key]) return fileContentsCache[key];
-    try {
-      const pH = await safeDirHandle(); dirHandle = pH;
-      const fh = await pH.getFileHandle(filename);
-      const f = await fh.getFile(); const t = await f.text();
-      fileContentsCache[key] = t; return t;
-    } catch {
-      // Fallback: try subfolder (for files not yet migrated)
-      try {
-        const pH = await safeDirHandle();
-        const dir = await pH.getDirectoryHandle(folder);
-        const fh = await dir.getFileHandle(filename);
-        const f = await fh.getFile(); const t = await f.text();
-        fileContentsCache[key] = t; return t;
-      } catch { return null; }
-    }
-  }
-  // Legacy mode
-  const key = folder + '/' + filename;
+  // Files are flat in doc/prompts/
+  const key = 'flat/' + filename;
   if (fileContentsCache[key]) return fileContentsCache[key];
   try {
-    const pH = await safeDirHandle();
-    const dir = await pH.getDirectoryHandle(folder);
-    subDirs[folder] = dir; dirHandle = pH;
-    const fh = await dir.getFileHandle(filename);
+    const pH = await safeDirHandle(); dirHandle = pH;
+    const fh = await pH.getFileHandle(filename);
     const f = await fh.getFile(); const t = await f.text();
     fileContentsCache[key] = t; return t;
-  } catch { return null; }
+  } catch {
+    // Fallback: try subfolder (for files not yet migrated)
+    try {
+      const pH = await safeDirHandle();
+      const dir = await pH.getDirectoryHandle(folder);
+      const fh = await dir.getFileHandle(filename);
+      const f = await fh.getFile(); const t = await f.text();
+      fileContentsCache[key] = t; return t;
+    } catch { return null; }
+  }
 }
 async function writeMdFile(folder, filename, content) {
-  if (registryMode) {
-    try {
-      const pH = await safeDirHandle(); dirHandle = pH;
-      await safeWriteFile(pH, filename, content);
-      fileContentsCache['flat/'+filename] = content; return true;
-    } catch (e) { toast('Speichern fehlgeschlagen: ' + e.message); return false; }
-  }
-  try {
-    const pH = await safeDirHandle();
-    const dir = await pH.getDirectoryHandle(folder);
-    subDirs[folder] = dir; dirHandle = pH;
-    await safeWriteFile(dir, filename, content);
-    fileContentsCache[folder+'/'+filename] = content; return true;
-  } catch (e) { toast('Speichern fehlgeschlagen: ' + e.message); return false; }
-}
-async function moveFile(filename, from, to) {
   try {
     const pH = await safeDirHandle(); dirHandle = pH;
-    const s = await pH.getDirectoryHandle(from); subDirs[from] = s;
-    const d = await pH.getDirectoryHandle(to); subDirs[to] = d;
-    // Read from source
-    const sh = await s.getFileHandle(filename); const sf = await sh.getFile(); const c = await sf.text();
-    // Write to destination (create:true → no stale)
-    const dh = await d.getFileHandle(filename, { create: true });
-    const w = await dh.createWritable(); await w.write(c); await w.close();
-    // Remove from source
-    await s.removeEntry(filename);
-    delete fileContentsCache[from+'/'+filename]; fileContentsCache[to+'/'+filename] = c;
-    return true;
-  } catch (e) { toast('Verschieben fehlgeschlagen: ' + e.message); return false; }
+    await safeWriteFile(pH, filename, content);
+    fileContentsCache['flat/'+filename] = content; return true;
+  } catch (e) { toast('Speichern fehlgeschlagen: ' + e.message); return false; }
 }
 async function createMdFile(folder, filename, content) {
-  if (registryMode) {
-    try {
-      const pH = await safeDirHandle(); dirHandle = pH;
-      const fh = await pH.getFileHandle(filename, { create: true });
-      const w = await fh.createWritable(); await w.write(content); await w.close();
-      fileContentsCache['flat/'+filename] = content; return true;
-    } catch (e) { toast('Erstellen fehlgeschlagen: ' + e.message); return false; }
-  }
   try {
-    const pH = await safeDirHandle();
-    const dir = await pH.getDirectoryHandle(folder);
-    subDirs[folder] = dir; dirHandle = pH;
-    const fh = await dir.getFileHandle(filename, { create: true });
+    const pH = await safeDirHandle(); dirHandle = pH;
+    const fh = await pH.getFileHandle(filename, { create: true });
     const w = await fh.createWritable(); await w.write(content); await w.close();
-    fileContentsCache[folder+'/'+filename] = content; return true;
+    fileContentsCache['flat/'+filename] = content; return true;
   } catch (e) { toast('Erstellen fehlgeschlagen: ' + e.message); return false; }
 }
 async function listMdFiles(folder) {
-  if (registryMode && folder !== 'deleted') {
-    // Registry mode: list .md files in flat doc/prompts/ dir
-    try {
-      const pH = await safeDirHandle(); dirHandle = pH;
-      const files = [];
-      for await (const [name, h] of pH.entries()) {
-        if (h.kind === 'file' && name.endsWith('.md') && name !== 'README.md' && name !== 'TEMPLATE.md') files.push(name);
-      }
-      return files;
-    } catch { return null; }
-  }
+  // List .md files in flat doc/prompts/ dir
   try {
-    const pH = await safeDirHandle();
-    const freshDir = await pH.getDirectoryHandle(folder);
-    subDirs[folder] = freshDir; dirHandle = pH;
+    const pH = await safeDirHandle(); dirHandle = pH;
     const files = [];
-    for await (const [name, h] of freshDir.entries()) {
-      if (h.kind === 'file' && name.endsWith('.md')) files.push(name);
+    for await (const [name, h] of pH.entries()) {
+      if (h.kind === 'file' && name.endsWith('.md') && name !== 'README.md' && name !== 'TEMPLATE.md') files.push(name);
     }
     return files;
   } catch { return null; }
@@ -1614,37 +1510,23 @@ function updateSyncWarning() {
 // ══════════════════════════════════════
 function startPoll() {
   if (pollInterval) clearInterval(pollInterval);
-  if (registryMode) {
-    // Registry mode: poll Registry API for changes
-    pollInterval = setInterval(async () => {
-      if (!projectHandle || !polling || !registryMode || pendingMutations > 0) return;
-      try {
-        const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId));
-        if (pendingMutations > 0) return; // mutation started while GET was in-flight
-        const newJsonData = registryToJsonData(data);
-        const newText = JSON.stringify(newJsonData);
-        if (newText !== lastJsonText) {
-          jsonData = newJsonData; lastJsonText = newText; fileContentsCache = {};
-          renderBoard(); updateInfoBar(); toast('↻ Externe Änderung');
-        }
-        if (syncFailCount > 0) { syncFailCount = 0; updateSyncWarning(); }
-      } catch {
-        syncFailCount++; updateSyncWarning();
+  // Poll Registry API for changes
+  pollInterval = setInterval(async () => {
+    if (!projectHandle || !polling || pendingMutations > 0) return;
+    try {
+      const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId));
+      if (pendingMutations > 0) return; // mutation started while GET was in-flight
+      const newJsonData = registryToJsonData(data);
+      const newText = JSON.stringify(newJsonData);
+      if (newText !== lastJsonText) {
+        jsonData = newJsonData; lastJsonText = newText; fileContentsCache = {};
+        renderBoard(); updateInfoBar(); toast('↻ Externe Änderung');
       }
-    }, 3000);
-  } else {
-    // Legacy mode
-    pollInterval = setInterval(async () => {
-      if (!projectHandle || !polling) return;
-      try {
-        const pH = await safeDirHandle();
-        const fH = await pH.getFileHandle('backlog-priority.json');
-        const f = await fH.getFile(); const t = await f.text();
-        dirHandle = pH; jsonHandle = fH;
-        if (t !== lastJsonText) { jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {}; renderBoard(); updateInfoBar(); toast('↻ Externe Änderung'); }
-      } catch {}
-    }, 2000);
-  }
+      if (syncFailCount > 0) { syncFailCount = 0; updateSyncWarning(); }
+    } catch {
+      syncFailCount++; updateSyncWarning();
+    }
+  }, 3000);
 }
 function togglePoll() {
   polling = !polling;
@@ -1655,22 +1537,11 @@ function togglePoll() {
 async function refreshAll() {
   if (!projectHandle) return;
   try {
-    if (registryMode) {
-      // Registry mode: reload from API
-      if (await reloadFromRegistry()) {
-        lastJsonText = JSON.stringify(jsonData);
-        syncFailCount = 0; updateSyncWarning();
-        renderBoard(); updateInfoBar();
-        return;
-      }
+    if (await reloadFromRegistry()) {
+      lastJsonText = JSON.stringify(jsonData);
+      syncFailCount = 0; updateSyncWarning();
+      renderBoard(); updateInfoBar();
     }
-    // Legacy mode: JSON neu von Disk laden
-    const pH = await safeDirHandle();
-    const fH = await pH.getFileHandle('backlog-priority.json');
-    const f = await fH.getFile(); const t = await f.text();
-    dirHandle = pH; jsonHandle = fH; jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {};
-    syncFailCount = 0;
-    updateSyncWarning();
   } catch (e) { toast('Aktualisieren: ' + e.message); }
 }
 
@@ -1680,14 +1551,10 @@ async function refreshAll() {
 function showApp() {
   document.getElementById('welcomeScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  document.getElementById('folderLabel').textContent = projectHandle.name + (registryMode ? ' ⚡' : '');
+  document.getElementById('folderLabel').textContent = projectHandle.name;
   saveRecentProject(projectHandle.name);
   renderBoard(); updateInfoBar(); updateDeletedCount(); startPoll();
   updateCompanionVersionBadge();
-  if (!registryMode) {
-    // Auto-resolve project path via companion
-    setTimeout(() => resolveProjectPath(), 300);
-  }
 }
 
 let switchedFromBoard = false;
@@ -1714,9 +1581,9 @@ function resumeBoard() {
 }
 function resetProjectState() {
   closePreview();
-  projectHandle = null; dirHandle = null; subDirs = {}; jsonHandle = null; jsonData = null;
+  projectHandle = null; dirHandle = null; jsonData = null;
   fileContentsCache = {}; lastJsonText = '';
-  registryMode = false; projectId = null;
+  projectId = null;
   document.getElementById('board').innerHTML = '';
   switchedFromBoard = false;
 }
@@ -1863,7 +1730,7 @@ async function getProjectPath() {
 //  RECONCILIATION
 // ══════════════════════════════════════
 async function checkReconciliation() {
-  if (!registryMode || !projectId || !companionAvailable) return;
+  if (!projectId || !companionAvailable) return;
   try {
     const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId) + '/reconcile');
     if (data.inSync) {
@@ -1934,8 +1801,7 @@ function renderBoard() {
     const allItems = jsonData[col.jsonKey] || [];
     const colEl = document.createElement('div');
     colEl.className = 'column';
-    const folderHint = registryMode ? '' : ` <span class="folder-hint">${col.folder}/</span>`;
-    colEl.innerHTML = `<div class="column-header"><span class="column-title">${col.title}${folderHint}</span><span style="display:flex;align-items:center;gap:6px;">${col.jsonKey==='done'&&allItems.length>0?'<button class="btn btn-sm" onclick="openArchive()" style="font-size:10px;padding:2px 6px;" title="Alle done-Einträge durchsuchen">📦 Archiv</button>':''}<span class="column-count">${allItems.length}</span></span></div>`;
+    colEl.innerHTML = `<div class="column-header"><span class="column-title">${col.title}</span><span style="display:flex;align-items:center;gap:6px;">${col.jsonKey==='done'&&allItems.length>0?'<button class="btn btn-sm" onclick="openArchive()" style="font-size:10px;padding:2px 6px;" title="Alle done-Einträge durchsuchen">📦 Archiv</button>':''}<span class="column-count">${allItems.length}</span></span></div>`;
     const body = document.createElement('div');
     body.className = 'column-body'; body.dataset.column = col.id;
 
@@ -2004,8 +1870,7 @@ function toggleBlocked(id) {
   const item = findItem(id); if (!item) return;
   if (item.blocked) {
     delete item.blocked; delete item.blockedBy;
-    if (registryMode) registryPutCard(item.num, { blocked: false, blockedBy: null });
-    else writeJson();
+    registryPutCard(item.num, { blocked: false, blockedBy: null });
     renderBoard(); toast('✓ Unblocked: ' + item.title);
   }
   else { document.getElementById('blockedItemId').value = id; document.getElementById('blockedReason').value = ''; document.getElementById('blockedModalOverlay').classList.add('open'); setTimeout(() => document.getElementById('blockedReason').focus(), 100); }
@@ -2014,8 +1879,7 @@ function confirmSetBlocked() {
   const id = document.getElementById('blockedItemId').value; const reason = document.getElementById('blockedReason').value.trim();
   const item = findItem(id); if (!item) return;
   item.blocked = true; if (reason) item.blockedBy = reason; else delete item.blockedBy;
-  if (registryMode) registryPutCard(item.num, { blocked: true, blockedBy: reason || null });
-  else writeJson();
+  registryPutCard(item.num, { blocked: true, blockedBy: reason || null });
   renderBoard(); closeBlockedModal(); toast('⊘ Blocked: ' + item.title);
 }
 function closeBlockedModal() { document.getElementById('blockedModalOverlay').classList.remove('open'); }
@@ -2029,69 +1893,38 @@ async function handleDrop(itemId, targetColId, insertIndex) {
   if (!item || !srcCol) return;
   const tgtCol = COLUMNS.find(c => c.id===targetColId); if (!tgtCol) return;
 
-  if (registryMode) {
-    pendingMutations++;
-    try {
-      if (srcCol.id === tgtCol.id) {
-        // Reorder within same column
-        const a = jsonData[srcCol.jsonKey]; let adj = insertIndex; if (insertIndex > srcIdx) adj--;
-        if (adj === srcIdx) { pendingMutations--; return; }
-        a.splice(srcIdx, 1); if (adj < 0 || adj >= a.length) a.push(item); else a.splice(adj, 0, item);
-        await registryUpdatePriority(buildCardPriority());
-        lastJsonText = JSON.stringify(jsonData);
-        renderBoard(); updateInfoBar(); toast(`↕ ${item.title} → #${adj<0?a.length:adj+1}`);
-      } else {
-        // Cross-column: status transition via API, then update local state from response
-        const result = await registryPatchStatus(item.num, tgtCol.registryStatus);
-        jsonData[srcCol.jsonKey].splice(srcIdx, 1);
-        item.new = result.card.timestamps?.new || item.new;
-        item.inProgress = result.card.timestamps?.['in-progress'] || null;
-        item.done = result.card.timestamps?.done || null;
-        if (!jsonData[tgtCol.jsonKey]) jsonData[tgtCol.jsonKey] = [];
-        const a = jsonData[tgtCol.jsonKey]; if (insertIndex<0||insertIndex>=a.length) a.push(item); else a.splice(insertIndex, 0, item);
-        await registryUpdatePriority(buildCardPriority());
-        lastJsonText = JSON.stringify(jsonData);
-        renderBoard(); updateInfoBar(); toast(`${item.title}: ${srcCol.title} → ${tgtCol.title}`);
-        if (tgtCol.jsonKey === 'done' && item.type) {
-          const nextVer = computeNextVersion(VERSION, item.type);
-          if (nextVer !== VERSION) suggestVersionBump(item, nextVer);
-        }
-      }
-    } catch (e) {
-      toast('Verschieben fehlgeschlagen — lade Board neu');
-      try { await reloadFromRegistry(); renderBoard(); updateInfoBar(); } catch {}
-    }
-    pendingMutations--;
-    return;
-  }
-
-  // Legacy mode
+  pendingMutations++;
   try {
     if (srcCol.id === tgtCol.id) {
+      // Reorder within same column
       const a = jsonData[srcCol.jsonKey]; let adj = insertIndex; if (insertIndex > srcIdx) adj--;
-      if (adj === srcIdx) return;
+      if (adj === srcIdx) { pendingMutations--; return; }
       a.splice(srcIdx, 1); if (adj < 0 || adj >= a.length) a.push(item); else a.splice(adj, 0, item);
-      await writeJson(); renderBoard(); updateInfoBar(); toast(`↕ ${item.title} → #${adj<0?a.length:adj+1}`);
+      await registryUpdatePriority(buildCardPriority());
+      lastJsonText = JSON.stringify(jsonData);
+      renderBoard(); updateInfoBar(); toast(`↕ ${item.title} → #${adj<0?a.length:adj+1}`);
     } else {
-      if (!await moveFile(item.file, srcCol.folder, tgtCol.folder)) return;
+      // Cross-column: status transition via API, then update local state from response
+      const result = await registryPatchStatus(item.num, tgtCol.registryStatus);
       jsonData[srcCol.jsonKey].splice(srcIdx, 1);
-      const today = nowStr();
-      if (tgtCol.jsonKey === 'backlog') { delete item.inProgress; delete item.done; }
-      if (tgtCol.jsonKey === 'inProgress') { item.inProgress = today; delete item.done; }
-      if (tgtCol.jsonKey === 'done') { item.done = today; }
+      item.new = result.card.timestamps?.new || item.new;
+      item.inProgress = result.card.timestamps?.['in-progress'] || null;
+      item.done = result.card.timestamps?.done || null;
       if (!jsonData[tgtCol.jsonKey]) jsonData[tgtCol.jsonKey] = [];
       const a = jsonData[tgtCol.jsonKey]; if (insertIndex<0||insertIndex>=a.length) a.push(item); else a.splice(insertIndex, 0, item);
-      await writeJson(); renderBoard(); updateInfoBar(); toast(`${item.file}: ${srcCol.folder}/ → ${tgtCol.folder}/`);
+      await registryUpdatePriority(buildCardPriority());
+      lastJsonText = JSON.stringify(jsonData);
+      renderBoard(); updateInfoBar(); toast(`${item.title}: ${srcCol.title} → ${tgtCol.title}`);
       if (tgtCol.jsonKey === 'done' && item.type) {
         const nextVer = computeNextVersion(VERSION, item.type);
         if (nextVer !== VERSION) suggestVersionBump(item, nextVer);
       }
     }
   } catch (e) {
-    // Write failed — revert in-memory state from disk to stay consistent
     toast('Verschieben fehlgeschlagen — lade Board neu');
-    try { await loadJson(); renderBoard(); updateInfoBar(); } catch {}
+    try { await reloadFromRegistry(); renderBoard(); updateInfoBar(); } catch {}
   }
+  pendingMutations--;
 }
 
 // ══════════════════════════════════════
@@ -2132,26 +1965,18 @@ async function deleteItem(id) {
   for (const c of COLUMNS) { const f = (jsonData[c.jsonKey]||[]).find(i => i.id===id); if (f) { srcCol=c; item=f; break; } }
   if (!item || !srcCol) return;
 
-  if (registryMode) {
-    pendingMutations++;
-    try {
-      await registryDeleteCard(item.num);
-      const a = jsonData[srcCol.jsonKey]; const i = a.findIndex(x => x.id===id); if (i>=0) a.splice(i, 1);
-      if (!jsonData.deletedFiles) jsonData.deletedFiles = new Set();
-      jsonData.deletedFiles.add(item.file);
-      lastJsonText = JSON.stringify(jsonData);
-      if (selectedId===id) closePreview(); renderBoard(); updateInfoBar(); updateDeletedCount(); toast('Gelöscht: ' + item.title);
-    } catch (e) {
-      toast('Löschen fehlgeschlagen: ' + e.message);
-    }
-    pendingMutations--;
-    return;
+  pendingMutations++;
+  try {
+    await registryDeleteCard(item.num);
+    const a = jsonData[srcCol.jsonKey]; const i = a.findIndex(x => x.id===id); if (i>=0) a.splice(i, 1);
+    if (!jsonData.deletedFiles) jsonData.deletedFiles = new Set();
+    jsonData.deletedFiles.add(item.file);
+    lastJsonText = JSON.stringify(jsonData);
+    if (selectedId===id) closePreview(); renderBoard(); updateInfoBar(); updateDeletedCount(); toast('Gelöscht: ' + item.title);
+  } catch (e) {
+    toast('Löschen fehlgeschlagen: ' + e.message);
   }
-
-  // Legacy mode
-  if (subDirs['deleted']) await moveFile(item.file, srcCol.folder, 'deleted');
-  const a = jsonData[srcCol.jsonKey]; const i = a.findIndex(x => x.id===id); if (i>=0) a.splice(i, 1);
-  await writeJson(); if (selectedId===id) closePreview(); renderBoard(); updateInfoBar(); updateDeletedCount(); toast('→ deleted/: ' + item.file);
+  pendingMutations--;
 }
 
 // ══════════════════════════════════════
@@ -2193,42 +2018,21 @@ let deletedItems = [];
 let deletedCountVal = 0;
 
 async function updateDeletedCount() {
-  if (registryMode) {
-    try {
-      const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId) + '/cards?status=deleted');
-      deletedCountVal = data ? (data.cards || []).length : 0;
-    } catch (e) { console.warn('[deletedCount] registry fetch failed:', e); deletedCountVal = 0; }
-  } else {
-    const files = await listMdFiles('deleted');
-    deletedCountVal = files ? files.length : 0;
-  }
+  try {
+    const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId) + '/cards?status=deleted');
+    deletedCountVal = data ? (data.cards || []).length : 0;
+  } catch (e) { console.warn('[deletedCount] registry fetch failed:', e); deletedCountVal = 0; }
   const btn = document.getElementById('deletedBtn');
   if (btn) btn.textContent = '🗑 ' + deletedCountVal;
 }
 
 async function loadDeletedFiles() {
-  if (registryMode) {
-    try {
-      const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId) + '/cards?status=deleted');
-      if (!data || !data.cards) { console.warn('[loadDeleted] no cards in response:', data); return []; }
-      console.log('[loadDeleted] found', data.cards.length, 'deleted cards');
-      return data.cards.map(c => ({ id: c.id, file: c.file, title: c.title, num: c.num }));
-    } catch (e) { console.warn('[loadDeleted] registry fetch failed:', e); return []; }
-  }
-  const files = await listMdFiles('deleted');
-  if (!files) return [];
-  const items = [];
-  for (const filename of files) {
-    const id = filename.replace('.md', '');
-    let title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    const content = await readMdFile('deleted', filename);
-    if (content) {
-      const firstLine = content.split('\n')[0];
-      if (firstLine.startsWith('# ')) title = firstLine.slice(2).trim();
-    }
-    items.push({ id, file: filename, title });
-  }
-  return items;
+  try {
+    const data = await registryFetch('GET', '/api/projects/' + encodeURIComponent(projectId) + '/cards?status=deleted');
+    if (!data || !data.cards) { console.warn('[loadDeleted] no cards in response:', data); return []; }
+    console.log('[loadDeleted] found', data.cards.length, 'deleted cards');
+    return data.cards.map(c => ({ id: c.id, file: c.file, title: c.title, num: c.num }));
+  } catch (e) { console.warn('[loadDeleted] registry fetch failed:', e); return []; }
 }
 
 function toggleDeleted() {
@@ -2298,12 +2102,12 @@ async function previewDeleted(item) {
   pp.classList.add('open');
   updateDeletedPosition();
   document.getElementById('previewTitle').textContent = '🗑 ' + item.title;
-  document.getElementById('previewMeta').innerHTML = '<span>🗑 ' + (registryMode ? '' : 'deleted/') + esc(item.file) + '</span>';
+  document.getElementById('previewMeta').innerHTML = '<span>🗑 ' + esc(item.file) + '</span>';
   document.getElementById('editToggleBtn').style.display = 'none';
   showReadView();
   const content = document.getElementById('previewContent');
   content.textContent = 'Lade...';
-  const md = registryMode ? await readMdFile('prompts', item.file) : await readMdFile('deleted', item.file);
+  const md = await readMdFile('prompts', item.file);
   content.innerHTML = md ? renderMarkdown(md) : '(Datei nicht lesbar)';
   updateCCButtonState();
 }
@@ -2312,34 +2116,14 @@ async function restoreDeleted(filename) {
   if (!confirm('Prompt zurück ins Backlog verschieben?')) return;
   const id = filename.replace('.md', '');
   try {
-    if (registryMode) {
-      // Registry mode: change status back to 'new' — find card by filename to get num
-      const delItem = deletedItems.find(i => i.file === filename);
-      const cardNum = delItem ? delItem.num : parseInt(id);
-      const result = await registryPatchStatus(cardNum, 'new');
-      if (!result) { toast('Wiederherstellen fehlgeschlagen'); return; }
-      await reloadFromRegistry();
-      renderBoard(); updateInfoBar();
-      deletedItems = deletedItems.filter(i => i.file !== filename);
-      filterDeleted(); updateDeletedCount();
-      toast('↩ Wiederhergestellt: ' + filename);
-      return;
-    }
-    // Legacy mode
-    if (!await moveFile(filename, 'deleted', 'new')) return;
-    let title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    const content = await readMdFile('new', filename);
-    if (content) {
-      const firstLine = content.split('\n')[0];
-      if (firstLine.startsWith('# ')) title = firstLine.slice(2).trim();
-    }
-    jsonData.backlog.push({ id, file: filename, title, num: getNextNum(), new: nowStr() });
-    await writeJson();
-    renderBoard();
-    updateInfoBar();
+    const delItem = deletedItems.find(i => i.file === filename);
+    const cardNum = delItem ? delItem.num : parseInt(id);
+    const result = await registryPatchStatus(cardNum, 'new');
+    if (!result) { toast('Wiederherstellen fehlgeschlagen'); return; }
+    await reloadFromRegistry();
+    renderBoard(); updateInfoBar();
     deletedItems = deletedItems.filter(i => i.file !== filename);
-    filterDeleted();
-    updateDeletedCount();
+    filterDeleted(); updateDeletedCount();
     toast('↩ Wiederhergestellt: ' + filename);
   } catch (e) {
     toast('Fehler: ' + e.message);
@@ -2349,19 +2133,11 @@ async function restoreDeleted(filename) {
 async function permanentDelete(filename) {
   if (!confirm('⚠ "' + filename + '" endgültig löschen?\n\nDiese Aktion kann NICHT rückgängig gemacht werden!')) return;
   try {
-    if (registryMode) {
-      // In Registry mode: remove from registry + delete file — find card by filename to get num
-      const delItem = deletedItems.find(i => i.file === filename);
-      const cardNum = delItem ? delItem.num : parseInt(filename);
-      try { await registryFetch('DELETE', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(cardNum) + '?permanent=true'); } catch {}
-      try { const pH = await safeDirHandle(); await pH.removeEntry(filename); } catch {}
-      delete fileContentsCache['flat/' + filename];
-    } else {
-      const dir = subDirs['deleted'];
-      if (!dir) { toast('deleted/ Ordner nicht verfügbar'); return; }
-      await dir.removeEntry(filename);
-      delete fileContentsCache['deleted/' + filename];
-    }
+    const delItem = deletedItems.find(i => i.file === filename);
+    const cardNum = delItem ? delItem.num : parseInt(filename);
+    try { await registryFetch('DELETE', '/api/projects/' + encodeURIComponent(projectId) + '/cards/' + encodeURIComponent(cardNum) + '?permanent=true'); } catch {}
+    try { const pH = await safeDirHandle(); await pH.removeEntry(filename); } catch {}
+    delete fileContentsCache['flat/' + filename];
     deletedItems = deletedItems.filter(i => i.file !== filename);
     filterDeleted();
     updateDeletedCount();
@@ -2389,7 +2165,7 @@ async function openPreview(item, col) {
   const meta = document.getElementById('previewMeta');
   const itype = item.type || 'bugfix';
   let mh = item.num ? `<span>#${padNum(item.num)}</span>` : '';
-  mh += registryMode ? `<span>📄 ${item.file}</span>` : `<span>📄 ${col.folder}/${item.file}</span>`;
+  mh += `<span>📄 ${item.file}</span>`;
   if (item.new) mh += `<span>🆕 ${formatTS(item.new)}</span>`;
   if (item.inProgress) mh += `<span>🔧 ${formatTS(item.inProgress)}</span>`;
   if (item.done) mh += `<span>✅ ${formatTS(item.done)}</span>`;
@@ -2409,11 +2185,7 @@ async function openPreview(item, col) {
 async function changeItemType(newType) {
   if (!selectedItem) return;
   selectedItem.type = newType;
-  if (registryMode) {
-    await registryPutCard(selectedItem.num, { type: newType });
-  } else {
-    await writeJson();
-  }
+  await registryPutCard(selectedItem.num, { type: newType });
   renderBoard();
   updateInfoBar();
   const sel = document.getElementById('previewTypeSelector');
@@ -2437,15 +2209,10 @@ async function saveEdit() {
 function cancelEdit() { showReadView(); }
 async function refreshPreview() {
   if (!selectedItem||!selectedCol) return;
-  if (registryMode) {
-    await reloadFromRegistry();
-  } else {
-    await loadJson();
-  }
+  await reloadFromRegistry();
   for (const c of COLUMNS) { const f = (jsonData[c.jsonKey]||[]).find(i => i.id===selectedId); if (f) { selectedItem=f; selectedCol=c; break; } }
   // Clear cached file content for this item
   delete fileContentsCache['flat/' + selectedItem.file];
-  delete fileContentsCache[selectedCol.folder + '/' + selectedItem.file];
   await openPreview(selectedItem, selectedCol);
   toast('🔄 Aktualisiert');
 }
@@ -2477,28 +2244,18 @@ async function createNewPrompt() {
   if(!title){toast('Titel fehlt');return;} if(!fn)fn=slugify(title); if(fn.endsWith('.md'))fn=fn.replace(/\.md$/,'');
   const slug=fn, today=nowStr();
 
-  if (registryMode) {
-    // Registry mode: get num, create file with NNNN-slug.md, register via API
-    const num = getNextNum();
-    const paddedNum = padNum(num);
-    const newFn = paddedNum + '-' + slug + '.md';
-    if(!await createMdFile('new',newFn,c||PROMPT_TEMPLATE(title)))return;
-    try {
-      const result = await registryPutCard(num, { slug, file: newFn, title, type: getSelectedType(), status: 'new', num });
-      jsonData.backlog.push({ id: paddedNum, file: newFn, title, type: getSelectedType(), num: result.card.num, new: today });
-      await registryUpdatePriority(buildCardPriority());
-      renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: ' + newFn);
-    } catch (e) {
-      toast('Registrierung fehlgeschlagen: ' + e.message);
-    }
-    return;
+  const num = getNextNum();
+  const paddedNum = padNum(num);
+  const newFn = paddedNum + '-' + slug + '.md';
+  if(!await createMdFile('new',newFn,c||PROMPT_TEMPLATE(title)))return;
+  try {
+    const result = await registryPutCard(num, { slug, file: newFn, title, type: getSelectedType(), status: 'new', num });
+    jsonData.backlog.push({ id: paddedNum, file: newFn, title, type: getSelectedType(), num: result.card.num, new: today });
+    await registryUpdatePriority(buildCardPriority());
+    renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: ' + newFn);
+  } catch (e) {
+    toast('Registrierung fehlgeschlagen: ' + e.message);
   }
-
-  // Legacy mode
-  const legacyFn = slug + '.md';
-  if(!await createMdFile('new',legacyFn,c||PROMPT_TEMPLATE(title)))return;
-  jsonData.backlog.push({id:slug,file:legacyFn,title,type:getSelectedType(),num:getNextNum(),new:today});
-  await writeJson(); renderBoard(); updateInfoBar(); closeModal(); toast('Erstellt: new/'+legacyFn);
 }
 
 // ══════════════════════════════════════

@@ -2,6 +2,20 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [0.26.0] - 2026-03-24
+
+### Removed
+- **Legacy-Datenhaltung komplett entfernt**: `registryMode`-Variable und alle ~50 `if/else`-Verzweigungen zwischen Registry- und Legacy-Modus beseitigt
+- **Legacy-Funktionen gelöscht**: `loadJson()`, `writeJson()`, `moveFile()` — Companion-API ist jetzt die einzige Datenquelle
+- **`jsonHandle`-Variable und alle Referenzen** auf `backlog-priority.json` entfernt
+- **Legacy-Polling** (Disk-basiert) entfernt — nur noch Registry-API-Polling
+- **`subDirs`-Tracking** entfernt — Dateien liegen flach in `doc/prompts/`
+- **Ordner-Hints** in Spaltenüberschriften (`new/`, `in-progress/`) und ⚡-Marker entfernt
+
+### Changed
+- **Stiller Fallback wird zur expliziten Blockade**: Wenn `loadFromRegistry()` fehlschlägt, zeigt KanPrompt eine Blockade-UI mit Fehlermeldung und Retry-Button statt still in den Legacy-Modus zu wechseln
+- Welcome-Screen-Text auf Companion-Architektur aktualisiert
+
 ## [1.6.1] - 2026-03-24
 
 ### Fixed
