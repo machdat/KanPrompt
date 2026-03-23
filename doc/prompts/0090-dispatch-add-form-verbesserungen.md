@@ -99,4 +99,20 @@ Sicherstellen, dass:
 
 ---
 
-# Session-Log — Pflichtaufgabe nach Abschluss
+# Session-Log
+
+- **Datum:** 2026-03-23T13:15:00
+- **Branch:** feature/0090-dispatch-add-form-verbesserungen
+- **Ergebnis:** Erfolgreich
+
+## Zusammenfassung
+Alle drei Verbesserungen am Dispatch Add-Formular umgesetzt: letztes Projekt wird via localStorage vorausgewählt, Prompt-Dropdown und Hinzufügen-Button werden korrekt gesperrt/entsperrt, Prioritätssortierung aus dem Server-Endpoint wird beibehalten.
+
+## Geänderte Dateien
+- `dispatch.html` — localStorage-Key `kanprompt_dispatch_last_project`, Prompt-Reset in `populateProjectDropdown()`, localStorage-Speicherung in `onProjectChange()`, neue Funktion `onPromptChange()`, Button `disabled`-Attribut und `id="addBtn"`, `onchange`-Handler auf Prompt-Select
+
+## Abweichungen vom Prompt
+Keine.
+
+## Offene Punkte
+Keine.
