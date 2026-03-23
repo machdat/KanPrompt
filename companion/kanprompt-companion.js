@@ -298,7 +298,7 @@ if (Object.keys(registry.projects).length === 0) {
   migrateFromSearchPaths();
 }
 
-// Auto-register the companion's own project (handles deep paths like C:\git\local\KanPrompt)
+// Auto-register the companion's own project (handles deep paths like ~/git/KanPrompt)
 const ownProjectPath = path.resolve(__dirname, '..');
 const ownPromptsDir = path.join(ownProjectPath, 'doc', 'prompts');
 if (fs.existsSync(ownPromptsDir)) {

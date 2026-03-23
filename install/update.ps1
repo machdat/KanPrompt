@@ -16,7 +16,7 @@ if (-not $RepoRoot) {
         $RepoRoot = (Resolve-Path "$scriptDir\..\..").Path
     } else {
         # Fallback: standard location
-        $RepoRoot = "C:\git\local\KanPrompt"
+        $RepoRoot = "$env:USERPROFILE\git\KanPrompt"
     }
 }
 

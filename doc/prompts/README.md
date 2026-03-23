@@ -30,4 +30,4 @@ ISO mit Uhrzeit: `2026-03-14T16:45:00`
 file:///C:/Users/christian.mangold/.kanprompt/kanprompt.html
 ```
 
-Dann den KanPrompt-Projekt-Ordner (`C:\git\local\KanPrompt`) auswählen.
+Dann den KanPrompt-Projekt-Ordner (`C:\Users\christian.mangold\git\KanPrompt`) auswählen.

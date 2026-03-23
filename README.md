@@ -16,10 +16,10 @@ A standalone Kanban board for managing Claude Code prompts. Runs as a local HTML
 
 ```powershell
 # Clone
-git clone git@github.com:machdat/KanPrompt.git C:\git\local\KanPrompt
+git clone git@github.com:machdat/KanPrompt.git %USERPROFILE%\git\KanPrompt
 
 # Install (copies files to ~/.kanprompt/)
-powershell -ExecutionPolicy Bypass -File C:\git\local\KanPrompt\install\install.ps1
+powershell -ExecutionPolicy Bypass -File %USERPROFILE%\git\KanPrompt\install\install.ps1
 
 # Open in browser
 start file:///C:/Users/%USERNAME%/.kanprompt/kanprompt.html
@@ -28,7 +28,7 @@ start file:///C:/Users/%USERNAME%/.kanprompt/kanprompt.html
 ## Update
 
 ```powershell
-cd C:\git\local\KanPrompt
+cd %USERPROFILE%\git\KanPrompt
 git pull
 powershell -ExecutionPolicy Bypass -File install\update.ps1
 # Then F5 in the browser
