@@ -31,7 +31,7 @@
  *   POST /cc-stop             → stop a running CC instance
  *   POST /focus-window        → bring terminal window to front
  *   GET  /api/projects/:id/reconcile → disk vs. registry diff
- *   POST /api/projects/:id/reconcile → auto-sync (action: auto-sync)
+ *   POST /api/projects/:id/reconcile → (deaktiviert, 410 Gone)
  *
  * Start:  node kanprompt-companion.js
  */
@@ -44,7 +44,7 @@ const url = require('url');
 const os = require('os');
 const { getProjectsFromRegistry } = require('./project-utils');
 
-const COMPANION_VERSION = '1.6.0';
+const COMPANION_VERSION = '1.6.1';
 const PORT = parseInt(process.env.COMPANION_PORT, 10) || 9177;
 const HOST = '127.0.0.1';
 
@@ -774,6 +774,13 @@ const server = http.createServer(async (req, res) => {
       if (!project.cards) project.cards = [];
       const body = await readBody(req);
       let numId = parseInt(params.cardId);
+      // Filename-Dedup: bei auto-assign (num=0) prüfen ob Datei bereits existiert
+      if (body.file && numId === 0) {
+        const existingByFile = project.cards.find(c => c.file === body.file && c.status !== 'deleted');
+        if (existingByFile) {
+          return json(res, 200, { action: 'already_exists', card: existingByFile });
+        }
+      }
       const { idx, card: existing } = (numId > 0) ? findCardByNum(project, params.cardId) : { idx: -1, card: null };
       // Assign num: from URL if valid, from body, from existing, or auto-assign
       const num = (numId > 0) ? numId : (body.num != null ? body.num : (existing ? existing.num : project.nextNum++));
@@ -972,84 +979,9 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { inSync, onDiskOnly, inRegistryOnly });
     }
 
-    // ── POST /api/projects/:id/reconcile — Auto-Sync durchführen ──
+    // ── POST /api/projects/:id/reconcile — Auto-Sync deaktiviert (Karten nur via API erstellen) ──
     if ((params = matchRoute(route, '/api/projects/:id/reconcile')) && req.method === 'POST') {
-      const project = registry.projects[params.id];
-      if (!project) return json(res, 404, { error: 'Projekt nicht gefunden: ' + params.id });
-      if (!project.projectPath || !project.promptsDir) return json(res, 400, { error: 'projectPath/promptsDir nicht konfiguriert' });
-      const body = await readBody(req);
-      if (body.action !== 'auto-sync') return json(res, 400, { error: 'action "auto-sync" required' });
-
-      if (!project.cards) project.cards = [];
-      if (!project.cardPriority) project.cardPriority = [];
-      if (!project.nextNum) project.nextNum = 1;
-
-      const promptsDir = path.join(project.projectPath, project.promptsDir);
-
-      // Scan disk files
-      const diskFiles = new Set();
-      try {
-        const entries = fs.readdirSync(promptsDir);
-        for (const entry of entries) {
-          if (!entry.endsWith('.md') || entry === 'README.md') continue;
-          const stat = fs.statSync(path.join(promptsDir, entry));
-          if (stat.isFile()) diskFiles.add(entry);
-        }
-      } catch (e) {
-        return json(res, 500, { error: 'Disk-Scan fehlgeschlagen: ' + e.message });
-      }
-
-      const registryFiles = new Set();
-      for (const card of project.cards) {
-        if (card.status !== 'deleted') registryFiles.add(card.file);
-      }
-
-      const added = [];
-      const removed = [];
-
-      // Add new cards for files only on disk
-      for (const file of diskFiles) {
-        if (registryFiles.has(file)) continue;
-        const num = project.nextNum++;
-        const paddedId = padNum(num);
-        let title = file.replace(/\.md$/, '').replace(/^\d{4}-/, '').replace(/-/g, ' ');
-        let type = 'feature';
-        // Extract title from heading, detect type from filename prefix
-        try {
-          const content = fs.readFileSync(path.join(promptsDir, file), 'utf-8');
-          const headingMatch = content.match(/^#\s+(.+)$/m);
-          if (headingMatch) title = headingMatch[1].trim();
-        } catch {}
-        if (file.match(/^(\d{4}-)?fix-/)) type = 'bugfix';
-        else if (file.match(/^(\d{4}-)?cleanup-/)) type = 'bugfix';
-
-        const card = {
-          id: paddedId, file, title, type, num,
-          status: 'new',
-          timestamps: { new: nowISO(), 'in-progress': null, done: null, deleted: null },
-          blocked: false, blockedBy: null,
-        };
-        project.cards.push(card);
-        project.cardPriority.push(num);
-        added.push({ id: paddedId, file, num });
-      }
-
-      // Remove cards whose files no longer exist on disk
-      for (let i = project.cards.length - 1; i >= 0; i--) {
-        const card = project.cards[i];
-        if (card.status === 'deleted') continue;
-        if (!diskFiles.has(card.file)) {
-          // Set to deleted status
-          card.status = 'deleted';
-          card.timestamps = card.timestamps || {};
-          card.timestamps.deleted = nowISO();
-          removed.push({ id: card.id, file: card.file });
-        }
-      }
-
-      saveRegistry();
-      console.log(`  Reconcile: ${added.length} hinzugefügt, ${removed.length} entfernt (${params.id})`);
-      return json(res, 200, { action: 'auto-synced', added, removed });
+      return json(res, 410, { error: 'Auto-Sync wurde entfernt. Karten müssen über PUT /cards/0 erstellt werden.' });
     }
 
     // ── POST /api/projects/:id/migrate-backlog — Backlog-JSON in Registry importieren ──
@@ -1710,7 +1642,7 @@ const server = http.createServer(async (req, res) => {
           'DELETE /api/projects/:id/worktrees/:branch     → Worktree entfernen',
           'POST   /api/projects/:id/snapshot              → Snapshot erzeugen',
           'GET    /api/projects/:id/reconcile             → Disk vs. Registry Abgleich',
-          'POST   /api/projects/:id/reconcile             → Auto-Sync (action: auto-sync)',
+          'POST   /api/projects/:id/reconcile             → (deaktiviert, 410 Gone)',
         ],
       });
     }

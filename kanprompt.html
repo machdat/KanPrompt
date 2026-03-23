@@ -685,9 +685,9 @@
   <div class="modal" style="width:560px;">
     <h2>⚠ Disk ↔ Registry Abweichung</h2>
     <div id="reconcileBody"></div>
+    <p style="font-size:11px;color:var(--text-muted);margin:12px 0 4px;">Karten müssen über die Companion-API erstellt werden. Manuell klären oder ignorieren.</p>
     <div class="modal-actions">
-      <button class="btn" onclick="closeReconcileDialog()">Manuell klären</button>
-      <button class="btn btn-primary" onclick="runAutoSync()">🔄 Auto-Sync</button>
+      <button class="btn" onclick="closeReconcileDialog()">Schließen</button>
     </div>
   </div>
 </div>
@@ -733,7 +733,7 @@
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const VERSION = '0.25.0';
+const VERSION = '0.25.1';
 const COMPANION_URL = 'http://127.0.0.1:9177';
 let companionAvailable = false;
 let companionVersion = null;
@@ -741,7 +741,7 @@ let companionCheckInterval = null;
 let projectHandle = null;  // project root (e.g. erju_wp27/)
 let dirHandle = null;      // doc/prompts/ subfolder
 let subDirs = {}, jsonHandle = null, jsonData = null;
-let lastJsonText = '', polling = true, pollInterval = null, folderSyncInterval = null;
+let lastJsonText = '', polling = true, pollInterval = null;
 let syncFailCount = 0; // consecutive sync failures for warning display
 let pendingMutations = 0; // skip poll while local API mutations are in-flight
 let draggedId = null, dragSourceCol = null, dropTargetCol = null, dropTargetIndex = -1;
@@ -1442,8 +1442,6 @@ async function initProjectFromHandle() {
     await loadJson();
     showApp();
     toast('Projekt geladen: ' + projectHandle.name);
-    // Startup sync: guaranteed sync before board is considered ready
-    await syncFolderToJson(true);
   } catch (e) {
     if (e.name !== 'AbortError') toast('Fehler: ' + e.message);
   }
@@ -1600,87 +1598,8 @@ async function listMdFiles(folder) {
 }
 
 // ══════════════════════════════════════
-//  FOLDER → JSON SYNC
+//  FOLDER → JSON SYNC (removed — cards must be created via Companion API)
 // ══════════════════════════════════════
-async function syncFolderToJson(silent) {
-  if (registryMode) {
-    // Registry mode: scan flat dir for new .md files not yet in registry
-    try {
-      const diskFiles = await listMdFiles('prompts'); // uses flat scan in registryMode
-      if (!diskFiles) { syncFailCount++; updateSyncWarning(); return; }
-      const allFiles = new Set();
-      for (const c of COLUMNS) for (const item of (jsonData[c.jsonKey] || [])) allFiles.add(item.file);
-      if (jsonData.deletedFiles) jsonData.deletedFiles.forEach(f => allFiles.add(f));
-      let added = 0;
-      for (const f of diskFiles) {
-        if (allFiles.has(f)) continue;
-        // Parse slug from filename (strip optional NNNN- prefix)
-        const slugMatch = f.match(/^(\d{4})-(.+)\.md$/);
-        const slug = slugMatch ? slugMatch[2] : f.replace('.md', '');
-        const title = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        // Register new card via API (num=0 → auto-assign)
-        const result = await registryPutCard(0, { slug, file: f, title, type: 'bugfix', status: 'new' });
-        if (result) { added++; allFiles.add(f); }
-      }
-      if (added > 0) {
-        await reloadFromRegistry();
-        renderBoard(); updateInfoBar();
-        toast('Sync: +' + added + ' neue Karten registriert');
-      } else if (!silent) {
-        toast('Sync: Alles aktuell');
-      }
-      syncFailCount = 0; updateSyncWarning();
-    } catch (e) {
-      syncFailCount++; updateSyncWarning();
-      if (!silent) toast('Sync-Fehler: ' + e.message);
-    }
-    return;
-  }
-  // Legacy mode
-  try {
-    let added = 0, removed = 0, anyNull = false;
-    // Build global ID set across all columns to prevent duplicates
-    const allIds = new Set();
-    for (const c of COLUMNS) for (const item of (jsonData[c.jsonKey] || [])) allIds.add(item.id);
-    for (const col of COLUMNS) {
-      const diskFiles = await listMdFiles(col.folder);
-      if (diskFiles === null) { anyNull = true; continue; } // folder inaccessible, skip — don't remove entries
-      const arr = jsonData[col.jsonKey] || [];
-      const jsonFiles = new Set(arr.map(i => i.file));
-      for (const f of diskFiles) {
-        if (!jsonFiles.has(f)) {
-          const id = f.replace('.md', '');
-          if (allIds.has(id)) continue; // already exists in another column
-          const title = id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-          const today = nowStr();
-          const entry = { id, file: f, title, num: getNextNum() };
-          if (col.jsonKey === 'backlog') entry.new = today;
-          if (col.jsonKey === 'inProgress') { entry.new = today; entry.inProgress = today; }
-          if (col.jsonKey === 'done') { entry.new = today; entry.done = today; }
-          arr.push(entry); added++; allIds.add(id);
-        }
-      }
-      const diskSet = new Set(diskFiles);
-      const before = arr.length;
-      // Filter to disk files and deduplicate by id (keep first occurrence)
-      const seen = new Set();
-      jsonData[col.jsonKey] = arr.filter(i => {
-        if (!diskSet.has(i.file) || seen.has(i.id)) return false;
-        seen.add(i.id);
-        return true;
-      });
-      removed += before - jsonData[col.jsonKey].length;
-    }
-    if (added || removed) { await writeJson(); renderBoard(); updateInfoBar(); toast(`Sync: +${added} neu, -${removed} entfernt`); }
-    else if (!silent) toast('Sync: Alles aktuell');
-    if (anyNull) { syncFailCount++; } else { syncFailCount = 0; }
-    updateSyncWarning();
-  } catch (e) {
-    syncFailCount++;
-    updateSyncWarning();
-    if (!silent) toast('Sync-Fehler: ' + e.message);
-  }
-}
 function updateSyncWarning() {
   const el = document.getElementById('syncWarning');
   const dot = document.getElementById('pollDot');
@@ -1713,12 +1632,6 @@ function startPoll() {
         syncFailCount++; updateSyncWarning();
       }
     }, 3000);
-    // Periodic folder sync for new files
-    if (folderSyncInterval) clearInterval(folderSyncInterval);
-    folderSyncInterval = setInterval(async () => {
-      if (!projectHandle || !polling) return;
-      await syncFolderToJson(true);
-    }, 15000);
   } else {
     // Legacy mode
     pollInterval = setInterval(async () => {
@@ -1731,11 +1644,6 @@ function startPoll() {
         if (t !== lastJsonText) { jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {}; renderBoard(); updateInfoBar(); toast('↻ Externe Änderung'); }
       } catch {}
     }, 2000);
-    if (folderSyncInterval) clearInterval(folderSyncInterval);
-    folderSyncInterval = setInterval(async () => {
-      if (!jsonHandle || !polling) return;
-      await syncFolderToJson(true);
-    }, 10000);
   }
 }
 function togglePoll() {
@@ -1753,7 +1661,6 @@ async function refreshAll() {
         lastJsonText = JSON.stringify(jsonData);
         syncFailCount = 0; updateSyncWarning();
         renderBoard(); updateInfoBar();
-        await syncFolderToJson(false);
         return;
       }
     }
@@ -1762,10 +1669,8 @@ async function refreshAll() {
     const fH = await pH.getFileHandle('backlog-priority.json');
     const f = await fH.getFile(); const t = await f.text();
     dirHandle = pH; jsonHandle = fH; jsonData = JSON.parse(t); lastJsonText = t; fileContentsCache = {};
-    // 2) Ordner-Sync (neue/gelöschte .md-Dateien erkennen)
     syncFailCount = 0;
     updateSyncWarning();
-    await syncFolderToJson(false);
   } catch (e) { toast('Aktualisieren: ' + e.message); }
 }
 
@@ -1790,7 +1695,6 @@ function switchProject() {
   // Pause polling (don't destroy state yet)
   polling = false;
   if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-  if (folderSyncInterval) { clearInterval(folderSyncInterval); folderSyncInterval = null; }
 
   switchedFromBoard = projectHandle !== null;
 
@@ -2006,25 +1910,6 @@ function closeReconcileDialog() {
   document.getElementById('reconcileOverlay').classList.remove('open');
 }
 
-async function runAutoSync() {
-  if (!registryMode || !projectId) return;
-  try {
-    const result = await registryFetch('POST', '/api/projects/' + encodeURIComponent(projectId) + '/reconcile', { action: 'auto-sync' });
-    const msgs = [];
-    if (result.added && result.added.length > 0) msgs.push(result.added.length + ' Karten hinzugefügt');
-    if (result.removed && result.removed.length > 0) msgs.push(result.removed.length + ' Karten entfernt');
-    toast('🔄 Auto-Sync: ' + (msgs.length > 0 ? msgs.join(', ') : 'Keine Änderungen'));
-    lastReconcileResult = null;
-    document.getElementById('reconcileBanner').style.display = 'none';
-    closeReconcileDialog();
-    await reloadFromRegistry();
-    renderBoard();
-    updateInfoBar();
-    updateDeletedCount();
-  } catch (e) {
-    toast('Auto-Sync fehlgeschlagen: ' + e.message);
-  }
-}
 
 function nowStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + 'T' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0'); }
 const TYPE_LABELS = { bugfix: '🐛', feature: '✨', release: '🚀' };

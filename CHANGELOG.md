@@ -2,6 +2,19 @@
 
 All notable changes to KanPrompt will be documented in this file.
 
+## [1.6.1] - 2026-03-24
+
+### Fixed
+- **nextNum doppelte Inkrementierung behoben**: Race Condition zwischen UI-Folder-Sync und API konnte Duplikat-Karten für dieselbe .md-Datei erzeugen
+
+### Removed
+- **Folder-Sync entfernt**: `syncFolderToJson()` und periodischer Disk-Scan (`folderSyncInterval`) komplett entfernt — Karten werden ausschließlich über die Companion-API erstellt
+- **Auto-Sync-Button entfernt**: Reconcile-Dialog zeigt nur noch Differenzen an (read-only), kein automatisches Erstellen von Karten aus Disk-Dateien
+- **`POST /reconcile` deaktiviert**: Endpoint gibt 410 Gone zurück — `GET /reconcile` bleibt als Diagnosetool
+
+### Added
+- **Filename-Dedup in `PUT /cards/0`**: Bei auto-assign wird geprüft ob bereits eine nicht-gelöschte Karte mit demselben `file`-Wert existiert → `already_exists` Response (200) statt Duplikat
+
 ## [1.6.0] - 2026-03-22
 
 ### Added
