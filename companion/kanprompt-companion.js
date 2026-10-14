@@ -75,6 +75,7 @@ async function getDefaultBranch(repoPath) {
 
 // Directories to search for projects (add your own)
 const PROJECT_SEARCH_PATHS = [
+  path.join(os.homedir(), 'git'),
   path.join(os.homedir(), 'IdeaProjects'),
   path.join(os.homedir(), 'Projects'),
   path.join(os.homedir(), 'repos'),
@@ -1461,8 +1462,8 @@ const server = http.createServer(async (req, res) => {
         const prioIndex = {};
         priority.forEach((id, i) => prioIndex[id] = i);
         const toItem = (c) => ({ id: c.id, file: c.file, title: c.title, num: c.num, type: c.type || 'bugfix' });
-        const backlog = cards.filter(c => c.status === 'new').sort((a, b) => (prioIndex[a.id] ?? 9999) - (prioIndex[b.id] ?? 9999)).map(toItem);
-        const inProgress = cards.filter(c => c.status === 'in-progress').sort((a, b) => (prioIndex[a.id] ?? 9999) - (prioIndex[b.id] ?? 9999)).map(toItem);
+        const backlog = cards.filter(c => c.status === 'new').sort((a, b) => (prioIndex[a.num] ?? 9999) - (prioIndex[b.num] ?? 9999)).map(toItem);
+        const inProgress = cards.filter(c => c.status === 'in-progress').sort((a, b) => (prioIndex[a.num] ?? 9999) - (prioIndex[b.num] ?? 9999)).map(toItem);
         return json(res, 200, { project: projId, projectPath: resolved, backlog, inProgress });
       }
 

@@ -1,14 +1,9 @@
 {
   "version": 1,
-  "lastUpdated": "2026-03-24T00:19:05",
+  "lastUpdated": "2026-03-26T14:07:59",
   "projects": {
     "erju_wp27": {
       "projectPath": "C:\\Users\\christian.mangold\\IdeaProjects\\erju_wp27",
-      "promptsDir": "doc/prompts",
-      "mainBranch": "master"
-    },
-    "KanPrompt": {
-      "projectPath": "C:\\Users\\christian.mangold\\git\\KanPrompt",
       "gitRemote": null,
       "worktreeBase": null,
       "mainBranch": "master",
@@ -17,7 +12,1756 @@
       "versionFiles": [],
       "changelogFile": "CHANGELOG.md",
       "branchPattern": "feature/{slug}",
-      "nextNum": 99,
+      "nextNum": 108,
+      "cards": [
+        {
+          "id": "0068",
+          "file": "0068-geo-marker-direction-investigation.md",
+          "title": "Geo Marker Direction Investigation",
+          "type": "bugfix",
+          "num": 68,
+          "status": "deleted",
+          "timestamps": {
+            "new": "2026-03-18T09:44:08",
+            "in-progress": null,
+            "done": null,
+            "deleted": "2026-03-25T09:50:51"
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0069",
+          "file": "0069-eupl-licensing-and-notices.md",
+          "title": "EUPL 1.2 Lizenzierung + Third-Party Notices",
+          "type": "bugfix",
+          "num": 69,
+          "status": "new",
+          "timestamps": {
+            "new": "2026-03-16T00:00:00",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": true,
+          "blockedBy": "wartet noch auf die Entscheidung des Kunde..."
+        },
+        {
+          "id": "0102",
+          "file": "0102-0120-card.md",
+          "title": "Refactoring: Severity-Enum statt Magic Strings",
+          "type": "refactoring",
+          "num": 102,
+          "status": "deleted",
+          "timestamps": {
+            "new": "2026-03-23T00:00:00",
+            "in-progress": "2026-03-23T14:00:00",
+            "done": "2026-03-23T15:30:00",
+            "deleted": "2026-03-24T14:18:08"
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0101",
+          "file": "0101-0119-card.md",
+          "title": "Refactoring: Zentrales Layer-Visibility-Management für GeoMap",
+          "type": "bugfix",
+          "num": 101,
+          "status": "deleted",
+          "timestamps": {
+            "new": "2026-03-23T00:00:00",
+            "in-progress": "2026-03-23T10:00:00",
+            "done": "2026-03-23T12:40:00",
+            "deleted": "2026-03-24T14:18:08"
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0078",
+          "file": "0078-fix-tvps-complex-topology-traversal.md",
+          "title": "Fix: TVPS-Traversierung versagt bei komplexer Topologie",
+          "type": "bugfix",
+          "num": 78,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-19T18:58:00",
+            "in-progress": "2026-03-19T18:58:00",
+            "done": "2026-03-19T20:45:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0077",
+          "file": "0077-fix-tvps-overlay-overlap.md",
+          "title": "Fix: TVPS-Overlay-Segmente überlappen sich auf der Geo-Map",
+          "type": "bugfix",
+          "num": 77,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-19T17:45:00",
+            "in-progress": "2026-03-19T17:55:00",
+            "done": "2026-03-19T18:45:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0075",
+          "file": "0075-fix-geo-filter-element-visibility.md",
+          "title": "Fix: Geo-Mapper zeigt trotz aktivem Filter nicht alle Elemente",
+          "type": "bugfix",
+          "num": 75,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-19T17:00:00",
+            "in-progress": "2026-03-19T17:00:00",
+            "done": "2026-03-19T17:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0063",
+          "file": "0063-create-voestalpine-bbox-dataset.md",
+          "title": "Create Voestalpine Bbox Dataset",
+          "type": "bugfix",
+          "num": 63,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T10:03:08",
+            "in-progress": "2026-03-18T10:03:08",
+            "done": "2026-03-18T14:30:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0061",
+          "file": "0061-cleanup-repo-and-readme.md",
+          "title": "README aufbessern + Repo-Hygiene",
+          "type": "bugfix",
+          "num": 61,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-16T00:00:00",
+            "in-progress": "2026-03-18T02:02:00",
+            "done": "2026-03-18T02:06:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0060",
+          "file": "0060-anordnung-in-filter-panel-balise-und-balisegroup-bitte-unter.md",
+          "title": "Filter-Panel: Balise und BaliseGroup untereinander anordnen",
+          "type": "bugfix",
+          "num": 60,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-16T00:00:00",
+            "in-progress": "2026-03-18T01:55:00",
+            "done": "2026-03-18T02:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0053",
+          "file": "0053-geo-track-click-handler.md",
+          "title": "Geo Track Click Handler",
+          "type": "bugfix",
+          "num": 53,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-17T22:13:19",
+            "in-progress": "2026-03-17T22:13:19",
+            "done": "2026-03-17T22:14:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0052",
+          "file": "0052-geo-foulingpoint-new-icon.md",
+          "title": "Geo Foulingpoint New Icon",
+          "type": "bugfix",
+          "num": 52,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-17T21:48:49",
+            "in-progress": "2026-03-17T21:48:49",
+            "done": "2026-03-17T21:55:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0048",
+          "file": "0048-fix-missing-switch-foulingpoint.md",
+          "title": "Switch und FoulingPoint fehlen auf der Geo Map",
+          "type": "bugfix",
+          "num": 48,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-17T10:33:14",
+            "in-progress": "2026-03-17T00:00:00",
+            "done": "2026-03-17T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0049",
+          "file": "0049-fix-balisegroup-balise-direction-mismatch.md",
+          "title": "Fix BaliseGroup ↔ Balise Richtungs-Inkonsistenz",
+          "type": "bugfix",
+          "num": 49,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-17T10:49:36",
+            "in-progress": "2026-03-17T10:49:36",
+            "done": "2026-03-17T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0050",
+          "file": "0050-fix-dangerpoint-orientation.md",
+          "title": "Fix DangerPoint-Orientierung auf der Karte",
+          "type": "bugfix",
+          "num": 50,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-17T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-17T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0044",
+          "file": "0044-merge-origin-main.md",
+          "title": "Merge Origin Main (Bernds Orientierungs-Fix)",
+          "type": "bugfix",
+          "num": 44,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-16T15:31:32",
+            "in-progress": "2026-03-16T15:35:00",
+            "done": "2026-03-16T15:50:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0043",
+          "file": "0043-geo-balise-visual-differentiation.md",
+          "title": "Geo Balise Visual Differentiation",
+          "type": "bugfix",
+          "num": 43,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": "2026-03-15T00:00:00",
+            "done": "2026-03-15T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0001",
+          "file": "0001-geo-tvps-cross-le-routing.md",
+          "title": "TVPS Cross-LE Gleisfolge an Weichen",
+          "type": "bugfix",
+          "num": 1,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-12T00:00:00",
+            "in-progress": "2026-03-14T00:00:00",
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0002",
+          "file": "0002-fix-arc-transition-divergence.md",
+          "title": "Fix: Arc/Transition-Berechnung — Tracks divergieren",
+          "type": "bugfix",
+          "num": 2,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-13T00:00:00",
+            "in-progress": "2026-03-14T00:00:00",
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0003",
+          "file": "0003-geo-violation-overlay-circles.md",
+          "title": "Violation Overlay Circles",
+          "type": "bugfix",
+          "num": 3,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-12T00:00:00",
+            "in-progress": "2026-03-13T00:00:00",
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0004",
+          "file": "0004-merge-origin-main-example-datasets.md",
+          "title": "Merge origin/main - Bernds EXAMPLE-Datasets",
+          "type": "merge",
+          "num": 4,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": "2026-03-24T14:18:00"
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0005",
+          "file": "0005-code-review-2026-03-05.md",
+          "title": "Code Review 2026 03 05",
+          "type": "bugfix",
+          "num": 5,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0006",
+          "file": "0006-code-review-2026-03-06.md",
+          "title": "Code Review 2026 03 06",
+          "type": "bugfix",
+          "num": 6,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0007",
+          "file": "0007-code-review-2026-03-09.md",
+          "title": "Code Review 2026 03 09",
+          "type": "bugfix",
+          "num": 7,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0008",
+          "file": "0008-fix-analysis-explorer-table-layout.md",
+          "title": "Fix Analysis Explorer Table Layout",
+          "type": "bugfix",
+          "num": 8,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0009",
+          "file": "0009-code-review-2026-03-08.md",
+          "title": "Code Review 2026 03 08",
+          "type": "bugfix",
+          "num": 9,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0010",
+          "file": "0010-fix-documentation-review-findings.md",
+          "title": "Fix Documentation Review Findings",
+          "type": "bugfix",
+          "num": 10,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0011",
+          "file": "0011-code-review-2026-03-11.md",
+          "title": "Code Review 2026 03 11",
+          "type": "bugfix",
+          "num": 11,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0012",
+          "file": "0012-code-review-codex-2026-03-02.md",
+          "title": "Code Review Codex 2026 03 02",
+          "type": "bugfix",
+          "num": 12,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0013",
+          "file": "0013-code-review-2026-03-12.md",
+          "title": "Code Review 2026 03 12",
+          "type": "bugfix",
+          "num": 13,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0014",
+          "file": "0014-code-review-2026-03-10.md",
+          "title": "Code Review 2026 03 10",
+          "type": "bugfix",
+          "num": 14,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0015",
+          "file": "0015-cleanup-tvps-length-dead-code.md",
+          "title": "Cleanup Tvps Length Dead Code",
+          "type": "bugfix",
+          "num": 15,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0016",
+          "file": "0016-fix-geomap-positive-integer-crash.md",
+          "title": "Fix Geomap Positive Integer Crash",
+          "type": "bugfix",
+          "num": 16,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0017",
+          "file": "0017-fix-testtrack-geometry-totalength.md",
+          "title": "Fix Testtrack Geometry Totalength",
+          "type": "bugfix",
+          "num": 17,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0018",
+          "file": "0018-geo-compass-convention-code-switch.md",
+          "title": "Geo Compass Convention Code Switch",
+          "type": "bugfix",
+          "num": 18,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0019",
+          "file": "0019-fix-tvps-length-derivation-bug.md",
+          "title": "Fix Tvps Length Derivation Bug",
+          "type": "bugfix",
+          "num": 19,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0020",
+          "file": "0020-geo-phase1-foundation.md",
+          "title": "Geo Phase1 Foundation",
+          "type": "bugfix",
+          "num": 20,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0021",
+          "file": "0021-geo-phase2-infrastructure-geo-collector.md",
+          "title": "Geo Phase2 Infrastructure Geo Collector",
+          "type": "bugfix",
+          "num": 21,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0022",
+          "file": "0022-geo-phase4-gui-integration.md",
+          "title": "Geo Phase4 Gui Integration",
+          "type": "bugfix",
+          "num": 22,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0023",
+          "file": "0023-geo-phase3-violation-matcher-and-map-generator.md",
+          "title": "Geo Phase3 Violation Matcher And Map Generator",
+          "type": "bugfix",
+          "num": 23,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0024",
+          "file": "0024-geo-phase5a-missing-classes-tvps.md",
+          "title": "Geo Phase5a Missing Classes Tvps",
+          "type": "bugfix",
+          "num": 24,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0025",
+          "file": "0025-geo-phase5c-inline-expansion-hyperlinks.md",
+          "title": "Geo Phase5c Inline Expansion Hyperlinks",
+          "type": "bugfix",
+          "num": 25,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0026",
+          "file": "0026-geo-phase5b-tree-settings-search.md",
+          "title": "Geo Phase5b Tree Settings Search",
+          "type": "bugfix",
+          "num": 26,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0027",
+          "file": "0027-geo-phase5d-report-generation.md",
+          "title": "Geo Phase5d Report Generation",
+          "type": "bugfix",
+          "num": 27,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0028",
+          "file": "0028-geo-phase5e-svg-symbols.md",
+          "title": "Geo Phase5e Svg Symbols",
+          "type": "bugfix",
+          "num": 28,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0029",
+          "file": "0029-geo-refinements-1.md",
+          "title": "Geo Refinements 1",
+          "type": "bugfix",
+          "num": 29,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0030",
+          "file": "0030-geo-refinements-2.md",
+          "title": "Geo Refinements 2",
+          "type": "bugfix",
+          "num": 30,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0031",
+          "file": "0031-geometry-rendering-analysis.md",
+          "title": "Geometry Rendering Analysis",
+          "type": "bugfix",
+          "num": 31,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0032",
+          "file": "0032-gui-sponsor-logos-prompt.md",
+          "title": "Gui Sponsor Logos Prompt",
+          "type": "bugfix",
+          "num": 32,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0033",
+          "file": "0033-phase1-folder-structure-and-cleanup-prompt.md",
+          "title": "Phase1 Folder Structure And Cleanup Prompt",
+          "type": "bugfix",
+          "num": 33,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0034",
+          "file": "0034-gui-external-file-paths.md",
+          "title": "Gui External File Paths",
+          "type": "bugfix",
+          "num": 34,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0035",
+          "file": "0035-phase2-split-structure-rules-prompt.md",
+          "title": "Phase2 Split Structure Rules Prompt",
+          "type": "bugfix",
+          "num": 35,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0036",
+          "file": "0036-prompt-horizontal-geometry-implementation.md",
+          "title": "Prompt Horizontal Geometry Implementation",
+          "type": "bugfix",
+          "num": 36,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0037",
+          "file": "0037-ux-readme-markdown-rendering-prompt.md",
+          "title": "Ux Readme Markdown Rendering Prompt",
+          "type": "bugfix",
+          "num": 37,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0038",
+          "file": "0038-ux-improvements-prompt.md",
+          "title": "Ux Improvements Prompt",
+          "type": "bugfix",
+          "num": 38,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0039",
+          "file": "0039-ux-filter-alignment-and-selectall-checkbox-prompt.md",
+          "title": "Ux Filter Alignment And Selectall Checkbox Prompt",
+          "type": "bugfix",
+          "num": 39,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0040",
+          "file": "0040-package-source-code.md",
+          "title": "Source Code Packaging",
+          "type": "bugfix",
+          "num": 40,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-10T00:00:00",
+            "in-progress": "2026-03-14T00:00:00",
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0041",
+          "file": "0041-code-review-2026-03-13.md",
+          "title": "Code Review 2026 03 13",
+          "type": "bugfix",
+          "num": 41,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0042",
+          "file": "0042-package-windows-executable.md",
+          "title": "Package Windows Executable",
+          "type": "bugfix",
+          "num": 42,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-14T00:00:00",
+            "in-progress": null,
+            "done": "2026-03-14T00:00:00",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0045",
+          "file": "0045-remove-norden-dataset.md",
+          "title": "Remove Norden Dataset",
+          "type": "bugfix",
+          "num": 45,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-16T15:59:20",
+            "in-progress": null,
+            "done": "2026-03-16T15:59:20",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0046",
+          "file": "0046-fix-tvps-track-alignment.md",
+          "title": "Fix Tvps Track Alignment",
+          "type": "bugfix",
+          "num": 46,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-16T18:45:12",
+            "in-progress": null,
+            "done": "2026-03-16T18:45:12",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0047",
+          "file": "0047-fix-balisegroup-direction.md",
+          "title": "Fix Balisegroup Direction",
+          "type": "bugfix",
+          "num": 47,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-16T19:19:46",
+            "in-progress": null,
+            "done": "2026-03-16T19:19:46",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0051",
+          "file": "0051-fix-tvps-negative-length-tooltip.md",
+          "title": "Fix Tvps Negative Length Tooltip",
+          "type": "bugfix",
+          "num": 51,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-17T15:24:49",
+            "in-progress": null,
+            "done": "2026-03-17T15:24:49",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0054",
+          "file": "0054-fix-geo-layer-initial-draw-bug.md",
+          "title": "Fix Geo Layer Initial Draw Bug",
+          "type": "bugfix",
+          "num": 54,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-17T22:34:11",
+            "in-progress": null,
+            "done": "2026-03-17T22:34:11",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0055",
+          "file": "0055-analyze-tvps-unconnected-detectors.md",
+          "title": "Analyze Tvps Unconnected Detectors",
+          "type": "bugfix",
+          "num": 55,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-17T23:16:56",
+            "in-progress": null,
+            "done": "2026-03-17T23:16:56",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0056",
+          "file": "0056-etcsmarker-stop-vs-location.md",
+          "title": "Etcsmarker Stop Vs Location",
+          "type": "bugfix",
+          "num": 56,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T00:26:29",
+            "in-progress": null,
+            "done": "2026-03-18T00:26:29",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0057",
+          "file": "0057-geo-markerboard-offset-from-track.md",
+          "title": "Geo Markerboard Offset From Track",
+          "type": "bugfix",
+          "num": 57,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T01:26:10",
+            "in-progress": null,
+            "done": "2026-03-18T01:26:10",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0058",
+          "file": "0058-test-shacl-loading-and-cli-docs.md",
+          "title": "Test Shacl Loading And Cli Docs",
+          "type": "bugfix",
+          "num": 58,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T01:37:49",
+            "in-progress": null,
+            "done": "2026-03-18T01:37:49",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0059",
+          "file": "0059-test-geomap-smoke.md",
+          "title": "Test Geomap Smoke",
+          "type": "bugfix",
+          "num": 59,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T01:56:29",
+            "in-progress": null,
+            "done": "2026-03-18T01:56:29",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0062",
+          "file": "0062-geo-stopmarker-visual-refinement.md",
+          "title": "Geo Stopmarker Visual Refinement",
+          "type": "bugfix",
+          "num": 62,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T12:08:07",
+            "in-progress": null,
+            "done": "2026-03-18T12:08:07",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0064",
+          "file": "0064-build-all-script.md",
+          "title": "Build All Script",
+          "type": "bugfix",
+          "num": 64,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T15:50:18",
+            "in-progress": null,
+            "done": "2026-03-18T15:50:18",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0065",
+          "file": "0065-introduce-git-release-tagging.md",
+          "title": "Introduce Git Release Tagging",
+          "type": "bugfix",
+          "num": 65,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T15:50:18",
+            "in-progress": null,
+            "done": "2026-03-18T15:50:18",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0066",
+          "file": "0066-fix-tvps-geo-rendering.md",
+          "title": "Fix Tvps Geo Rendering",
+          "type": "bugfix",
+          "num": 66,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T15:56:08",
+            "in-progress": null,
+            "done": "2026-03-18T15:56:08",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0067",
+          "file": "0067-fix-rule-documentation-conventions.md",
+          "title": "Fix Rule Documentation Conventions",
+          "type": "bugfix",
+          "num": 67,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-18T20:19:18",
+            "in-progress": null,
+            "done": "2026-03-18T20:19:18",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0073",
+          "file": "0073-tvps-overlay-seven-colors.md",
+          "title": "Tvps Overlay Seven Colors",
+          "type": "bugfix",
+          "num": 73,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-19T11:27:29",
+            "in-progress": null,
+            "done": "2026-03-19T11:27:29",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0082",
+          "file": "0082-show-unmapped-violations-on-geomap.md",
+          "title": "Show Unmapped Violations On Geomap",
+          "type": "bugfix",
+          "num": 82,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-20T10:29:22",
+            "in-progress": null,
+            "done": "2026-03-20T10:29:22",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0081",
+          "file": "0081-set-validator-app-icon.md",
+          "title": "Validator App-Icon: Planner-Icon übernehmen",
+          "type": "bugfix",
+          "num": 81,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-20T10:10:00",
+            "in-progress": "2026-03-20",
+            "done": "2026-03-20",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0083",
+          "file": "0083-improve-sponsor-logo-resolution.md",
+          "title": "Improve Sponsor Logo Resolution",
+          "type": "bugfix",
+          "num": 83,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-20T11:28:54",
+            "in-progress": null,
+            "done": "2026-03-20T11:28:54",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0084",
+          "file": "0084-flip-sponsor-logo-order.md",
+          "title": "Flip Sponsor Logo Order",
+          "type": "bugfix",
+          "num": 84,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-20T12:51:52",
+            "in-progress": null,
+            "done": "2026-03-20T12:51:52",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0088",
+          "file": "0088-fix-geo-map-status-overlay-hides-controls.md",
+          "title": "Fix Geo Map Status Overlay Hides Controls",
+          "type": "bugfix",
+          "num": 88,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-20T13:22:43",
+            "in-progress": null,
+            "done": "2026-03-20T13:22:43",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0090",
+          "file": "0090-unmapped-violation-related-elements-highlighting.md",
+          "title": "Unmapped Violation Related Elements Highlighting",
+          "type": "feature",
+          "num": 90,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-20T14:21:42",
+            "in-progress": null,
+            "done": "2026-03-20T20:21:05",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0089",
+          "file": "0089-cleanup-validation-output.md",
+          "title": "Cleanup Validation Output",
+          "type": "bugfix",
+          "num": 89,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-20T13:30:54",
+            "in-progress": null,
+            "done": "2026-03-20T13:30:54",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0092",
+          "file": "0092-remove-summary-dialog-open-geomap-directly.md",
+          "title": "Remove Summary Dialog Open Geomap Directly",
+          "type": "bugfix",
+          "num": 92,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-20T14:32:52",
+            "in-progress": null,
+            "done": "2026-03-20T20:15:07",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0091",
+          "file": "0091-geo-map-legal-attribution.md",
+          "title": "Geo Map Legal Attribution",
+          "type": "bugfix",
+          "num": 91,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-20T14:24:12",
+            "in-progress": null,
+            "done": "2026-03-20T14:24:12",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0095",
+          "file": "0095-export-validation-report-pdf.md",
+          "title": "Export Validation Report Pdf",
+          "type": "bugfix",
+          "num": 95,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-20T15:27:54",
+            "in-progress": null,
+            "done": "2026-03-20T15:27:54",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0099",
+          "file": "0099-source-citation-poc.md",
+          "title": "Source Citation Poc",
+          "type": "bugfix",
+          "num": 99,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-20T20:48:54",
+            "in-progress": null,
+            "done": "2026-03-20T20:48:54",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0100",
+          "file": "0100-bidirectional-explorer-geomap-linking.md",
+          "title": "Bidirectional Explorer Geomap Linking",
+          "type": "bugfix",
+          "num": 100,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-20T20:50:54",
+            "in-progress": null,
+            "done": "2026-03-20T20:50:54",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0137",
+          "file": "0137-fix-documentation-waseem-review.md",
+          "title": "Fix: Dokumentation - Review-Findings Waseem (V0.3.0)",
+          "type": "documentation",
+          "num": 137,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-24T13:38:06",
+            "in-progress": "2026-03-24T14:14:58",
+            "done": "2026-03-24T14:57:14",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0138",
+          "file": "0138-fix-kanprompt-registry-sync.md",
+          "title": "Housekeeping: KanPrompt Disk/Registry Abweichungen aufl�sen",
+          "type": "fix",
+          "num": 138,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-24T14:13:59",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0119",
+          "file": "0119-card.md",
+          "title": "Refactoring: Zentrales Layer-Visibility-Management f�r GeoMap",
+          "type": "refactoring",
+          "num": 119,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-24T14:17:58",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0120",
+          "file": "0120-card.md",
+          "title": "Refactoring: Severity-Enum statt Magic Strings",
+          "type": "refactoring",
+          "num": 120,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-24T14:17:59",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0116",
+          "file": "0116-card.md",
+          "title": "Fix: Analysis-Explorer zeigt Errors, die im GeoMap-Viewer fehlen (Example_2)",
+          "type": "bugfix",
+          "num": 116,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-24T14:18:25",
+            "in-progress": null,
+            "done": "2026-03-24T14:30:20",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0117",
+          "file": "0117-card.md",
+          "title": "Fix: TVPS-Tooltip zeigt bei Multi-Segment-TVPS keine Segment-Aufloesung",
+          "type": "bugfix",
+          "num": 117,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-24T14:18:27",
+            "in-progress": null,
+            "done": "2026-03-24T14:30:10",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0118",
+          "file": "0118-card.md",
+          "title": "Feature: TVPS-Overlay-Breite per Regler einstellen",
+          "type": "feature",
+          "num": 118,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-24T14:18:29",
+            "in-progress": null,
+            "done": "2026-03-24T14:30:03",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0121",
+          "file": "0121-card.md",
+          "title": "Fix: Sponsor-Logos Anordnung gemaess Waseem-Vorgabe",
+          "type": "bugfix",
+          "num": 121,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-24T14:18:31",
+            "in-progress": null,
+            "done": "2026-03-24T14:29:58",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0122",
+          "file": "0122-card.md",
+          "title": "Fix: Filter buttons must not hide infrastructure markers on the map",
+          "type": "bugfix",
+          "num": 122,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-24T14:18:32",
+            "in-progress": null,
+            "done": "2026-03-24T14:29:53",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0136",
+          "file": "0136-card.md",
+          "title": "Fix: PDF Report shows Ontology N/A instead of actual ontology file path",
+          "type": "bugfix",
+          "num": 136,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-24T14:18:34",
+            "in-progress": null,
+            "done": "2026-03-24T14:29:47",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0103",
+          "file": "0103-card.md",
+          "title": "Console-Encoding auf UTF-8 fixieren (Windows-Codepage-Problem)",
+          "type": "task",
+          "num": 103,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-25T11:06:14",
+            "in-progress": "2026-03-25T11:54:32",
+            "done": "2026-03-25T11:54:34",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0104",
+          "file": "0104-card.md",
+          "title": "GeoMap: Zoom-In auf Violation + TreePanel-Positionierung bei Explorer-Selektion",
+          "type": "feature",
+          "num": 104,
+          "status": "done",
+          "timestamps": {
+            "new": "2026-03-25T12:19:51",
+            "in-progress": "2026-03-25T15:04:07",
+            "done": "2026-03-25T15:04:11",
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0105",
+          "file": "0105-card.md",
+          "title": "ADR-012: Implement ViolationContext pattern",
+          "type": "feature",
+          "num": 105,
+          "status": "new",
+          "timestamps": {
+            "new": "2026-03-25T15:58:09",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0106",
+          "file": "0106-card.md",
+          "title": "Geo Map: Visual highlighting for affected elements",
+          "type": "feature",
+          "num": 106,
+          "status": "new",
+          "timestamps": {
+            "new": "2026-03-25T16:51:02",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0107",
+          "file": "0107-card.md",
+          "title": "ADR-012: Implement ViolationContext pattern",
+          "type": "prompt",
+          "num": 107,
+          "status": "deleted",
+          "timestamps": {
+            "new": "2026-03-26T10:06:05",
+            "in-progress": null,
+            "done": null,
+            "deleted": "2026-03-26T10:06:26"
+          },
+          "blocked": false,
+          "blockedBy": null
+        }
+      ],
+      "cardPriority": [
+        105,
+        106,
+        69,
+        78,
+        77,
+        75,
+        63,
+        61,
+        60,
+        53,
+        52,
+        48,
+        49,
+        50,
+        44,
+        43,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        45,
+        46,
+        47,
+        51,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        62,
+        64,
+        65,
+        66,
+        67,
+        73,
+        82,
+        81,
+        83,
+        84,
+        88,
+        90,
+        89,
+        92,
+        91,
+        95,
+        99,
+        100,
+        137,
+        138,
+        119,
+        120,
+        116,
+        117,
+        118,
+        121,
+        122,
+        136,
+        103,
+        104,
+        107
+      ],
+      "worktrees": [],
+      "lastSnapshotAt": null
+    },
+    "KanPrompt": {
+      "projectPath": "C:\\git\\local\\KanPrompt",
+      "gitRemote": null,
+      "worktreeBase": null,
+      "mainBranch": "master",
+      "worktreeBaseDir": null,
+      "promptsDir": "doc/prompts",
+      "versionFiles": [],
+      "changelogFile": "CHANGELOG.md",
+      "branchPattern": "feature/{slug}",
+      "nextNum": 101,
       "cards": [
         {
           "id": "0093",
@@ -873,11 +2617,11 @@
           "title": "Legacy-Datenhaltung aus kanprompt.html entfernen — Companion als einzige Datenquelle",
           "type": "feature",
           "num": 95,
-          "status": "new",
+          "status": "done",
           "timestamps": {
             "new": "2026-03-23T23:49:37",
             "in-progress": null,
-            "done": null,
+            "done": "2026-03-24T18:50:28",
             "deleted": null
           },
           "blocked": false,
@@ -930,15 +2674,48 @@
           },
           "blocked": false,
           "blockedBy": null
+        },
+        {
+          "id": "0099",
+          "file": "0099-kanprompt-mcp-server.md",
+          "title": "Feature: KanPrompt als MCP-Server",
+          "type": "feature",
+          "num": 99,
+          "status": "new",
+          "timestamps": {
+            "new": "2026-03-24T13:58:57",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
+        },
+        {
+          "id": "0100",
+          "file": "0100-feat-neues-projekt-von-startseite-registrieren.md",
+          "title": "Neues Projekt von der Startseite registrieren",
+          "type": "feature",
+          "num": 100,
+          "status": "new",
+          "timestamps": {
+            "new": "2026-03-24T17:27:05",
+            "in-progress": null,
+            "done": null,
+            "deleted": null
+          },
+          "blocked": false,
+          "blockedBy": null
         }
       ],
       "cardPriority": [
-        95,
-        62,
+        100,
         91,
+        62,
         92,
         94,
         98,
+        99,
         93,
         90,
         73,
@@ -988,9 +2765,26 @@
         78,
         83,
         82,
+        95,
         96,
         97
       ],
+      "worktrees": [],
+      "lastSnapshotAt": null
+    },
+    "stock_reports": {
+      "projectPath": "C:\\Users\\christian.mangold\\git\\stock_reports",
+      "gitRemote": null,
+      "worktreeBase": null,
+      "mainBranch": "master",
+      "worktreeBaseDir": null,
+      "promptsDir": "doc/prompts",
+      "versionFiles": [],
+      "changelogFile": "CHANGELOG.md",
+      "branchPattern": "feature/{slug}",
+      "nextNum": 1,
+      "cards": [],
+      "cardPriority": [],
       "worktrees": [],
       "lastSnapshotAt": null
     }

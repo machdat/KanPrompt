@@ -2,73 +2,75 @@
 // Einmaliges Cleanup: Entfernt Sync-Duplikate die durch den alten Frontend-Code
 // nach der Migration erstellt wurden. Betrifft KanPrompt-Projekt.
 //
+// Verwendet die Companion-API (Server muss laufen auf Port 9177).
+//
 // Verwendung:
 //   node scripts/cleanup-duplicates.js [--dry-run]
 
-const fs = require('fs');
-const path = require('path');
+const http = require('http');
 
 const dryRun = process.argv.includes('--dry-run');
-const REGISTRY_FILE = path.join(__dirname, '..', 'companion', 'projects-registry.json');
+const BASE = 'http://localhost:9177';
 
-if (!fs.existsSync(REGISTRY_FILE)) {
-  console.error('Registry nicht gefunden:', REGISTRY_FILE);
-  process.exit(1);
+function api(method, path, body) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(path, BASE);
+    const opts = { hostname: url.hostname, port: url.port, path: url.pathname, method, headers: { 'Content-Type': 'application/json' } };
+    const req = http.request(opts, res => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 400) return reject(new Error(`${method} ${path} → ${res.statusCode}: ${data}`));
+        resolve(JSON.parse(data));
+      });
+    });
+    req.on('error', reject);
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
 }
 
-const registry = JSON.parse(fs.readFileSync(REGISTRY_FILE, 'utf-8'));
+async function main() {
+  // Alle Projekte laden
+  const { projects } = await api('GET', '/api/projects');
 
-for (const [projectId, project] of Object.entries(registry.projects || {})) {
-  if (!project.cards || project.cards.length === 0) continue;
+  for (const [projectId, summary] of Object.entries(projects)) {
+    const project = await api('GET', `/api/projects/${projectId}`);
+    const cards = project.cards || [];
+    if (cards.length === 0) continue;
 
-  // Find original cards (old slug-based ids) and sync-duplicates (NNNN-slug ids)
-  const originals = project.cards.filter(c => !/^\d{4}-/.test(c.id) && !/^\d{4}$/.test(c.id));
-  const duplicates = project.cards.filter(c => /^\d{4}-/.test(c.id));
+    const originals = cards.filter(c => !/^\d{4}-/.test(c.id) && !/^\d{4}$/.test(c.id));
+    const duplicates = cards.filter(c => /^\d{4}-/.test(c.id));
 
-  if (duplicates.length === 0) continue;
+    if (duplicates.length === 0) continue;
 
-  console.log(`\n=== Projekt: ${projectId} ===`);
-  console.log(`  ${originals.length} Original-Karten, ${duplicates.length} Sync-Duplikate`);
+    console.log(`\n=== Projekt: ${projectId} ===`);
+    console.log(`  ${originals.length} Original-Karten, ${duplicates.length} Sync-Duplikate`);
 
-  // Build set of original filenames (after migration, files on disk are NNNN-slug.md)
-  // Duplicates have id like "0001-setup-git-repo" and file like "0001-setup-git-repo.md"
-  // These are cards the sync created because it found the renamed files
-
-  for (const dup of duplicates) {
-    console.log(`  Entferne Duplikat: num=${dup.num} id="${dup.id}" file="${dup.file}"`);
-  }
-
-  if (!dryRun) {
-    // Remove duplicates from cards array
-    project.cards = project.cards.filter(c => !/^\d{4}-/.test(c.id));
-
-    // Remove duplicate nums from cardPriority
-    const dupNums = new Set(duplicates.map(d => d.num));
-    if (project.cardPriority) {
-      project.cardPriority = project.cardPriority.filter(n => !dupNums.has(n));
+    for (const dup of duplicates) {
+      console.log(`  Entferne Duplikat: num=${dup.num} id="${dup.id}" file="${dup.file}"`);
     }
 
-    // Reset nextNum to original value (before duplicates were created)
-    // Find the max num among originals
-    const maxOrigNum = Math.max(...originals.map(c => c.num), 0);
-    if (project.nextNum > maxOrigNum + 1) {
-      console.log(`  nextNum: ${project.nextNum} → ${maxOrigNum + 1}`);
-      project.nextNum = maxOrigNum + 1;
+    if (!dryRun) {
+      // Duplikate über API löschen
+      for (const dup of duplicates) {
+        await api('DELETE', `/api/projects/${projectId}/cards/${dup.id}`);
+      }
+
+      // cardPriority bereinigen (Duplikat-Nummern entfernen)
+      const dupNums = new Set(duplicates.map(d => d.num));
+      const cleanPriority = (project.cardPriority || []).filter(n => !dupNums.has(n));
+      await api('PUT', `/api/projects/${projectId}/card-priority`, { cardPriority: cleanPriority });
     }
+
+    console.log(`  ${duplicates.length} Duplikate ${dryRun ? 'würden' : ''} entfernt`);
   }
 
-  console.log(`  ${duplicates.length} Duplikate ${dryRun ? 'würden' : ''} entfernt`);
+  if (dryRun) {
+    console.log('\n[DRY RUN] Keine Änderungen vorgenommen.');
+  } else {
+    console.log('\nRegistry über Companion-API bereinigt.');
+  }
 }
 
-if (dryRun) {
-  console.log('\n[DRY RUN] Registry wurde NICHT geschrieben.');
-} else {
-  registry.lastUpdated = new Date().toISOString().replace(/\.\d{3}Z$/, '');
-  const tmp = REGISTRY_FILE + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(registry, null, 2), 'utf-8');
-  try { fs.renameSync(tmp, REGISTRY_FILE); } catch {
-    try { fs.unlinkSync(REGISTRY_FILE); } catch {}
-    fs.renameSync(tmp, REGISTRY_FILE);
-  }
-  console.log('\nRegistry bereinigt und gespeichert.');
-}
+main().catch(err => { console.error('Fehler:', err.message); process.exit(1); });
